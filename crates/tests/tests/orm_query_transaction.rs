@@ -29,7 +29,7 @@ async fn test_transaction_with_surreal_queries_macro() -> SurrealOrmResult<()> {
 
     let amount_to_transfer = 300.00;
     let transaction_query = begin_transaction()
-        .query(query_turbo!(
+        .query(chain!(
             let balance = create_only().content(Balance {
                 id: Balance::create_id("balance1".into()),
                 amount: amount_to_transfer,

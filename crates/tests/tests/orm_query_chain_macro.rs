@@ -16,7 +16,7 @@ use surrealdb::{engine::local::Mem, Surreal};
 fn test_duplicate_variable_name_properly_chain_bound_in_query_chain() {
     let account_table = &Account::table();
 
-    let query = query_turbo! {
+    let query = chain! {
         let var_name = select(All).from(account_table);
         let var_name = "Oyelowo";
         let var_name = "Oyedayo";
@@ -28,10 +28,10 @@ fn test_duplicate_variable_name_properly_chain_bound_in_query_chain() {
 }
 
 #[test]
-fn test_duplicate_variable_name_properly_chain_bound_in_query_turbo_transaction() {
+fn test_duplicate_variable_name_properly_chain_bound_in_chain_transaction() {
     let account_table = &Account::table();
 
-    let query = query_turbo! {
+    let query = chain! {
         begin transaction;
 
         let var_name = select(All).from(account_table);
@@ -47,10 +47,10 @@ fn test_duplicate_variable_name_properly_chain_bound_in_query_turbo_transaction(
 }
 
 #[test]
-fn test_duplicate_variable_name_properly_chain_bound_in_query_turbo_block() {
+fn test_duplicate_variable_name_properly_chain_bound_in_chain_block() {
     let account_table = &Account::table();
 
-    let query = query_turbo! {
+    let query = chain! {
         let var_name = "Oyelowo";
         let var_name = select(All).from(account_table);
         let var_name = "Oyedayo";
@@ -104,7 +104,7 @@ async fn test_simple_standalone_for_loop() -> SurrealOrmResult<()> {
     let account::Schema { balance, .. } = Account::schema();
     let account_table = Account::table();
 
-    let query = query_turbo! {
+    let query = chain! {
         for name in vec!["Oyelowo", "Oyedayo"] {
             let new_bal = 5;
             select(All).from(account_table).where_(balance.eq(new_bal));
@@ -124,7 +124,7 @@ async fn test_multiple_for_loops() -> SurrealOrmResult<()> {
 
     let names_closure = || vec!["Oyelowo", "Oyedayo"];
 
-    let query = query_turbo! {
+    let query = chain! {
         for name in vec!["Oyelowo", "Oyedayo"] {
             let new_bal = 5;
             select(All).from(account_table).where_(balance.eq(new_bal));
@@ -161,7 +161,7 @@ async fn test_simple_standalone_if_else() -> SurrealOrmResult<()> {
     // let xx = {
     // };
 
-    let query = query_turbo! {
+    let query = chain! {
         let first_cond = balance.gte(100);
         if first_cond {
             let first_name = "Oyelowo";
@@ -192,7 +192,7 @@ async fn test_simple_standalone_if_else() -> SurrealOrmResult<()> {
 async fn test_multiple_if_else() -> SurrealOrmResult<()> {
     let account::Schema { balance, .. } = Account::schema();
 
-    let query = query_turbo! {
+    let query = chain! {
         let within_turbo_cond = balance.equal(33);
         let cond_username = if  within_turbo_cond {
             let first_name = "Oyelowo";
@@ -256,7 +256,7 @@ async fn test_transaction_with_block_macro() -> SurrealOrmResult<()> {
 
     let account::Schema { balance, .. } = Account::schema();
 
-    let query_chain = query_turbo! {
+    let query_chain = chain! {
         begin transaction;
          let balance1 = create_only().content(Balance {
                 id: Balance::create_id("balance1".to_string()),

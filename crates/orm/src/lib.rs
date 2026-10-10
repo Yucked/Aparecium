@@ -57,7 +57,7 @@ pub use aparecium_macros::Node;
 pub use aparecium_macros::Object;
 
 pub use aparecium_macros::{
-    block, define_function, for_, pick, query, query_raw, query_turbo, transaction, Pickable,
+    block, chain, define_function, for_, pick, query, query_raw, transaction, Pickable,
     TableResources,
 };
 

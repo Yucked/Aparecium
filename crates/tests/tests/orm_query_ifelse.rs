@@ -8,7 +8,7 @@ use pretty_assertions::assert_eq;
 use serde::{Deserialize, Serialize};
 use aparecium_tests::{weapon, SpaceShip, Weapon};
 use aparecium::{
-    block, chain, query_turbo,
+    block, chain,
     statements::{if_, insert, let_, order, select, update, LetStatement},
     All, Buildable, Model, Operatable, ReturnableSelect, Runnable, SchemaGetter, SetterAssignable,
     SurrealOrmResult, ToRaw,
@@ -95,7 +95,7 @@ async fn test_if_else_statement_and_let_with_block_macro() -> SurrealOrmResult<(
         // if you use return keyword in any of the if blocks, you have to
         // // to use in other blocks also if you want the statement be returned.
         // // but if you dont use in any, it will implicitly return all last statements.
-        query_turbo! {
+        chain! {
             return if (val.greater_than(5)) {
                 select(All).from(space_ship).order_by(order(name).desc());
                 return 6;
