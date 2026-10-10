@@ -25,6 +25,7 @@ tempfile = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt"] }
+trybuild = { workspace = true }
 pretty_assertions = { workspace = true }
 uuid = { workspace = true }
 rand = { workspace = true }
@@ -41,3 +42,4 @@ strum_macros = { workspace = true }
 thiserror = { workspace = true }
 paste = { workspace = true }
 nom = { workspace = true }
+surrealdb-syn = { workspace = true }

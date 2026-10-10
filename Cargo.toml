@@ -24,6 +24,8 @@ aparecium-macros = { path = "crates/macros" }
 
 # Engines, transports, TLS and scripting are opted into through `aparecium` features.
 surrealdb = { version = "3.3.3", default-features = false }
+# SurrealDB's internal parser (no SemVer guarantee); keep the same requirement as `surrealdb`.
+surrealdb-syn = "3.3.3"
 
 syn = { version = "3.0.7", features = ["full", "extra-traits", "fold", "visit", "visit-mut"] }
 quote = "1.0.47"
@@ -41,7 +43,6 @@ paste = "1.0.15"
 chrono = { version = "0.4.45", features = ["serde"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
-async-trait = "0.1.92"
 thiserror = "2.0.21"
 uuid = "1.28.0"
 tokio = "1.53.2"
@@ -59,3 +60,4 @@ insta = "1.49.0"
 pretty_assertions = "1.4.1"
 static_assertions = "1.1.0"
 test-case = "3.4.0"
+trybuild = "1.0.122"
