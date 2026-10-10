@@ -1,6 +1,0 @@
-REMOVE TABLE planet;
-REMOVE TABLE student;
-REMOVE TABLE eats;
-REMOVE TABLE crop;
-REMOVE TABLE migration;
-REMOVE TABLE animal;
