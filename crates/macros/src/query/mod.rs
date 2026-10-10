@@ -6,7 +6,6 @@
 
 use proc_macro2::{Ident, Span, TokenStream, TokenTree};
 use quote::ToTokens;
-use surrealdb::sql;
 use syn::parse::{Parse, ParseStream};
 use syn::parse2;
 use syn::punctuated::Punctuated;
@@ -75,17 +74,12 @@ pub(crate) fn parse_args(input: TokenStream) -> Result<(Expr, Vec<String>, Vec<B
         }
     }
 
-    let queries = match iter.next() {
+    let literals = match iter.next() {
         Some(proc_macro2::TokenTree::Literal(lit)) => {
-            vec![syn::parse2::<LitStr>(lit.to_token_stream())?.value()]
+            vec![syn::parse2::<LitStr>(lit.to_token_stream())?]
         }
         Some(TokenTree::Group(group)) if group.delimiter() == proc_macro2::Delimiter::Bracket => {
-            let queries_tokens = group.into_token_stream();
-            parse2::<Queries>(queries_tokens)?
-                .query_strings
-                .into_iter()
-                .map(|lit_str| lit_str.value())
-                .collect()
+            parse2::<Queries>(group.into_token_stream())?.query_strings
         }
         _ => {
             return Err(syn::Error::new(
@@ -95,15 +89,10 @@ pub(crate) fn parse_args(input: TokenStream) -> Result<(Expr, Vec<String>, Vec<B
         }
     };
 
-    for query in &queries {
-        let sql = sql::parse(query.trim());
-        match sql {
-            Ok(value) => value,
-            Err(value) => {
-                return Err(syn::Error::new_spanned(input.clone(), value));
-            }
-        };
+    for literal in &literals {
+        crate::surql::validate(&literal.value(), literal.span())?;
     }
+    let queries: Vec<String> = literals.iter().map(LitStr::value).collect();
 
     let has_placeholders = queries.join(";").contains('$');
     let mut bindings = Vec::new();

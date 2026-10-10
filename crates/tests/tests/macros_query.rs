@@ -4,6 +4,8 @@
 
 #[path = "../../macros/src/query/mod.rs"]
 mod query;
+#[path = "../../macros/src/surql.rs"]
+mod surql;
 
 mod tests {
     use crate::query::*;

@@ -25,5 +25,5 @@ thiserror = { workspace = true }
 paste = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
 nom = { workspace = true }
-# Stand-in for compile-time query validation (`query_raw!`, `query!`); the parser choice belongs to #6.
-surrealdb = { workspace = true }
+# Compile-time SurrealQL syntax validation, contained in `src/surql.rs`.
+surrealdb-syn = { workspace = true }
