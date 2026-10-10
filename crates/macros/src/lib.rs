@@ -7,7 +7,6 @@
 use darling::FromDeriveInput;
 use proc_macro::TokenStream;
 use quote::quote;
-use surrealdb::sql;
 use syn::{parse_macro_input, DeriveInput, LitStr};
 
 mod embed_migrations;
@@ -18,6 +17,7 @@ mod models;
 mod query;
 mod query_builder;
 mod statement_parser;
+mod surql;
 mod utilities;
 
 use migrations::table::TableMigrationSchemaDeriveAttributes;
@@ -74,6 +74,10 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
 /// Checks a query at compile time and returns the query as a string.
 /// Unlike, query! macro, this macro does not allow variable interpolation.
 ///
+/// # Validation
+/// Syntax only, using SurrealDB's own parser at the version Aparecium depends on: tables, fields,
+/// permissions and parameter types are not checked, and syntax newer than that version is rejected.
+///
 /// # Arguments
 /// * `query` - The query to be checked at compile time.
 ///
@@ -88,24 +92,21 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn query_raw(raw_input: TokenStream) -> TokenStream {
     let r_input = raw_input.clone();
-    let input = parse_macro_input!(r_input as LitStr);
-    let input = input.value();
-    let sql = sql::parse(input.as_str());
-
-    match sql {
-        Ok(value) => value,
-        Err(value) => {
-            return syn::Error::new_spanned(input, value)
-                .to_compile_error()
-                .into()
-        }
-    };
-    raw_input
+    let literal = parse_macro_input!(r_input as LitStr);
+    match surql::validate(&literal.value(), literal.span()) {
+        Ok(()) => raw_input,
+        Err(err) => err.to_compile_error().into(),
+    }
 }
 
 /// Checks one or multiple quer(ies) at compile time.
 /// It also allows interpolations of variables and can
 /// be run.
+///
+/// # Validation
+/// Syntax only, using SurrealDB's own parser at the version Aparecium depends on: tables, fields,
+/// permissions and parameter types are not checked, and syntax newer than that version is rejected.
+/// Every `$placeholder` must have a binding and every binding a placeholder.
 ///
 /// # Arguments
 /// * `db` - The database connection to be used.
@@ -176,7 +177,7 @@ pub fn query(raw_input: TokenStream) -> TokenStream {
 /// # Example
 ///
 /// ```rust, ignore
-/// query_turbo! {
+/// chain! {
 ///     let balance1 = create_only().content(Balance {
 ///     id: Balance::create_id("balance1".to_string()),
 ///         amount: amount_to_transfer,
@@ -237,7 +238,7 @@ pub fn query(raw_input: TokenStream) -> TokenStream {
 /// };
 ///
 /// // as transaction.
-/// query_turbo! {
+/// chain! {
 ///    BEGIN TRANSACTION;
 ///    let balance1 = create_only().content(Balance {
 ///         id: Balance::create_id("balance1".to_string()),
@@ -248,15 +249,15 @@ pub fn query(raw_input: TokenStream) -> TokenStream {
 /// };
 ///
 /// // as block.
-/// query_turbo! {
+/// chain! {
 ///   let result = select(All).from(Account::table()).where_(acc.balance.eq(5));
 ///
 ///   return result;
 /// };
 /// ```
 #[proc_macro]
-pub fn query_turbo(input: TokenStream) -> TokenStream {
-    query_builder::query_turbo(input)
+pub fn chain(input: TokenStream) -> TokenStream {
+    query_builder::query_chain(input)
 }
 
 /// A block is a series of queries that are executed as a single
@@ -394,8 +395,8 @@ pub fn define_function(input: TokenStream) -> TokenStream {
 }
 
 /// A helper function to create a standalone for loop if you don't want to define within
-/// query_turbo! or block! or transaction! macro. This is almost never necessary. Just use
-/// query_turbo! or block! or transaction! macro and define your for loop within it,
+/// chain! or block! or transaction! macro. This is almost never necessary. Just use
+/// chain! or block! or transaction! macro and define your for loop within it,
 ///
 /// ```rust, ignore
 /// use aparecium::{*, statements::select};
