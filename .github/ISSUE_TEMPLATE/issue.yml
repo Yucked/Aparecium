@@ -1,6 +1,6 @@
 name: Issue
 about: Report a bug, request a feature, or propose an improvement.
-title: ""
+title: "{BUG} - "
 body:
   - type: markdown
     attributes:
