@@ -1,5 +1,0 @@
----
-source: orm-tests/tests/query_define_function.rs
-expression: spaceship.to_raw().build()
----
-fn::get_or_create_spaceship(first_name, 'Oyedayo', $birthday, 5)

@@ -1,5 +1,0 @@
----
-source: surreal_orm-tests/tests/query_relate.rs
-expression: result
----
-[]

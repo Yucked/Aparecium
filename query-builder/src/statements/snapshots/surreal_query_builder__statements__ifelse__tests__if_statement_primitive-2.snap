@@ -1,8 +1,0 @@
----
-source: query-builder/src/statements/ifelse.rs
-expression: if_statement.to_raw().build()
----
-IF (age >= 18) AND (age <= 120) 
-	{ 'Valid' }
-ELSE
-	{ 'Invalid' };

@@ -1,5 +1,0 @@
----
-source: derive_helpers/src/utilities/pick.rs
-expression: tokenstream
----
-pub struct PickedPerson < T > { name : < Person < :: std :: marker :: PhantomData < dyn :: std :: any :: Any > , :: std :: marker :: PhantomData < dyn :: std :: any :: Any > , :: std :: marker :: PhantomData < dyn :: std :: any :: Any > , :: std :: marker :: PhantomData < dyn :: std :: any :: Any > , :: std :: marker :: PhantomData < dyn :: std :: any :: Any > , :: std :: marker :: PhantomData < dyn :: std :: any :: Any > , T > as PersonPickable > :: name , age : < Person < :: std :: marker :: PhantomData < dyn :: std :: any :: Any > , :: std :: marker :: PhantomData < dyn :: std :: any :: Any > , :: std :: marker :: PhantomData < dyn :: std :: any :: Any > , :: std :: marker :: PhantomData < dyn :: std :: any :: Any > , :: std :: marker :: PhantomData < dyn :: std :: any :: Any > , :: std :: marker :: PhantomData < dyn :: std :: any :: Any > , T > as PersonPickable > :: age , }
