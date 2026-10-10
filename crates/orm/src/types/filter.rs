@@ -4,7 +4,7 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 
-use std::{borrow::Cow, fmt::Display};
+use std::borrow::Cow;
 
 use crate::{Binding, BindingsList, Buildable, Conditional, Erroneous, Parametric};
 
@@ -584,7 +584,7 @@ impl Filter {
     }
 
     /// Wraps this `Filter` instance in a set of parenthesizes if it isn't already wrapped.
-    fn parenthesize_if_not_already(&self) -> impl Display {
+    fn parenthesize_if_not_already(&self) -> String {
         let filter = self.to_string();
         match (filter.starts_with('('), filter.ends_with(')')) {
             (true, true) => format!("{self}"),
