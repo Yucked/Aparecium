@@ -9,6 +9,11 @@ use crate::Field;
 use super::{Erroneous, Parametric};
 
 /// A trait for building a query string
+#[diagnostic::on_unimplemented(
+    message = "`{Self}` is not a query fragment",
+    label = "cannot be rendered into SurrealQL",
+    note = "use an Aparecium statement, field, parameter or value here"
+)]
 pub trait Buildable {
     /// Build a query string
     fn build(&self) -> String;

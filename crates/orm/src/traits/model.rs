@@ -31,6 +31,11 @@ pub struct FieldMetadata {
 
 /// Model is a trait signifying superset of Node and Edge.
 /// i.e both are Model
+#[diagnostic::on_unimplemented(
+    message = "`{Self}` is not an Aparecium model",
+    label = "not a model",
+    note = "add `#[derive(Node)]` or `#[derive(Edge)]` to `{Self}`"
+)]
 pub trait Model: Sized {
     /// The id of the model/table
     type Id;
@@ -171,7 +176,11 @@ pub trait SurrealCrudNode: Sized + Serialize + DeserializeOwned + Node {
 impl<T> SurrealCrudNode for T where T: Sized + Serialize + DeserializeOwned + Node {}
 
 /// Node is a trait signifying a node in the graph
-#[async_trait::async_trait]
+#[diagnostic::on_unimplemented(
+    message = "`{Self}` is not a node",
+    label = "not a node",
+    note = "add `#[derive(Node)]` to `{Self}`"
+)]
 pub trait Node: Model + Serialize + SchemaGetter {
     /// The type of the schema
     // type Schema;
@@ -269,6 +278,11 @@ pub trait Node: Model + Serialize + SchemaGetter {
 }
 
 /// Edge is a trait signifying an edge in the graph
+#[diagnostic::on_unimplemented(
+    message = "`{Self}` is not an edge",
+    label = "not an edge",
+    note = "add `#[derive(Edge)]` to `{Self}`"
+)]
 pub trait Edge: Model + Serialize + SchemaGetter {
     /// The Origin node
     type In;
@@ -289,6 +303,11 @@ pub trait Edge: Model + Serialize + SchemaGetter {
 }
 
 /// Object is a trait signifying a nested object in the graph
+#[diagnostic::on_unimplemented(
+    message = "`{Self}` is not an embedded object",
+    label = "not an object",
+    note = "add `#[derive(Object)]` to `{Self}`"
+)]
 pub trait Object: Serialize + SchemaGetter {
     // For merge update of object
     // type PartialBuilder;
