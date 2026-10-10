@@ -5,9 +5,9 @@
  */
 
 use super::up::{FastForwardDelta, Up};
+use crate::DbResources;
 use crate::migrations::*;
 use clap::Args;
-use crate::DbResources;
 use typed_builder::TypedBuilder;
 
 /// Init migrations
@@ -62,21 +62,21 @@ impl Init {
         };
 
         if self.reversible {
-            let gen = file_manager
+            let generated = file_manager
                 .two_way()
                 .generate_migrations(&migration_name, codebase_resources, prompter)
                 .await;
-            if let Err(e) = gen {
+            if let Err(e) = generated {
                 log::error!("Failed to generate migrations: {e}");
                 panic!("Failed to generate migrations: {e}");
             }
         } else {
-            let gen = file_manager
+            let generated = file_manager
                 .one_way()
                 .generate_migrations(&migration_name, codebase_resources, prompter)
                 .await;
 
-            if let Err(e) = gen {
+            if let Err(e) = generated {
                 log::error!("Failed to generate migrations: {e}");
                 panic!("Failed to generate migrations: {e}");
             }

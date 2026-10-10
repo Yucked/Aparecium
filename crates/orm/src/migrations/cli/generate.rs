@@ -6,9 +6,9 @@
 
 use super::up::{FastForwardDelta, Up};
 
+use crate::DbResources;
 use crate::migrations::*;
 use clap::Args;
-use crate::DbResources;
 use typed_builder::TypedBuilder;
 
 /// Generate migrations
@@ -38,22 +38,22 @@ impl Generate {
         match mig_type {
             Ok(MigrationFlag::TwoWay) => {
                 log::info!("Generating two-way migration");
-                let gen = file_manager
+                let generated = file_manager
                     .two_way()
                     .generate_migrations(migration_basename, codebase_resources, prompter)
                     .await;
-                if let Err(e) = gen {
+                if let Err(e) = generated {
                     log::error!("Failed to generate migrations: {e}");
                     panic!("Failed to generate migrations");
                 }
             }
             Ok(MigrationFlag::OneWay) => {
-                let gen = file_manager
+                let generated = file_manager
                     .one_way()
                     .generate_migrations(migration_basename, codebase_resources, prompter)
                     .await;
 
-                if let Err(e) = gen {
+                if let Err(e) = generated {
                     log::error!("Failed to generate migrations: {e}");
                     panic!("Failed to generate migrations");
                 }

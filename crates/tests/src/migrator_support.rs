@@ -7,17 +7,17 @@
 use std::{fmt::Display, fs, ops::Deref, path::Path};
 
 use crate::migrations::{
-    Resources, ResourcesV10, ResourcesV2, ResourcesV3, ResourcesV4, ResourcesV5, ResourcesV6,
-    ResourcesV7, ResourcesV8, ResourcesV9,
+    Resources, ResourcesV2, ResourcesV3, ResourcesV4, ResourcesV5, ResourcesV6, ResourcesV7,
+    ResourcesV8, ResourcesV9, ResourcesV10,
 };
 use aparecium::{
+    DbResources, Runnable,
     migrations::{
         Basename, Checksum, DatabaseConnection, DbInfo, Down, Extension, FastForwardDelta,
         Generate, Init, List, Migration, MigrationFilename, MigrationFlag, Migrator, MockPrompter,
         Mode, Prune, RenameOrDelete, Reset, RollbackStrategyStruct, Status, SubCommand, Up,
     },
     statements::info_for,
-    DbResources, Runnable,
 };
 
 use typed_builder::TypedBuilder;
@@ -438,12 +438,12 @@ impl TestConfig {
         .run(Some(Resources), mock_prompter)
         .await;
 
-        let gen = |basename: String| {
+        let generate = |basename: String| {
             SubCommand::Generate(Generate::builder().name(basename.into()).run(false).build())
         };
 
         for i in 2..=number_of_migs_to_gen {
-            self.set_cmd(gen(format!("migration {}-gen after init", i)))
+            self.set_cmd(generate(format!("migration {}-gen after init", i)))
                 .run(Some(Resources), mock_prompter)
                 .await;
         }
@@ -466,50 +466,50 @@ impl TestConfig {
         .run(Some(Resources), mock_prompter)
         .await;
 
-        let gen =
+        let generate =
             |basename: &'static str| Generate::builder().name(basename.into()).run(false).build();
 
-        self.set_cmd(gen("migration 2-gen after init"))
+        self.set_cmd(generate("migration 2-gen after init"))
             .run(Some(Resources), mock_prompter)
             .await;
 
-        self.set_cmd(gen("migration 3-gen after init"))
+        self.set_cmd(generate("migration 3-gen after init"))
             .run(Some(Resources), mock_prompter)
             .await;
 
-        self.set_cmd(gen("migration 4-gen after init"))
+        self.set_cmd(generate("migration 4-gen after init"))
             .run(Some(ResourcesV2), mock_prompter)
             .await;
 
-        self.set_cmd(gen("migration 5-gen after init"))
+        self.set_cmd(generate("migration 5-gen after init"))
             .run(Some(ResourcesV3), mock_prompter)
             .await;
 
-        self.set_cmd(gen("migration 6-gen after init"))
+        self.set_cmd(generate("migration 6-gen after init"))
             .run(Some(ResourcesV4), mock_prompter)
             .await;
 
-        self.set_cmd(gen("migration 7-gen after init"))
+        self.set_cmd(generate("migration 7-gen after init"))
             .run(Some(ResourcesV5), mock_prompter)
             .await;
 
-        self.set_cmd(gen("migration 8-gen after init"))
+        self.set_cmd(generate("migration 8-gen after init"))
             .run(Some(ResourcesV6), mock_prompter)
             .await;
 
-        self.set_cmd(gen("migration 9-gen after init"))
+        self.set_cmd(generate("migration 9-gen after init"))
             .run(Some(ResourcesV7), mock_prompter)
             .await;
 
-        self.set_cmd(gen("migration 10-gen after init"))
+        self.set_cmd(generate("migration 10-gen after init"))
             .run(Some(ResourcesV8), mock_prompter)
             .await;
 
-        self.set_cmd(gen("migration 11-gen after init"))
+        self.set_cmd(generate("migration 11-gen after init"))
             .run(Some(ResourcesV9), mock_prompter)
             .await;
 
-        self.set_cmd(gen("migration 12-gen after init"))
+        self.set_cmd(generate("migration 12-gen after init"))
             .run(Some(ResourcesV10), mock_prompter)
             .await;
 
@@ -561,25 +561,25 @@ impl TestConfig {
                 .basename()
         });
         assert_eq!(
-        latest_migration_basename, expected_latest_db_migration_meta_basename_normalized,
-        "Base name in file does not match the base name in the db. Line: {code_origin_line} in {current_file_name}",
-    );
+            latest_migration_basename, expected_latest_db_migration_meta_basename_normalized,
+            "Base name in file does not match the base name in the db. Line: {code_origin_line} in {current_file_name}",
+        );
 
         let migration_files = self.read_migrations_from_dir_sorted_asc();
 
         let latest_file_name = migration_files.iter().max();
 
         assert_eq!(
-        latest_file_name.map(|lfn| lfn.basename()),
-        expected_latest_migration_file_basename_normalized,
-        "Base name in file does not match the base name in the db. Line: {code_origin_line} in {current_file_name}",
-    );
+            latest_file_name.map(|lfn| lfn.basename()),
+            expected_latest_migration_file_basename_normalized,
+            "Base name in file does not match the base name in the db. Line: {code_origin_line} in {current_file_name}",
+        );
 
         assert_eq!(
-        db_migrations.len() as u8,
-        expected_db_mig_count,
-        "migration Counts do not match with what is in the db. Line: {code_origin_line} in {current_file_name}",
-    );
+            db_migrations.len() as u8,
+            expected_db_mig_count,
+            "migration Counts do not match with what is in the db. Line: {code_origin_line} in {current_file_name}",
+        );
 
         assert_eq!(
             migration_files.len() as u8,
