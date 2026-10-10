@@ -211,7 +211,7 @@ impl Codegen<'_> {
                 let inner_list_type = field_receiver
                     .array_item_ty_specified
                     .as_ref()
-                    .map(|ty| ty.into_inner_ref())
+                    .map(ArrayItemType::inner)
                     .or(guessed_arrayish_item_type.as_ref());
 
                 match inner_list_type {

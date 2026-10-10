@@ -30,9 +30,8 @@ impl FromMeta for Rename {
             serialize: Option<String>,
 
             #[darling(default)]
-            #[allow(dead_code)]
-            deserialize: Option<util::Ignored>, // Ignore deserialize since we only care about the serialized string
-                                                // deserialize: util::Ignored, // Ignore deserialize since we only care about the serialized string
+            #[expect(dead_code, reason = "accepts `rename(deserialize = ..)`; only the serialized name is used")]
+            deserialize: Option<util::Ignored>,
         }
 
         impl From<FullRename> for Rename {

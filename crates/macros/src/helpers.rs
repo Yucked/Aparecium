@@ -8,13 +8,7 @@ use proc_macro_crate::{FoundCrate, crate_name};
 use proc_macro2::{Span, TokenStream, TokenTree};
 use quote::quote;
 
-use syn::{self, Error, Ident, LitStr};
-
-pub fn parse_lit_to_tokenstream(lit: &LitStr) -> Result<TokenStream, Error> {
-    let str = lit.value();
-    let tokens: TokenStream = str.parse().map_err(syn::Error::from)?;
-    Ok(quote! { (#tokens) })
-}
+use syn::Ident;
 
 pub fn get_crate_name(internal: bool) -> TokenStream {
     if internal {

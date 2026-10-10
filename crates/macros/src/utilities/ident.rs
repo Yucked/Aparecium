@@ -14,7 +14,6 @@ use syn::{Ident, Type};
 create_ident_wrapper!(FieldIdentNormalizedDeserialized);
 create_ident_wrapper!(DeserializedFieldName);
 
-#[allow(dead_code)]
 #[derive(Clone, Debug, FromField)]
 #[darling(attributes(orm, serde), forward_attrs(allow, doc, cfg))]
 pub struct FieldAttribute {
@@ -23,6 +22,7 @@ pub struct FieldAttribute {
     pub ident: Option<Ident>,
     /// This magic field name pulls the type from the input.
     pub ty: Type,
+    #[expect(dead_code, reason = "required by darling's `forward_attrs`; unused")]
     pub attrs: Vec<syn::Attribute>,
 
     #[darling(default)]
@@ -44,31 +44,6 @@ impl FieldAttribute {
         struct_casing: &StructLevelCasing,
     ) -> ExtractorResult<FieldIdentNormalizedDeserialized> {
         Ok(self.ident_meta_deserialized(struct_casing)?.0)
-    }
-
-    pub fn field_name_normaized_de_no_raw(
-        &self,
-        struct_casing: &StructLevelCasing,
-    ) -> ExtractorResult<DeserializedFieldName> {
-        Ok(self.ident_meta_deserialized(struct_casing)?.1)
-    }
-
-    pub fn field_name_pascalized(
-        &self,
-        struct_casing: &StructLevelCasing,
-    ) -> ExtractorResult<FieldNamePascalized> {
-        let field_name_normalized =
-            self.field_ident_normalized_deserialized_rawable(struct_casing)?;
-
-        let field_name_pascalized = format_ident!(
-            "__{}__",
-            field_name_normalized
-                .to_string()
-                .trim_start_matches("r#")
-                .to_case(Case::Pascal)
-        );
-
-        Ok(field_name_pascalized.into())
     }
 
     fn ident_meta_deserialized(

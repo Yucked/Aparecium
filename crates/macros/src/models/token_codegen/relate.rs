@@ -133,7 +133,6 @@ impl Codegen<'_> {
             .into(),
             imports: vec![import()],
             edge_relation_model_selected_ident: edge_type.type_name()?.into(),
-            foreign_node_table: foreign_node_table.clone().into(),
         };
 
         match self
@@ -308,16 +307,6 @@ impl ForeignNodeSchemaIdent {
     }
 }
 
-#[allow(dead_code)]
-#[derive(Clone, Debug)]
-struct DestinationNodeTableName(String);
-
-impl From<NodeTableName> for DestinationNodeTableName {
-    fn from(name: NodeTableName) -> Self {
-        Self(name.to_string())
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct NodeEdgeMetadata<'a> {
     /// Example value: writes
@@ -364,8 +353,6 @@ pub struct NodeEdgeMetadata<'a> {
     /// ],
     /// ```
     foreign_node_schema: Vec<ForeignNodeSchema>,
-    #[allow(dead_code)]
-    foreign_node_table: DestinationNodeTableName,
     /// Example Generated:
     ///
     /// ```rust, ignore
@@ -638,7 +625,7 @@ impl ToTokens for NodeEdgeMetadataLookupTable<'_> {
         let node_edge_token_streams = self
             .deref()
             .values()
-            .map(|value| value.to_token_stream())
+            .map(ToTokens::to_token_stream)
             .collect::<Vec<_>>();
 
         let token = quote!(#( #node_edge_token_streams) *);

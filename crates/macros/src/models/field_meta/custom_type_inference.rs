@@ -72,7 +72,7 @@ impl<'a> FieldTypeInference<'a> {
         let binding = field_ty
             // .remove_non_static_lifetime_and_reference()
             .replace_self_with_current_struct_concrete_type(self.model_attrs)?;
-        let ty = &binding.into_inner_ref();
+        let ty = &binding.inner();
 
         let meta = if field_ty.raw_type_is_bool() {
             DbFieldTypeAstMeta {
@@ -225,7 +225,7 @@ impl<'a> FieldTypeInference<'a> {
         // else if field_ty.raw_type_is_geometry() {
         else if let Some(geo_kind) = field_ty.raw_type_geometry_kind() {
             // We are intentionally using debug string representation of the geometry kind
-            let geo_kind_name_from_debug_print = format!("{:?}", &geo_kind);
+            let geo_kind_name_from_debug_print = format!("{geo_kind:?}");
             let geo_kind_ident = format_ident!("{geo_kind_name_from_debug_print}");
 
             DbFieldTypeAstMeta {
@@ -283,9 +283,9 @@ impl<'a> FieldTypeInference<'a> {
         // We are mainly interested in getting the foreign struct itself whether or not its a
         // single top-level struct, or one or deep lelve nested struct.
         let foreign_type = match relation_type {
-            RelationType::NestObject(ref_object) => Some(ref_object.into_inner_ref()),
+            RelationType::NestObject(ref_object) => Some(ref_object.inner()),
             RelationType::NestArray(foreign_array_object) => {
-                Some(foreign_array_object.into_inner_ref())
+                Some(foreign_array_object.inner())
             }
             RelationType::Relate(_)
             | RelationType::List(_)
@@ -310,11 +310,11 @@ impl<'a> FieldTypeInference<'a> {
         let crate_name = get_crate_name(false);
         let model_type = model_attrs.to_data_type();
         let table = model_attrs.table()?;
-        let ty = &field_ty.into_inner_ref();
+        let ty = &field_ty.inner();
 
         let meta = if db_field_name.is_id() {
             let table_name = match table {
-                Some(t) => vec![t.to_token_stream().to_string().into()],
+                Some(t) => vec![t.to_token_stream().to_string()],
                 None => vec![],
             };
             DbFieldTypeAstMeta {
@@ -353,7 +353,7 @@ impl<'a> FieldTypeInference<'a> {
         relation_type: &RelationType,
     ) -> ExtractorResult<Option<DbFieldTypeAstMeta>> {
         let crate_name = get_crate_name(false);
-        let ty = &field_ty.into_inner_ref();
+        let ty = &field_ty.inner();
 
         let meta = match relation_type {
                 RelationType::Relate(_ref_node) => {
@@ -415,46 +415,5 @@ impl<'a> FieldTypeInference<'a> {
             };
 
         Ok(Some(meta))
-    }
-
-    #[allow(unused)]
-    fn generate_nested_vec_type(
-        foreign_node: &CustomType,
-        nesting_level: usize,
-    ) -> proc_macro2::TokenStream {
-        if nesting_level == 0 {
-            quote!(#foreign_node)
-        } else {
-            let inner_type = Self::generate_nested_vec_type(foreign_node, nesting_level - 1);
-            quote!(::std::vec::Vec<#inner_type>)
-        }
-    }
-
-    #[allow(unused)]
-    fn count_vec_nesting(field_type: &syn::Type) -> usize {
-        match field_type {
-            syn::Type::Path(type_path) => {
-                if let Some(segment) = type_path.path.segments.last() {
-                    if segment.ident == "Vec" {
-                        if let syn::PathArguments::AngleBracketed(angle_args) = &segment.arguments {
-                            if let Some(syn::GenericArgument::Type(inner_type)) =
-                                angle_args.args.first()
-                            {
-                                1 + Self::count_vec_nesting(inner_type)
-                            } else {
-                                0
-                            }
-                        } else {
-                            0
-                        }
-                    } else {
-                        0
-                    }
-                } else {
-                    0
-                }
-            }
-            _ => 0,
-        }
     }
 }

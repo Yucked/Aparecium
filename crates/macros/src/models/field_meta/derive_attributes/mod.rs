@@ -23,7 +23,6 @@ create_ident_wrapper!(FieldNamePascalized);
 create_ident_wrapper!(FieldIdentOriginal);
 create_ident_wrapper!(OldFieldName);
 
-#[allow(dead_code)]
 #[derive(Clone, Debug, FromField)]
 #[darling(attributes(orm, serde), forward_attrs(allow, doc, cfg))]
 pub struct MyFieldReceiver {
@@ -98,11 +97,14 @@ pub struct MyFieldReceiver {
     pub(crate) skip: bool,
 
     #[darling(default)]
+    #[expect(dead_code, reason = "accepts serde's field attribute so it parses; unused")]
     skip_serializing_if: ::darling::util::Ignored,
 
     #[darling(default)]
+    #[expect(dead_code, reason = "accepts serde's field attribute so it parses; unused")]
     with: ::darling::util::Ignored,
 
     #[darling(default)]
+    #[expect(dead_code, reason = "accepts serde's field attribute so it parses; unused")]
     deserialize_with: ::darling::util::Ignored,
 }

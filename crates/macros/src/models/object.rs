@@ -14,7 +14,7 @@ use syn::Ident;
 #[darling(attributes(orm, serde), forward_attrs(allow, doc, cfg))]
 pub struct ObjectToken {
     pub(crate) ident: Ident,
-    #[allow(dead_code)]
+    #[expect(dead_code, reason = "required by darling's `forward_attrs`; unused")]
     pub(crate) attrs: Vec<syn::Attribute>,
     pub(crate) generics: StructGenerics,
     /// Receives the body of the struct or enum. We don't care about

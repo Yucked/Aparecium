@@ -17,12 +17,6 @@ use super::{helpers::generate_variable_name, query_chain::QueriesChainParser};
 #[derive(Debug, Clone)]
 pub struct Body(QueriesChainParser);
 
-impl Body {
-    pub fn has_return_statement(&self) -> bool {
-        self.0.is_likely_query_block()
-    }
-}
-
 impl ToTokens for Body {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let Body(queries_chain_parser) = self;
@@ -159,21 +153,6 @@ pub struct IfElseWithoutIfKeywordMetaAst {
     pub generated_ident: Ident,
 }
 
-impl IfElseWithoutIfKeywordMetaAst {
-    #[allow(dead_code)]
-    pub fn has_return_statement(&self) -> bool {
-        self.if_meta.body.has_return_statement()
-            || self
-                .else_if_meta
-                .iter()
-                .any(|else_if_meta| else_if_meta.body.has_return_statement())
-            || self
-                .else_meta
-                .as_ref()
-                .is_some_and(|else_meta| else_meta.body.has_return_statement())
-    }
-}
-
 impl ToTokens for IfElseWithoutIfKeywordMetaAst {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let tokenized_if_else_content: proc_macro2::TokenStream =
@@ -247,9 +226,7 @@ impl Parse for IfElseStatementAst {
     }
 }
 
-#[allow(dead_code)]
 pub struct TokenizedIfElseStmt {
-    pub code_to_render: TokenStream,
     pub query_chain: TokenStream,
 }
 
@@ -319,16 +296,7 @@ impl IfElseWithoutIfKeywordMetaAst {
         );
 
         TokenizedIfElseStmt {
-            code_to_render: to_render.clone().into(),
             query_chain: to_render.into(),
         }
     }
-}
-
-// TOOD:: complete the standalone top level if else statement parser implementation
-#[allow(dead_code)]
-pub fn if_else(input: TokenStream) -> TokenStream {
-    let if_else = syn::parse_macro_input!(input as IfElseWithoutIfKeywordMetaAst);
-
-    quote!(#if_else).into()
 }

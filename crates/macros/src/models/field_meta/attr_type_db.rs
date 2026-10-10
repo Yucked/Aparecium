@@ -82,7 +82,7 @@ impl FieldTypeDb {
         self.0
     }
 
-    pub fn into_inner_ref(&self) -> &FieldType {
+    pub fn inner(&self) -> &FieldType {
         &self.0
     }
 
@@ -191,7 +191,7 @@ impl FromMeta for FieldTypeDb {
             syn::Expr::Path(expr_path) => expr_path
                 .path
                 .get_ident()
-                .map(|ident| ident.to_string())
+                .map(ToString::to_string)
                 .ok_or_else(|| {
                     darling::Error::custom("Expected an identifier for ty").with_span(&expr.span())
                 })?,

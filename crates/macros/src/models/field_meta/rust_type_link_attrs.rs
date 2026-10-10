@@ -23,12 +23,6 @@ macro_rules! create_custom_type_wrapper {
                     self.0.to_tokens(tokens);
                 }
             }
-
-            impl [<$name TurboFished>] {
-                pub fn to_custom_type(self) -> crate::models::CustomType {
-                    self.0.to_custom_type()
-                }
-            }
         }
 
         impl $name  {
@@ -36,7 +30,7 @@ macro_rules! create_custom_type_wrapper {
                 self.0
             }
 
-            pub fn into_inner_ref(&self) -> &crate::models::CustomType {
+            pub fn inner(&self) -> &crate::models::CustomType {
                 &self.0
             }
 

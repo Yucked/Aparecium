@@ -18,10 +18,7 @@ mod ident_wrappers;
 mod relations;
 mod rename;
 mod rust_type_link_attrs;
-mod string_wrapper;
-mod token_stream_hashable;
 mod token_wrappers;
-mod type_stripper;
 
 pub use attr_permissions::*;
 pub use attr_relate::*;
@@ -37,6 +34,4 @@ pub use rename::*;
 pub use rust_type_link_attrs::*;
 pub use token_wrappers::*;
 // pub use custom_type_self_replacement::*;
-// pub use token_stream_hashable::*;
-// pub use type_stripper::*;
 pub(crate) use ident_wrappers::*;

@@ -49,7 +49,7 @@ impl TableDeriveAttributesPickable {
         Ok(casing.into())
     }
 
-    pub(crate) fn get_meta(&self) -> ExtractorResult<PickableMetadata> {
+    pub(crate) fn get_meta(&self) -> ExtractorResult<PickableMetadata<'_>> {
         let fields =
             self.data.as_ref().take_struct().ok_or(
                 darling::Error::custom("Only structs are supported").with_span(&self.ident),
