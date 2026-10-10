@@ -1,0 +1,61 @@
+[package]
+name = "aparecium"
+version = { workspace = true }
+edition = { workspace = true }
+rust-version = { workspace = true }
+authors = { workspace = true }
+description = { workspace = true }
+
+[lints]
+workspace = true
+
+[features]
+default = ["protocol-ws", "rustls"]
+
+# SurrealDB SDK passthroughs: transports, TLS, embedded engines and server capabilities.
+protocol-ws = ["surrealdb/protocol-ws"]
+protocol-http = ["surrealdb/protocol-http"]
+rustls = ["surrealdb/rustls"]
+native-tls = ["surrealdb/native-tls"]
+kv-mem = ["surrealdb/kv-mem"]
+kv-rocksdb = ["surrealdb/kv-rocksdb"]
+kv-surrealkv = ["surrealdb/kv-surrealkv"]
+kv-indxdb = ["surrealdb/kv-indxdb"]
+kv-tikv = ["surrealdb/kv-tikv"]
+scripting = ["surrealdb/scripting"]
+http = ["surrealdb/http"]
+jwks = ["surrealdb/jwks"]
+
+# Schema migrations and their CLI (`aparecium::migrations`).
+migrations = [
+  "dep:sha2",
+  "dep:itertools",
+  "dep:inquire",
+  "dep:clap",
+  "dep:log",
+  "dep:pretty_env_logger",
+]
+
+[dependencies]
+aparecium-macros = { workspace = true }
+surrealdb = { workspace = true }
+chrono = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+geo = { workspace = true }
+regex = { workspace = true }
+async-trait = { workspace = true }
+paste = { workspace = true }
+thiserror = { workspace = true }
+uuid = { workspace = true, features = ["v4"] }
+static_assertions = { workspace = true }
+num-traits = { workspace = true }
+nom = { workspace = true }
+typed-builder = { workspace = true }
+
+sha2 = { workspace = true, optional = true }
+itertools = { workspace = true, optional = true }
+inquire = { workspace = true, optional = true }
+clap = { workspace = true, optional = true }
+log = { workspace = true, optional = true }
+pretty_env_logger = { workspace = true, optional = true }

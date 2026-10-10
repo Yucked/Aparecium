@@ -1,0 +1,43 @@
+[package]
+name = "aparecium-tests"
+version = { workspace = true }
+edition = { workspace = true }
+rust-version = { workspace = true }
+authors = { workspace = true }
+publish = false
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false
+
+[dependencies]
+aparecium = { workspace = true, default-features = false, features = ["kv-mem", "migrations"] }
+surrealdb = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+geo = { workspace = true }
+chrono = { workspace = true }
+typed-builder = { workspace = true }
+insta = { workspace = true }
+tempfile = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt"] }
+pretty_assertions = { workspace = true }
+uuid = { workspace = true }
+rand = { workspace = true }
+test-case = { workspace = true }
+# Macro expansion modules compiled into `macros_*` test targets via `#[path]`.
+proc-macro2 = { workspace = true }
+proc-macro-crate = { workspace = true }
+syn = { workspace = true }
+quote = { workspace = true }
+darling = { workspace = true }
+convert_case = { workspace = true }
+strum = { workspace = true }
+strum_macros = { workspace = true }
+thiserror = { workspace = true }
+paste = { workspace = true }
+nom = { workspace = true }

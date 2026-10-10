@@ -1,12 +1,16 @@
 [package]
-name = "surreal-derive-helpers"
+name = "aparecium-macros"
 version = { workspace = true }
 edition = { workspace = true }
+rust-version = { workspace = true }
 authors = { workspace = true }
 description = { workspace = true }
-documentation = { workspace = true }
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lints]
+workspace = true
+
+[lib]
+proc-macro = true
 
 [dependencies]
 proc-macro2 = { workspace = true }
@@ -19,14 +23,7 @@ strum = { workspace = true }
 strum_macros = { workspace = true }
 thiserror = { workspace = true }
 paste = { workspace = true }
-insta = { workspace = true }
-test-case = { workspace = true }
-rstest = { workspace = true }
-
-
-serde = { workspace = true }
-surreal-query-builder = { workspace = true }
-migrator = { workspace = true }
-proc-macros-helpers = { workspace = true }
-
-[lib]
+uuid = { workspace = true, features = ["v4"] }
+nom = { workspace = true }
+# Stand-in for compile-time query validation (`query_raw!`, `query!`); the parser choice belongs to #6.
+surrealdb = { workspace = true }
