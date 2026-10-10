@@ -6,8 +6,6 @@
 
 use syn::{
     parse_quote,
-    punctuated::Punctuated,
-    token::Comma,
     visit_mut::{self, VisitMut},
     AngleBracketedGenericArguments, ExprPath, GenericArgument, Ident, Path, PathArguments,
     PathSegment, Type, TypePath,
@@ -21,9 +19,8 @@ pub struct ReplaceSelfVisitor {
 }
 
 impl ReplaceSelfVisitor {
-    #[allow(dead_code)]
     pub fn replace_self(&mut self, ty: &CustomType) -> CustomTypeNoSelf {
-        let mut ty = ty.into_inner_ref().clone();
+        let mut ty = ty.inner().clone();
         self.visit_type_mut(&mut ty);
         CustomTypeNoSelf::new(ty.clone())
     }
@@ -52,11 +49,11 @@ impl VisitMut for ReplaceSelfVisitor {
                 }
                 PathArguments::Parenthesized(parenthesized) => {
                     for input in &mut parenthesized.inputs {
-                        self.visit_type_mut(input);
+                        self.visit_type_mut(&mut input.ty);
                     }
                     self.visit_return_type_mut(&mut parenthesized.output);
                 }
-                _ => {}
+                PathArguments::None => {}
             }
         }
     }
@@ -182,29 +179,5 @@ impl VisitMut for ReplaceSelfVisitor {
         }
         syn::visit_mut::visit_type_impl_trait_mut(self, i);
     }
-
-    // Replace `Self` in function pointers (e.g., fn foo(x: Self) -> Self)
-    fn visit_type_bare_fn_mut(&mut self, i: &mut syn::TypeBareFn) {
-        // Example: Replace `Self` in function pointer types
-        for input in &mut i.inputs {
-            self.visit_type_mut(&mut input.ty);
-        }
-        if let syn::ReturnType::Type(_, ty) = &mut i.output {
-            self.visit_type_mut(ty);
-        }
-        syn::visit_mut::visit_type_bare_fn_mut(self, i);
-    }
-}
-
-#[allow(dead_code)]
-// Convert a vector of generic arguments to a punctuated list of generic arguments
-// e.g., vec![A, B, C] -> A, B, C
-pub(crate) fn vec_to_punctuated(vec: Vec<GenericArgument>) -> Punctuated<GenericArgument, Comma> {
-    let mut punctuated = Punctuated::new();
-    for item in vec {
-        punctuated.push_value(item);
-        punctuated.push_punct(Comma::default());
-    }
-    punctuated
 }
 

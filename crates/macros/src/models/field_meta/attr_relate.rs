@@ -42,15 +42,15 @@ impl EdgeType {
         let mut common_generics = HashSet::new();
 
         for edge_type in edge_types {
-            let edge_type = &edge_type.into_inner_ref();
+            let edge_type = &edge_type.inner();
             let mut visitor = UniqueTypeVisitor::default();
-            visitor.visit_type(edge_type.into_inner_ref());
+            visitor.visit_type(edge_type.inner());
 
             for lt in visitor.lifetimes.iter() {
                 common_lifetimes.insert(lt.to_string());
             }
-            for gen in visitor.generics.iter() {
-                common_generics.insert(gen.to_string());
+            for generic in visitor.generics.iter() {
+                common_generics.insert(generic.to_string());
             }
         }
 
@@ -61,7 +61,7 @@ impl EdgeType {
 
         let generics: Vec<Ident> = common_generics
             .iter()
-            .map(|gen| Ident::new(gen, proc_macro2::Span::call_site()))
+            .map(|generic| Ident::new(generic, proc_macro2::Span::call_site()))
             .collect();
 
         let quoted_type: TokenStream = if !lifetimes.is_empty() || !generics.is_empty() {
@@ -101,7 +101,7 @@ impl<'ast> Visit<'ast> for UniqueTypeVisitor {
 
     // Visit path arguments to handle generics in paths, e.g., `Vec<T>`
     fn visit_path_arguments(&mut self, path_arguments: &'ast PathArguments) {
-        if let PathArguments::AngleBracketed(ref args) = path_arguments {
+        if let PathArguments::AngleBracketed(args) = path_arguments {
             for arg in &args.args {
                 match arg {
                     GenericArgument::Type(Type::Path(type_path)) => {
@@ -165,11 +165,9 @@ impl<'ast> Visit<'ast> for UniqueTypeVisitor {
             TypeParamBound::Trait(trait_bound) => {
                 self.visit_path(&trait_bound.path);
             }
-            TypeParamBound::Verbatim(token) => {
-                // e.g., `?Sized` in `T: ?Sized`
-                if token.to_string() == "?Sized" {
-                    self.generics.insert(token.to_string());
-                }
+            // e.g., `?Sized` in `T: ?Sized`
+            TypeParamBound::Verbatim(token) if token.to_string() == "?Sized" => {
+                self.generics.insert(token.to_string());
             }
             _ => {}
         }

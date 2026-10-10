@@ -60,7 +60,7 @@ use nom::{
     combinator::{all_consuming, cut, opt, value},
     error::context,
     multi::{separated_list0, separated_list1},
-    sequence::{preceded, tuple},
+    sequence::preceded,
 };
 use proc_macro2::TokenStream;
 use quote::{ToTokens, format_ident, quote};
@@ -125,7 +125,6 @@ impl Display for GeometryType {
     }
 }
 
-#[allow(missing_docs)]
 #[derive(Clone, Default, Debug, PartialEq)]
 pub enum FieldType {
     /// Use this when you explicitly don't want to specify the field's data type. The field will
@@ -207,7 +206,7 @@ impl Display for FieldType {
                         "record<{}>",
                         ref_tables
                             .iter()
-                            .map(|t| t.to_string())
+                            .map(ToString::to_string)
                             .collect::<Vec<_>>()
                             .join("|")
                     )
@@ -222,7 +221,7 @@ impl Display for FieldType {
                         "geometry<{}>",
                         ref_tables
                             .iter()
-                            .map(|t| t.to_string())
+                            .map(ToString::to_string)
                             .collect::<Vec<_>>()
                             .join("|")
                     )
@@ -234,7 +233,7 @@ impl Display for FieldType {
                 "{}",
                 ref_tables
                     .iter()
-                    .map(|t| t.to_string())
+                    .map(ToString::to_string)
                     .collect::<Vec<_>>()
                     .join(" | ")
             ),
@@ -490,11 +489,12 @@ pub fn parse_field_type(input: &str) -> IResult<&str, FieldType> {
     all_consuming(cut(context(
         "Unexpected characters found after parsing",
         parse_top_level_field_type,
-    )))(input)
+    )))
+    .parse(input)
 }
 
 fn parse_top_level_field_type(input: &str) -> IResult<&str, FieldType> {
-    alt((parse_union_type, parse_option_field_type))(input)
+    alt((parse_union_type, parse_option_field_type)).parse(input)
 }
 
 fn parse_pipe(input: &str) -> IResult<&str, ()> {
@@ -514,12 +514,14 @@ fn parse_single_field_type(input: &str) -> IResult<&str, FieldType> {
         parse_array_type,
         parse_set_type,
         // parse_union_type,
-    ))(input)
+    ))
+    .parse(input)
 }
 
 fn parse_union_type(input: &str) -> IResult<&str, FieldType> {
     // let (input, ft) = separated_list1(parse_pipe, parse_db_field_type)(input)?;
-    let (input, mut ft) = separated_list1(parse_pipe, alt((parse_single_field_type,)))(input)?;
+    let (input, mut ft) =
+        separated_list1(parse_pipe, alt((parse_single_field_type,))).parse(input)?;
     let ft = match ft.len() {
         1 => ft.remove(0),
         _ => FieldType::Union(ft),
@@ -578,7 +580,8 @@ fn parse_primitive_type(input: &str) -> IResult<&str, FieldType> {
         // tag("object").map(|_| FieldTypee::Object),
         // tag("string").map(|_| FieldTypee::String),
         // tag("uuid").map(|_| FieldTypee::Uuid),
-    ))(input)
+    ))
+    .parse(input)
 }
 
 fn is_valid_id_char(c: char) -> bool {
@@ -594,7 +597,7 @@ fn parse_record_inner(input: &str) -> IResult<&str, Vec<&str>> {
     let (input, _) = tag("<")(input)?;
     let (input, _) = space0(input)?;
     let (input, ref_tables) =
-        separated_list0(tag("|"), tuple((space0, parse_identifier, space0)))(input)?;
+        separated_list0(tag("|"), (space0, parse_identifier, space0)).parse(input)?;
     let (input, _) = space0(input)?;
     let (input, _) = tag(">")(input)?;
     let (input, _) = space0(input)?;
@@ -603,14 +606,14 @@ fn parse_record_inner(input: &str) -> IResult<&str, Vec<&str>> {
 
 fn parse_record_type(input: &str) -> IResult<&str, FieldType> {
     let (input, _) = tag("record")(input)?;
-    let (input, rt) = opt(parse_record_inner)(input)?;
+    let (input, rt) = opt(parse_record_inner).parse(input)?;
     // let (input, rt) = cut(opt(parse_record_inner))(input)?;
     Ok((
         input,
         FieldType::Record(
             rt.unwrap_or(vec![])
                 .into_iter()
-                .map(|t| t.to_string().into())
+                .map(ToString::to_string)
                 .collect(),
         ),
     ))
@@ -641,7 +644,8 @@ fn parse_simple_geom(input: &str) -> IResult<&str, GeometryType> {
         tag("multiline").map(|_| GeometryType::MultiLine),
         tag("multipolygon").map(|_| GeometryType::MultiPolygon),
         tag("collection").map(|_| GeometryType::Collection),
-    ))(input)
+    ))
+    .parse(input)
 }
 
 fn parse_geometry_inner(input: &str) -> IResult<&str, Vec<GeometryType>> {
@@ -649,7 +653,7 @@ fn parse_geometry_inner(input: &str) -> IResult<&str, Vec<GeometryType>> {
     let (input, _) = tag("<")(input)?;
     let (input, _) = space0(input)?;
     let (input, ref_tables) =
-        separated_list0(tag("|"), tuple((space0, parse_simple_geom, space0)))(input)?;
+        separated_list0(tag("|"), (space0, parse_simple_geom, space0)).parse(input)?;
     let (input, _) = space0(input)?;
     let (input, _) = tag(">")(input)?;
     let (input, _) = space0(input)?;
@@ -658,7 +662,7 @@ fn parse_geometry_inner(input: &str) -> IResult<&str, Vec<GeometryType>> {
 
 fn parse_geometry_type(input: &str) -> IResult<&str, FieldType> {
     let (input, _) = tag("geometry")(input)?;
-    let (input, rt) = opt(parse_geometry_inner)(input)?;
+    let (input, rt) = opt(parse_geometry_inner).parse(input)?;
     // let (input, rt) = cut(opt(parse_record_inner))(input)?;
     Ok((input, FieldType::Geometry(rt.unwrap_or(vec![]))))
 }
@@ -673,10 +677,8 @@ fn parse_list_inner(input: &str) -> IResult<&str, ListItem> {
     let (input, _) = space0(input)?;
     let (input, field_type) = parse_top_level_field_type(input)?;
     let (input, _) = space0(input)?;
-    let (input, size) = opt(preceded(
-        tuple((tag(","), space0)),
-        nom::character::complete::u64,
-    ))(input)?;
+    let (input, size) =
+        opt(preceded((tag(","), space0), nom::character::complete::u64)).parse(input)?;
     let (input, _) = space0(input)?;
     let (input, _) = tag(">")(input)?;
     let (input, _) = space0(input)?;
@@ -691,7 +693,7 @@ fn parse_list_inner(input: &str) -> IResult<&str, ListItem> {
 
 fn parse_array_type(input: &str) -> IResult<&str, FieldType> {
     let (input, _) = tag("array")(input)?;
-    let (input, item_type) = opt(parse_list_inner)(input)?;
+    let (input, item_type) = opt(parse_list_inner).parse(input)?;
 
     if let Some(ListItem { item_type, size }) = item_type {
         Ok((input, FieldType::Array(Box::new(item_type), size)))
@@ -702,7 +704,7 @@ fn parse_array_type(input: &str) -> IResult<&str, FieldType> {
 
 fn parse_set_type(input: &str) -> IResult<&str, FieldType> {
     let (input, _) = tag("set")(input)?;
-    let (input, item_type) = opt(parse_list_inner)(input)?;
+    let (input, item_type) = opt(parse_list_inner).parse(input)?;
 
     if let Some(ListItem { item_type, size }) = item_type {
         Ok((input, FieldType::Set(Box::new(item_type), size)))

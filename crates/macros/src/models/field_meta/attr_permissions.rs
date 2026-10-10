@@ -49,7 +49,7 @@ impl FromMeta for Permissions {
 
     fn from_meta(item: &syn::Meta) -> darling::Result<Self> {
         match item {
-            Meta::Path(ref path) => {
+            Meta::Path(path) => {
                 let path_str = path.into_token_stream().to_string();
                 match path_str.to_lowercase().as_ref() {
                     "none" => Ok(Self::None),
@@ -72,7 +72,7 @@ impl FromMeta for Permissions {
                 //     "Expected a valid Rust path or an expression",
                 // )),
             },
-            _ => Err(darling::Error::unsupported_shape(
+            Meta::List(_) => Err(darling::Error::unsupported_shape(
                 "Expected a path or a name-value pair",
             )),
         }

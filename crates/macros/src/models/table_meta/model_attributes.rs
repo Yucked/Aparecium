@@ -208,14 +208,10 @@ impl<'a> ModelAttributes<'a> {
                     syn::GenericParam::Lifetime(lifetime_def) => {
                         GenericArgument::Lifetime(lifetime_def.lifetime.clone())
                     }
+                    // The struct's own type is written with the parameter, not its default value.
                     syn::GenericParam::Const(const_param) => {
-                        // TODO: Test this in struct
-                        GenericArgument::Const(
-                            const_param
-                                .default
-                                .clone()
-                                .expect("absent const expression"),
-                        )
+                        let ident = &const_param.ident;
+                        GenericArgument::Const(parse_quote!(#ident))
                     }
                 })
                 .collect();
@@ -231,6 +227,11 @@ impl<'a> ModelAttributes<'a> {
             });
         }
 
-        Type::Path(syn::TypePath { qself: None, path }).into()
+        Type::Path(syn::TypePath {
+            attrs: Vec::new(),
+            qself: None,
+            path,
+        })
+        .into()
     }
 }

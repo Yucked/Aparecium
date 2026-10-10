@@ -29,7 +29,7 @@ impl FromMeta for ExprOrPath {
 
     fn from_meta(item: &syn::Meta) -> darling::Result<Self> {
         match item {
-            Meta::Path(ref path) => Ok(ExprOrPath::Path(path.clone())),
+            Meta::Path(path) => Ok(ExprOrPath::Path(path.clone())),
             Meta::NameValue(MetaNameValue { value, .. }) => match value {
                 Expr::Path(expr_path) => Ok(ExprOrPath::Path(expr_path.path.clone())),
                 Expr::Lit(lit) => Self::from_value(&lit.lit),
@@ -38,7 +38,7 @@ impl FromMeta for ExprOrPath {
                 //     "Expected a valid Rust path or an expression",
                 // )),
             },
-            _ => Err(darling::Error::unsupported_shape(
+            Meta::List(_) => Err(darling::Error::unsupported_shape(
                 "Expected a path or a name-value pair",
             )),
         }

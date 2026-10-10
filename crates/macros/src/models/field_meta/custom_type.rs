@@ -30,7 +30,7 @@ impl CustomTypeNoSelf {
         self.0
     }
 
-    pub fn into_inner_ref(&self) -> &CustomType {
+    pub fn inner(&self) -> &CustomType {
         &self.0
     }
 
@@ -39,7 +39,7 @@ impl CustomTypeNoSelf {
     }
 
     pub fn to_basic_type(&self) -> &Type {
-        self.0.into_inner_ref()
+        self.0.inner()
     }
 
     pub fn to_path(&self) -> ExtractorResult<Path> {
@@ -72,11 +72,12 @@ impl FromMeta for CustomType {
     fn from_meta(item: &syn::Meta) -> darling::Result<Self> {
         // Type::from_meta(item).map(Self)
         let ty = match item {
-            syn::Meta::Path(ref path) => Type::Path(syn::TypePath {
+            syn::Meta::Path(path) => Type::Path(syn::TypePath {
+                attrs: Vec::new(),
                 qself: None,
                 path: path.clone(),
             }),
-            syn::Meta::NameValue(ref name_value) => match &name_value.value {
+            syn::Meta::NameValue(name_value) => match &name_value.value {
                 syn::Expr::Lit(lit_str) => match lit_str.lit {
                     syn::Lit::Str(ref lit_str) => syn::parse_str::<Type>(&lit_str.value())?,
                     _ => {
@@ -85,7 +86,8 @@ impl FromMeta for CustomType {
                             ));
                     }
                 },
-                syn::Expr::Path(ref path) => Type::Path(syn::TypePath {
+                syn::Expr::Path(path) => Type::Path(syn::TypePath {
+                    attrs: Vec::new(),
                     qself: None,
                     path: path.path.clone(),
                 }),
@@ -95,7 +97,7 @@ impl FromMeta for CustomType {
                     ));
                 }
             },
-            _ => {
+            syn::Meta::List(_) => {
                 return Err(darling::Error::unsupported_shape(
                     "Expected a path or a name-value pair",
                 ));
@@ -127,12 +129,6 @@ impl ToTokens for CustomType {
 #[derive(Debug, Clone)]
 pub struct CustomTypeTurboFished(Type);
 
-impl CustomTypeTurboFished {
-    pub fn to_custom_type(self) -> CustomType {
-        CustomType(self.0)
-    }
-}
-
 impl ToTokens for CustomTypeTurboFished {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         self.0.to_tokens(tokens)
@@ -152,12 +148,12 @@ impl CustomType {
         &self.0
     }
 
-    pub fn into_inner_ref(&self) -> &Type {
+    pub fn inner(&self) -> &Type {
         &self.0
     }
 
     pub fn type_ident(&self) -> ExtractorResult<Ident> {
-        match self.into_inner_ref() {
+        match self.inner() {
             Type::Path(type_path) => {
                 let last_segment = type_path
                     .path
@@ -173,16 +169,16 @@ impl CustomType {
     }
 
     pub fn remove_non_static_lifetime_and_reference(&self) -> Self {
-        let ty = match self.into_inner_ref() {
+        let ty = match self.inner() {
             Type::Reference(TypeReference { elem, lifetime, .. }) => match lifetime {
                 // Dont remove static lifetime for "str" from &'static would be
                 // invalid thus, a compile error. We could potentially keep this restriction only
                 // for str and not other type but leaving as is for now.
                 // 28th March, 2024. Oyelowo Oyedayo
-                Some(lt) if lt.ident == "static" => self.into_inner_ref(),
+                Some(lt) if lt.ident == "static" => self.inner(),
                 _ => elem.as_ref(),
             },
-            _ => self.into_inner_ref(),
+            _ => self.inner(),
         };
         Self(ty.clone())
     }
@@ -190,7 +186,7 @@ impl CustomType {
     // e.g Option<User> or ::std::option::Option<User> to User
     // Option<&'a str> to &'a str
     pub fn inner_angle_bracket_type(&self) -> ExtractorResult<Option<CustomTypeInnerAngleBracket>> {
-        match self.into_inner_ref() {
+        match self.inner() {
             Type::Path(type_path) => {
                 let last_segment = type_path
                     .path
@@ -223,7 +219,7 @@ impl CustomType {
 
     // e.g from User<T> to User::<T>
     pub fn turbo_fishize(&self) -> ExtractorResult<CustomTypeTurboFished> {
-        match self.into_inner_ref() {
+        match self.inner() {
             Type::Path(type_path) => {
                 let mut path = type_path.path.clone();
 
@@ -244,6 +240,7 @@ impl CustomType {
                 }
 
                 let ty = Type::Path(syn::TypePath {
+                    attrs: Vec::new(),
                     qself: type_path.qself.clone(),
                     path,
                 });
@@ -258,7 +255,7 @@ impl CustomType {
     }
 
     pub fn type_name(&self) -> ExtractorResult<Ident> {
-        match self.into_inner_ref() {
+        match self.inner() {
             Type::Path(type_path) => {
                 let last_segment = type_path
                     .path
@@ -290,7 +287,7 @@ impl CustomType {
         Ok(
             GenericTypeExtractor::sync_field_type_to_current_struct_generics(
                 model_attributes,
-                custom_type.into_inner_ref(),
+                custom_type.inner(),
             ),
         )
     }
@@ -304,7 +301,7 @@ impl CustomType {
             struct_generics: model_attributes.generics(),
             field_generics: Default::default(),
         };
-        generics.visit_type(self.into_inner_ref());
+        generics.visit_type(self.inner());
         // generics.visit_type(&field_ty.to_basic_type());
         generics.field_generics.0
     }
@@ -324,7 +321,6 @@ impl CustomType {
     //     }
     // }
 
-    #[allow(clippy::items_after_statements)]
     pub fn replace_self_with_current_struct_concrete_type(
         &self,
         model_attributes: &ModelAttributes,
@@ -337,7 +333,7 @@ impl CustomType {
     }
 
     fn _strip_bounds_from_generics(&self) -> Self {
-        let stripped_ty = match self.into_inner_ref() {
+        let stripped_ty = match self.inner() {
             Type::Path(type_path) => {
                 let mut new_type_path = type_path.clone();
 
@@ -378,7 +374,7 @@ impl CustomType {
 
                 Type::Path(new_type_path)
             }
-            _ => self.into_inner_ref().clone(),
+            _ => self.inner().clone(),
         };
         Self(stripped_ty)
     }
@@ -400,9 +396,9 @@ impl CustomType {
     }
 
     pub fn is_numeric(&self) -> bool {
-        let ty = &self.into_inner_ref();
-        let type_is_numeric = match ty {
-            syn::Type::Path(ref p) => {
+        let ty = &self.inner();
+        match ty {
+            syn::Type::Path(p) => {
                 let path = &p.path;
                 path.leading_colon.is_none() && path.segments.len() == 1 && {
                     let ident = &path.segments[0].ident.to_string();
@@ -415,14 +411,12 @@ impl CustomType {
                 }
             }
             _ => false,
-        };
-
-        type_is_numeric
+        }
     }
 
     pub fn raw_type_is_float(&self) -> bool {
-        match self.into_inner_ref() {
-            syn::Type::Path(ref p) => {
+        match self.inner() {
+            syn::Type::Path(p) => {
                 let path = &p.path;
                 path.leading_colon.is_none() && path.segments.len() == 1 && {
                     let ident = &path.segments[0].ident.to_string();
@@ -434,8 +428,8 @@ impl CustomType {
     }
 
     pub fn raw_type_is_integer(&self) -> bool {
-        match self.into_inner_ref() {
-            syn::Type::Path(ref p) => {
+        match self.inner() {
+            syn::Type::Path(p) => {
                 let path = &p.path;
                 path.leading_colon.is_none() && path.segments.len() == 1 && {
                     let ident = &path.segments[0].ident.to_string();
@@ -452,15 +446,15 @@ impl CustomType {
     }
 
     pub fn raw_type_is_string(&self) -> bool {
-        match &self.into_inner_ref() {
-            syn::Type::Path(ref p) => {
+        match &self.inner() {
+            syn::Type::Path(p) => {
                 let path = &p.path;
                 path.leading_colon.is_none() && path.segments.len() == 1 && {
                     let ident = &path.segments[0].ident.to_string();
                     ["String", "str"].contains(&ident.as_str())
                 }
             }
-            syn::Type::Reference(ref r) => {
+            syn::Type::Reference(r) => {
                 if let syn::Type::Path(ref p) = *r.elem {
                     let path = &p.path;
                     path.leading_colon.is_none() && path.segments.len() == 1 && {
@@ -476,8 +470,8 @@ impl CustomType {
     }
 
     pub fn raw_type_is_bool(&self) -> bool {
-        match self.into_inner_ref() {
-            syn::Type::Path(ref p) => {
+        match self.inner() {
+            syn::Type::Path(p) => {
                 let path = &p.path;
                 path.leading_colon.is_none() && path.segments.len() == 1 && {
                     let ident = &path.segments[0].ident.to_string();
@@ -489,7 +483,7 @@ impl CustomType {
     }
 
     pub fn is_set(&self) -> bool {
-        let ty = &self.into_inner_ref();
+        let ty = &self.inner();
         match ty {
             syn::Type::Path(path) => {
                 let last_seg = path
@@ -513,7 +507,7 @@ impl CustomType {
     }
 
     pub fn is_vec(&self) -> bool {
-        let ty = &self.into_inner_ref();
+        let ty = &self.inner();
         match ty {
             syn::Type::Path(path) => {
                 let last_seg = path
@@ -536,7 +530,7 @@ impl CustomType {
     }
 
     pub fn is_array_const(&self) -> bool {
-        let ty = &self.into_inner_ref();
+        let ty = &self.inner();
         matches!(ty, Type::Array(_type_array))
     }
 
@@ -550,7 +544,7 @@ impl CustomType {
     // }
 
     pub fn raw_type_is_optional(&self) -> bool {
-        let ty = self.into_inner_ref();
+        let ty = self.inner();
         match ty {
             syn::Type::Path(path) => {
                 let last_seg = path
@@ -573,7 +567,7 @@ impl CustomType {
     }
 
     pub fn raw_type_is_set(&self) -> bool {
-        let ty = self.into_inner_ref();
+        let ty = self.inner();
         match ty {
             syn::Type::Path(path) => {
                 let last_seg = path
@@ -598,7 +592,7 @@ impl CustomType {
     }
 
     pub fn raw_type_is_object(&self) -> bool {
-        let ty = self.into_inner_ref();
+        let ty = self.inner();
         match ty {
             syn::Type::Path(path) => {
                 let last_seg = path
@@ -623,7 +617,7 @@ impl CustomType {
     }
 
     pub fn raw_type_is_datetime(&self) -> bool {
-        let ty = self.into_inner_ref();
+        let ty = self.inner();
         match ty {
             syn::Type::Path(type_path) => {
                 let last_segment = type_path
@@ -639,7 +633,7 @@ impl CustomType {
     }
 
     pub fn raw_type_is_duration(&self) -> bool {
-        let ty = self.into_inner_ref();
+        let ty = self.inner();
         match ty {
             syn::Type::Path(type_path) => {
                 let last_segment = type_path
@@ -654,7 +648,7 @@ impl CustomType {
     }
 
     pub fn raw_type_is_geometry(&self) -> bool {
-        let ty = &self.into_inner_ref();
+        let ty = &self.inner();
         match ty {
             syn::Type::Path(path) => {
                 let last_seg = path
@@ -678,7 +672,7 @@ impl CustomType {
     }
 
     pub fn raw_type_geometry_kind(&self) -> Option<GeometryType> {
-        let ty = &self.into_inner_ref();
+        let ty = &self.inner();
         match ty {
             syn::Type::Path(path) => {
                 let last_seg = path
@@ -705,7 +699,7 @@ impl CustomType {
     }
 
     fn get_type_inner_type(&self, potential_type_idents: &[RustType]) -> Option<CustomType> {
-        let ty = &self.into_inner_ref();
+        let ty = &self.inner();
 
         let item_ty = match ty {
             syn::Type::Path(type_path) => {
@@ -750,7 +744,7 @@ impl CustomType {
     }
 
     pub fn get_array_const_length(&self) -> Option<Expr> {
-        let ty = &self.into_inner_ref();
+        let ty = &self.inner();
         match ty {
             syn::Type::Array(array) => Some(array.len.clone()),
             _ => None,
@@ -762,7 +756,7 @@ impl CustomType {
     }
 
     pub fn get_array_const_inner_type(&self) -> Option<CustomType> {
-        let ty = &self.into_inner_ref();
+        let ty = &self.inner();
         match ty {
             syn::Type::Array(array) => Some(array.elem.deref().clone().into()),
             _ => None,
@@ -770,7 +764,7 @@ impl CustomType {
     }
 
     pub fn get_option_item_type(&self) -> Option<CustomType> {
-        let ty = &self.into_inner_ref();
+        let ty = &self.inner();
 
         let item_ty = match ty {
             syn::Type::Path(type_path) => {
@@ -844,7 +838,6 @@ impl CustomType {
     }
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone)]
 enum RustType {
     Vec,
@@ -853,49 +846,19 @@ enum RustType {
     BTreeSet,
     HashMap,
     BTreeMap,
-    Bool,
-    U8,
-    U16,
-    U32,
-    U64,
-    U128,
-    F32,
-    F64,
-    USize,
-    I8,
-    I16,
-    I32,
-    I64,
-    I128,
-    Duration,
     DateTime,
 }
 
 impl Display for RustType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let ty = match self {
-            RustType::Bool => "bool",
             RustType::Vec => "Vec",
             RustType::Option => "Option",
             RustType::HashSet => "HashSet",
             RustType::BTreeSet => "BTreeSet",
             RustType::HashMap => "HashMap",
             RustType::BTreeMap => "BTreeMap",
-            RustType::U8 => "u8",
-            RustType::U16 => "u16",
-            RustType::U32 => "u32",
-            RustType::U64 => "u64",
-            RustType::U128 => "u128",
-            RustType::F32 => "f32",
-            RustType::F64 => "f64",
-            RustType::Duration => "Duration",
             RustType::DateTime => "DateTime",
-            RustType::USize => "usize",
-            RustType::I8 => "i8",
-            RustType::I16 => "i16",
-            RustType::I32 => "i32",
-            RustType::I64 => "i64",
-            RustType::I128 => "i128",
         };
         write!(f, "{ty}")
     }

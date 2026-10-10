@@ -13,7 +13,20 @@ mod tests {
     use quote::{format_ident, quote};
 
     use crate::models::field_meta::custom_type_self_replacement::*;
-    use syn::{AngleBracketedGenericArguments, Ident, Path, Type, TypePath, parse_quote};
+    use syn::{
+        AngleBracketedGenericArguments, GenericArgument, Ident, Path, Type, TypePath,
+        parse_quote, punctuated::Punctuated, token::Comma,
+    };
+
+    /// `vec![A, B, C]` -> `A, B, C,`
+    fn vec_to_punctuated(vec: Vec<GenericArgument>) -> Punctuated<GenericArgument, Comma> {
+        let mut punctuated = Punctuated::new();
+        for item in vec {
+            punctuated.push_value(item);
+            punctuated.push_punct(Comma::default());
+        }
+        punctuated
+    }
 
     #[test]
     fn replace_self() {

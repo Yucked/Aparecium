@@ -53,11 +53,11 @@ impl CustomGenerics {
         self.original_generics
     }
 
-    pub fn into_inner_ref(&self) -> &Generics {
+    pub fn inner(&self) -> &Generics {
         &self.original_generics
     }
 
-    pub fn into_inner_ref_mut(&mut self) -> &mut Generics {
+    pub fn inner_mut(&mut self) -> &mut Generics {
         &mut self.original_generics
     }
 
@@ -93,7 +93,7 @@ impl CustomGenerics {
     }
 
     pub fn to_basic_generics(&self) -> &Generics {
-        self.into_inner_ref()
+        self.inner()
     }
 
     pub fn strip_bounds_from_generics(original_generics: &Generics) -> StrippedBoundsGenerics {
@@ -227,7 +227,7 @@ impl StructGenerics {
     }
 
     pub fn to_basic_generics_ref(&self) -> &Generics {
-        self.0.into_inner_ref()
+        self.0.inner()
     }
 
     pub fn split_for_impl(&self) -> (ImplGenerics, TypeGenerics, WhereClause) {
@@ -248,7 +248,7 @@ impl FieldGenerics {
     }
 
     pub fn to_basic_generics_ref(&self) -> &Generics {
-        self.0.into_inner_ref()
+        self.0.inner()
     }
 
     pub fn to_basic_generics_ref_mut(&mut self) -> &mut Generics {
@@ -270,7 +270,7 @@ impl<'a> GenericTypeExtractor<'a> {
             struct_generics: model_attributes.generics(),
             field_generics: Default::default(),
         };
-        generics.visit_type(field_ty.into_inner_ref());
+        generics.visit_type(field_ty.inner());
 
         generics.field_generics.into_inner()
     }
@@ -309,12 +309,11 @@ impl<'a> Visit<'a> for GenericTypeExtractor<'a> {
                 // Handle constraints on the generic parameter
                 if let Some(where_clause) = &self.struct_generics.to_basic_generics_ref().where_clause {
                     for predicate in &where_clause.predicates {
-                        if let WherePredicate::Type(predicate_type) = predicate {
-                            if let syn::Type::Path(type_path) = &predicate_type.bounded_ty {
-                                if type_path.path.is_ident(&segment.ident) {
-                                    self.field_generics.to_basic_generics_ref_mut().make_where_clause().predicates.push(predicate.clone());
-                                }
-                            }
+                        if let WherePredicate::Type(predicate_type) = predicate
+                            && let syn::Type::Path(type_path) = &predicate_type.bounded_ty
+                            && type_path.path.is_ident(&segment.ident)
+                        {
+                            self.field_generics.to_basic_generics_ref_mut().make_where_clause().predicates.push(predicate.clone());
                         }
                     }
                 }
@@ -387,15 +386,6 @@ impl<'a> Visit<'a> for GenericTypeExtractor<'a> {
             self.add_lifetime_if_not_exists(lifetime);
         }
         syn::visit::visit_type_reference(self, i);
-    }
-
-    // Visit bare function types like fn(T) -> U
-    fn visit_type_bare_fn(&mut self, i: &'a TypeBareFn) {
-        for input in &i.inputs {
-            self.visit_bare_fn_arg(input);
-        }
-        self.visit_return_type(&i.output);
-        syn::visit::visit_type_bare_fn(self, i);
     }
 
     // Visit impl Trait types used in return position or as standalone types
