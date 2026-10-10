@@ -1,0 +1,52 @@
+name: Issue
+about: Report a bug, request a feature, or propose an improvement.
+title: ""
+body:
+  - type: markdown
+    attributes:
+      value: |
+        <p align="center">
+          <img src="https://i.imgur.com/E4qxRN7.gif" width="320" alt="ISSUE">
+        </p>
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - Bug
+        - Feature
+        - Improvement
+        - Documentation
+        - Maintenance
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Overview
+      description: Describe the issue, request, or proposed change.
+      placeholder: What needs attention, and why?
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Outcome
+      placeholder: What should the final result look like?
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Include screenshots, references, logs, or implementation notes.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have checked for existing related issues.
+          required: true
