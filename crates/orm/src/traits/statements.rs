@@ -9,54 +9,68 @@ use surrealdb::{Connection, Surreal};
 // Create, Update, Relate, Delete
 // [ RETURN [ NONE | BEFORE | AFTER | DIFF | @projections ... ]
 
+// The execution methods return `impl Future + Send` (with `Self: Sync` for `&self` receivers) so
+// their futures stay `Send` for multi-threaded runtimes, as they were under `async_trait`.
+
 /// A trait that represents a statement that can be run against the database.
-#[async_trait::async_trait]
+#[diagnostic::on_unimplemented(
+    message = "`{Self}` cannot be executed",
+    label = "not a runnable statement",
+    note = "only complete statements can run; build one with `aparecium::statements`"
+)]
 pub trait Runnable
 where
     Self: Queryable,
 {
     /// Runs the statement against the database.
-    async fn run(
+    fn run(
         &self,
         db: Surreal<impl surrealdb::Connection>,
-    ) -> SurrealOrmResult<surrealdb::Response> {
-        let query_builder_error = self.get_errors();
+    ) -> impl Future<Output = SurrealOrmResult<surrealdb::Response>> + Send
+    where
+        Self: Sync,
+    {
+        async move {
+            let query_builder_error = self.get_errors();
 
-        if !query_builder_error.is_empty() {
-            return Err(SurrealOrmError::QueryBuilder(
-                query_builder_error.join(". \n"),
-            ));
+            if !query_builder_error.is_empty() {
+                return Err(SurrealOrmError::QueryBuilder(
+                    query_builder_error.join(". \n"),
+                ));
+            }
+
+            let query = self.build();
+            let query = db.query(query);
+            let query = self.get_bindings().iter().fold(query, |acc, val| {
+                acc.bind((val.get_param(), val.get_value()))
+            });
+
+            Ok(query.await.map_err(SurrealOrmError::QueryRun)?)
         }
-
-        let query = self.build();
-        let query = db.query(query);
-        let query = self.get_bindings().iter().fold(query, |acc, val| {
-            acc.bind((val.get_param(), val.get_value()))
-        });
-
-        Ok(query.await.map_err(SurrealOrmError::QueryRun)?)
     }
 
     /// Runs the statement against the database and returns the deserialized result.
-    async fn get_data<T>(
+    fn get_data<T>(
         &self,
         db: Surreal<impl surrealdb::Connection>,
-    ) -> SurrealOrmResult<Option<T>>
+    ) -> impl Future<Output = SurrealOrmResult<Option<T>>> + Send
     where
+        Self: Sync,
         T: Sized + Serialize + DeserializeOwned,
     {
-        let mut response = self.run(db).await?;
+        async move {
+            let mut response = self.run(db).await?;
 
-        Ok(response
-            .take::<Option<T>>(0)
-            .map_err(SurrealOrmError::Deserialization)?)
+            Ok(response
+                .take::<Option<T>>(0)
+                .map_err(SurrealOrmError::Deserialization)?)
+        }
     }
 }
 
 impl<Q> Runnable for Q where Q: Queryable {}
 
 /// A trait that represents a statement that can be run against the database and return a single
-#[async_trait::async_trait]
 pub trait ReturnableStandard<T>
 where
     Self: Parametric + Buildable + Sized + Send + Sync + Runnable,
@@ -82,56 +96,62 @@ where
 
     /// Runs the statement against the database and returns the first result of the change with the
     /// specified projections or list of fields.
-    async fn return_first_projections<P>(
+    fn return_first_projections<P>(
         self,
         db: Surreal<impl Connection>,
         projections: impl Send + Into<Projections>,
-    ) -> SurrealOrmResult<Option<P>>
+    ) -> impl Future<Output = SurrealOrmResult<Option<P>>> + Send
     where
         P: Serialize + DeserializeOwned,
     {
-        let mut query = self;
-        let projections: Projections = projections.into();
-        query = query.set_return_type(ReturnType::Projections(projections));
+        async move {
+            let mut query = self;
+            let projections: Projections = projections.into();
+            query = query.set_return_type(ReturnType::Projections(projections));
 
-        let response = query.run(db).await?;
-        get_first::<P>(response)
+            let response = query.run(db).await?;
+            get_first::<P>(response)
+        }
     }
 
     /// Runs the statement against the database and returns the one result of the change with the
     /// specified projections or list of fields.
-    async fn return_one_projections<P>(
+    fn return_one_projections<P>(
         self,
         db: Surreal<impl Connection>,
         projections: impl Send + Into<Projections>,
-    ) -> SurrealOrmResult<Option<P>>
+    ) -> impl Future<Output = SurrealOrmResult<Option<P>>> + Send
     where
         P: Serialize + DeserializeOwned,
     {
-        let mut query = self;
-        let projections: Projections = projections.into();
-        query = query.set_return_type(ReturnType::Projections(projections));
+        async move {
+            let mut query = self;
+            let projections: Projections = projections.into();
+            query = query.set_return_type(ReturnType::Projections(projections));
 
-        let response = query.run(db).await?;
-        get_one::<P>(response)
+            let response = query.run(db).await?;
+            get_one::<P>(response)
+        }
     }
 
     /// Runs the statement against the database and returns the many result of the change with the
     /// specified projections or list of fields.
-    async fn return_many_projections<P>(
+    fn return_many_projections<P>(
         self,
         db: Surreal<impl Connection>,
         projections: impl Send + Into<Projections>,
-    ) -> SurrealOrmResult<Vec<P>>
+    ) -> impl Future<Output = SurrealOrmResult<Vec<P>>> + Send
     where
         P: Serialize + DeserializeOwned,
     {
-        let mut query = self;
-        let projections: Projections = projections.into();
-        query = query.set_return_type(ReturnType::Projections(projections));
+        async move {
+            let mut query = self;
+            let projections: Projections = projections.into();
+            query = query.set_return_type(ReturnType::Projections(projections));
 
-        let response = query.run(db).await?;
-        get_many::<P>(response)
+            let response = query.run(db).await?;
+            get_many::<P>(response)
+        }
     }
 
     #[doc(hidden)]
@@ -260,9 +280,14 @@ where
     }
 
     /// Runs the statement against the database and returns the one result.
-    async fn return_one(&self, db: Surreal<impl Connection>) -> SurrealOrmResult<Option<T>> {
-        let response = self.run(db).await?;
-        get_one::<T>(response)
+    fn return_one(
+        &self,
+        db: Surreal<impl Connection>,
+    ) -> impl Future<Output = SurrealOrmResult<Option<T>>> + Send {
+        async move {
+            let response = self.run(db).await?;
+            get_one::<T>(response)
+        }
     }
 
     /// Runs the statement against the database and returns the one result.
@@ -270,52 +295,78 @@ where
     /// It does best effort to make sure all fields are selected
     /// even if you select subset, it fills up the rest to make
     /// sure you get the full record and can be properly deserialized.
-    async fn get_one(self, db: Surreal<impl Connection>) -> SurrealOrmResult<T> {
-        let response = self.run(db).await?;
-        let returned_type = self.get_return_type();
-        let all = vec![ValueLike::from(Field::new("*"))];
-        let selected_fields = match returned_type {
-            ReturnType::Projections(projections) => all
-                .into_iter()
-                .chain(
-                    projections
-                        .iter()
-                        .filter(|p| p.build() != "*")
-                        .cloned()
-                        .collect::<Vec<_>>(),
-                )
-                .collect::<Vec<_>>(),
-            _ => all,
-        };
+    fn get_one(
+        self,
+        db: Surreal<impl Connection>,
+    ) -> impl Future<Output = SurrealOrmResult<T>> + Send {
+        async move {
+            let response = self.run(db).await?;
+            let returned_type = self.get_return_type();
+            let all = vec![ValueLike::from(Field::new("*"))];
+            let selected_fields = match returned_type {
+                ReturnType::Projections(projections) => all
+                    .into_iter()
+                    .chain(
+                        projections
+                            .iter()
+                            .filter(|p| p.build() != "*")
+                            .cloned()
+                            .collect::<Vec<_>>(),
+                    )
+                    .collect::<Vec<_>>(),
+                _ => all,
+            };
 
-        let query = self.set_return_type(ReturnType::Projections(Projections(selected_fields)));
+            let query =
+                self.set_return_type(ReturnType::Projections(Projections(selected_fields)));
 
-        get_one::<T>(response)
-            .map(|r| r.ok_or_else(|| SurrealOrmError::RecordNotFound(query.build())))?
+            get_one::<T>(response)
+                .map(|r| r.ok_or_else(|| SurrealOrmError::RecordNotFound(query.build())))?
+        }
     }
 
     /// Runs the statement against the database and returns the many results.
-    async fn return_many(&self, db: Surreal<impl Connection>) -> SurrealOrmResult<Vec<T>> {
-        let response = self.run(db).await?;
-        get_many::<T>(response)
+    fn return_many(
+        &self,
+        db: Surreal<impl Connection>,
+    ) -> impl Future<Output = SurrealOrmResult<Vec<T>>> + Send {
+        async move {
+            let response = self.run(db).await?;
+            get_many::<T>(response)
+        }
     }
 
     /// Runs the statement against the database and returns no result.
-    async fn return_none(&self, db: Surreal<impl Connection>) -> SurrealOrmResult<()> {
-        self.run(db).await?;
-        Ok(())
+    fn return_none(
+        &self,
+        db: Surreal<impl Connection>,
+    ) -> impl Future<Output = SurrealOrmResult<()>> + Send {
+        async move {
+            self.run(db).await?;
+            Ok(())
+        }
     }
 
     /// Runs the statement against the database and returns the first result.
-    async fn return_first(&self, db: Surreal<impl Connection>) -> SurrealOrmResult<Option<T>> {
-        let response = self.run(db).await?;
-        get_first::<T>(response)
+    fn return_first(
+        &self,
+        db: Surreal<impl Connection>,
+    ) -> impl Future<Output = SurrealOrmResult<Option<T>>> + Send {
+        async move {
+            let response = self.run(db).await?;
+            get_first::<T>(response)
+        }
     }
 
     /// Runs the statement against the database and returns the many results before the change.
-    async fn return_many_before(self, db: Surreal<impl Connection>) -> SurrealOrmResult<Vec<T>> {
-        let query = self.set_return_type(ReturnType::Before);
-        query.return_many(db).await
+    fn return_many_before(
+        self,
+        db: Surreal<impl Connection>,
+    ) -> impl Future<Output = SurrealOrmResult<Vec<T>>> + Send {
+        async move {
+            let query = self.set_return_type(ReturnType::Before);
+            query.return_many(db).await
+        }
     }
 
     /// Internal method to set the surrealdb return type of the statement.
@@ -326,7 +377,6 @@ where
 }
 
 /// A trait that represents a statement that can be run against the database
-#[async_trait::async_trait]
 pub trait ReturnableDefault<T>
 where
     Self: Parametric + Buildable + Runnable,
@@ -334,81 +384,115 @@ where
 {
     /// Runs the statement against the database and returns the one result with custom specified
     /// return type.
-    async fn return_one_explicit<V>(
+    fn return_one_explicit<V>(
         &self,
         db: Surreal<impl Connection>,
-    ) -> SurrealOrmResult<Option<V>>
+    ) -> impl Future<Output = SurrealOrmResult<Option<V>>> + Send
     where
+        Self: Sync,
         V: Serialize + DeserializeOwned,
     {
-        let response = self.run(db).await?;
-        get_one::<V>(response)
+        async move {
+            let response = self.run(db).await?;
+            get_one::<V>(response)
+        }
     }
 
     /// Runs the statement against the database and returns the many results with custom
     /// specified.
-    async fn return_many_explicit<V>(
+    fn return_many_explicit<V>(
         &self,
         db: Surreal<impl Connection>,
-    ) -> SurrealOrmResult<Vec<V>>
+    ) -> impl Future<Output = SurrealOrmResult<Vec<V>>> + Send
     where
+        Self: Sync,
         V: Serialize + DeserializeOwned,
     {
-        let response = self.run(db).await?;
-        get_many::<V>(response)
+        async move {
+            let response = self.run(db).await?;
+            get_many::<V>(response)
+        }
     }
 }
 
 /// A trait that represents a statement that can be run against the database. Specifically for
 /// selct statements.
-#[async_trait::async_trait]
 pub trait ReturnableSelect: Runnable
 where
     Self: Parametric + Buildable,
 {
     /// Runs the statement against the database and returns no result.
-    async fn return_none(&self, db: Surreal<impl Connection>) -> SurrealOrmResult<()> {
-        self.run(db).await?;
-        Ok(())
+    fn return_none(
+        &self,
+        db: Surreal<impl Connection>,
+    ) -> impl Future<Output = SurrealOrmResult<()>> + Send
+    where
+        Self: Sync,
+    {
+        async move {
+            self.run(db).await?;
+            Ok(())
+        }
     }
 
     /// Runs the statement against the database and returns the first result.
-    async fn return_first<T>(&self, db: Surreal<impl Connection>) -> SurrealOrmResult<Option<T>>
+    fn return_first<T>(
+        &self,
+        db: Surreal<impl Connection>,
+    ) -> impl Future<Output = SurrealOrmResult<Option<T>>> + Send
     where
+        Self: Sync,
         T: Serialize + DeserializeOwned,
     {
-        let response = self.run(db).await?;
-        get_first::<T>(response)
+        async move {
+            let response = self.run(db).await?;
+            get_first::<T>(response)
+        }
     }
 
     /// Runs the statement against the database and returns the one result.
-    async fn return_one<T>(
+    fn return_one<T>(
         &self,
         db: Surreal<impl surrealdb::Connection>,
-    ) -> SurrealOrmResult<Option<T>>
+    ) -> impl Future<Output = SurrealOrmResult<Option<T>>> + Send
     where
+        Self: Sync,
         T: Serialize + DeserializeOwned,
     {
-        let response = self.run(db).await?;
-        get_one::<T>(response)
+        async move {
+            let response = self.run(db).await?;
+            get_one::<T>(response)
+        }
     }
 
     /// Runs the statement against the database and returns the one result with result unchecked.
-    async fn return_one_unchecked<T>(&self, db: Surreal<impl Connection>) -> T
+    fn return_one_unchecked<T>(
+        &self,
+        db: Surreal<impl Connection>,
+    ) -> impl Future<Output = T> + Send
     where
+        Self: Sync,
         T: Serialize + DeserializeOwned,
     {
-        let response = self.run(db).await.unwrap();
-        get_last::<T>(response).unwrap().unwrap()
+        async move {
+            let response = self.run(db).await.unwrap();
+            get_last::<T>(response).unwrap().unwrap()
+        }
     }
 
     /// Runs the statement against the database and returns the many results.
-    async fn return_many<T>(&self, db: Surreal<impl Connection>) -> SurrealOrmResult<Vec<T>>
+    fn return_many<T>(
+        &self,
+        db: Surreal<impl Connection>,
+    ) -> impl Future<Output = SurrealOrmResult<Vec<T>>> + Send
     where
+        Self: Sync,
         T: Serialize + DeserializeOwned,
     {
-        let response = self.run(db).await?;
-        get_many::<T>(response)
+        async move {
+            let response = self.run(db).await?;
+            get_many::<T>(response)
+        }
     }
 }
 
