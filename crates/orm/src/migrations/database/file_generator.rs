@@ -8,8 +8,8 @@ use std::{collections::BTreeMap, ops::Deref};
 
 use crate::{statements::info_for, *};
 use surrealdb::{
-    engine::local::{Db, Mem},
     Surreal,
+    engine::local::{Db, Mem},
 };
 
 use crate::migrations::*;

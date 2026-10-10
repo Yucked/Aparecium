@@ -5,8 +5,8 @@
  */
 
 use syn::{
-    parse::{Parse, ParseStream},
     Ident, Result as SynResult, Token,
+    parse::{Parse, ParseStream},
 };
 
 pub struct BeginTransactionStatementParser;

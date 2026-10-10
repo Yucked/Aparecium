@@ -4,11 +4,11 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 use proc_macro2::TokenStream;
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 use syn::{
+    Generics, Ident, Path, Result, Token,
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
-    Generics, Ident, Path, Result, Token,
 };
 
 use crate::models::create_tokenstream_wrapper;
@@ -164,4 +164,3 @@ impl ToTokens for PickedMeta {
         });
     }
 }
-

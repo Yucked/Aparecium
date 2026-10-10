@@ -42,16 +42,24 @@ pub enum SurrealOrmError {
     #[error("Problem runnning query. Check that there is no issue with your query. {0}")]
     QueryRun(#[source] surrealdb::Error),
 
-    #[error("Unable to parse data returned from the database. Check that all fields are complete and the types are able to deserialize surrealdb data types properly. {0}")]
+    #[error(
+        "Unable to parse data returned from the database. Check that all fields are complete and the types are able to deserialize surrealdb data types properly. {0}"
+    )]
     Deserialization(#[source] surrealdb::Error),
 
-    #[error("Invalid id. Problem deserializing string to surrealdb::sql::Thing. Check that the id is in the format 'table:id'. {0}")]
+    #[error(
+        "Invalid id. Problem deserializing string to surrealdb::sql::Thing. Check that the id is in the format 'table:id'. {0}"
+    )]
     InvalidId(#[source] surrealdb::Error),
 
-    #[error("The id - {0} provided does not belong to the table {1}. Please ensure that the id provided is for the table you are trying to fetch from.")]
+    #[error(
+        "The id - {0} provided does not belong to the table {1}. Please ensure that the id provided is for the table you are trying to fetch from."
+    )]
     IdBelongsToAnotherTable(IdString, TableString),
 
-    #[error("The following fields could not be fetched as they are not linked to a foreign table: {0}. Please ensure that all fields provided are of types 'link_self', 'link_one' or 'link_many' to allow fetching of linked values from other tables.")]
+    #[error(
+        "The following fields could not be fetched as they are not linked to a foreign table: {0}. Please ensure that all fields provided are of types 'link_self', 'link_one' or 'link_many' to allow fetching of linked values from other tables."
+    )]
     FieldsUnfetchableNotARecordLink(String),
 
     #[error("No record returned from {0}. Check that all fields in this table are selected.")]

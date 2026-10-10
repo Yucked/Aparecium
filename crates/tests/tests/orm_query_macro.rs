@@ -1,5 +1,5 @@
 use aparecium::{query, query_raw};
-use surrealdb::{engine::local::Mem, Surreal};
+use surrealdb::{Surreal, engine::local::Mem};
 
 #[tokio::test]
 async fn test_query_macro_with_bindigns() {
@@ -58,7 +58,9 @@ fn test_query_macro_with_params() {
 
 #[test]
 fn test_query_macro_with_graph() {
-    let query = query_raw!("SELECT ->purchased->product<-purchased<-person->purchased->product FROM person:tobie PARALLEL");
+    let query = query_raw!(
+        "SELECT ->purchased->product<-purchased<-person->purchased->product FROM person:tobie PARALLEL"
+    );
     assert_eq!(
         query,
         "SELECT ->purchased->product<-purchased<-person->purchased->product FROM person:tobie PARALLEL"

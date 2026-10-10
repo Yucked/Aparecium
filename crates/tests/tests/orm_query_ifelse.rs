@@ -4,16 +4,15 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 
+use aparecium::{
+    All, Buildable, Model, Operatable, ReturnableSelect, Runnable, SchemaGetter, SetterAssignable,
+    SurrealOrmResult, ToRaw, block, chain,
+    statements::{LetStatement, if_, insert, let_, order, select, update},
+};
+use aparecium_tests::{SpaceShip, Weapon, weapon};
 use pretty_assertions::assert_eq;
 use serde::{Deserialize, Serialize};
-use aparecium_tests::{weapon, SpaceShip, Weapon};
-use aparecium::{
-    block, chain,
-    statements::{if_, insert, let_, order, select, update, LetStatement},
-    All, Buildable, Model, Operatable, ReturnableSelect, Runnable, SchemaGetter, SetterAssignable,
-    SurrealOrmResult, ToRaw,
-};
-use surrealdb::{engine::local::Mem, Surreal};
+use surrealdb::{Surreal, engine::local::Mem};
 
 #[tokio::test]
 async fn test_if_else_statement_and_let_with_block_macro() -> SurrealOrmResult<()> {

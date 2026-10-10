@@ -6,12 +6,12 @@
 
 use std::marker::PhantomData;
 
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 
 use crate::{
+    Binding, Conditional, ErrorList, ReturnableDefault, ReturnableStandard, ToRaw,
     traits::{BindingsList, Buildable, Erroneous, Model, Parametric, Queryable},
     types::{DurationLike, Filter, ReturnType},
-    Binding, Conditional, ErrorList, ReturnableDefault, ReturnableStandard, ToRaw,
 };
 
 use super::update::TargettablesForUpdate;

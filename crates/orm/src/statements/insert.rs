@@ -13,13 +13,13 @@
 // ;
 use std::{fmt::Display, marker::PhantomData};
 
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use surrealdb::sql;
 
 use crate::{
+    ErrorList, ReturnType, ReturnableDefault, ReturnableStandard,
     traits::{Binding, BindingsList, Buildable, Erroneous, Node, Parametric, Queryable},
     types::Updateables,
-    ErrorList, ReturnType, ReturnableDefault, ReturnableStandard,
 };
 
 use super::{SelectStatement, Subquery};

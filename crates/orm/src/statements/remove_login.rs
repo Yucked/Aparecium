@@ -128,4 +128,3 @@ impl Parametric for RemoveLoginStatement {
 impl Erroneous for RemoveLoginStatement {}
 
 impl Queryable for RemoveLoginStatement {}
-

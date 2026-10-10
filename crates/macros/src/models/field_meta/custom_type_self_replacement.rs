@@ -5,10 +5,9 @@
  */
 
 use syn::{
-    parse_quote,
-    visit_mut::{self, VisitMut},
     AngleBracketedGenericArguments, ExprPath, GenericArgument, Ident, Path, PathArguments,
-    PathSegment, Type, TypePath,
+    PathSegment, Type, TypePath, parse_quote,
+    visit_mut::{self, VisitMut},
 };
 
 use crate::models::{CustomType, CustomTypeNoSelf};
@@ -180,4 +179,3 @@ impl VisitMut for ReplaceSelfVisitor {
         syn::visit_mut::visit_type_impl_trait_mut(self, i);
     }
 }
-

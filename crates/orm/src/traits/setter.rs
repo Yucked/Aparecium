@@ -1,13 +1,13 @@
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use surrealdb::sql;
 
 use crate::{
+    Binding, BindingsList, Block, Buildable, Conditional, Edge, Erroneous, ErrorList, Field, Node,
+    Param, Parametric,
     statements::{
         DeleteStatement, IfElseStatement, InsertStatement, LetStatement, RelateStatement,
         SelectStatement, Subquery, UpdateStatement,
     },
-    Binding, BindingsList, Block, Buildable, Conditional, Edge, Erroneous, ErrorList, Field, Node,
-    Param, Parametric,
 };
 
 /// A helper struct for generating SQL update statements.

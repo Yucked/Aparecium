@@ -6,16 +6,15 @@
 
 use std::marker::PhantomData;
 
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 
 use crate::{
-    derive_binding_and_errors_from_value,
+    ErrorList, Setter, ToRaw, derive_binding_and_errors_from_value,
     traits::{
         BindingsList, Buildable, Erroneous, Node, Parametric, Queryable, ReturnableDefault,
         ReturnableStandard,
     },
     types::{DurationLike, ReturnType},
-    ErrorList, Setter, ToRaw,
 };
 
 #[allow(unused)]

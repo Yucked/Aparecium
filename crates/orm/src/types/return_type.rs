@@ -40,4 +40,3 @@ impl Display for ReturnType {
         write!(f, "RETURN {return_type} ")
     }
 }
-

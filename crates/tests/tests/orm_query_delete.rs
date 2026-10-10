@@ -4,15 +4,15 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 
-use pretty_assertions::assert_eq;
-use aparecium_tests::{weapon, Weapon};
 use aparecium::{
     statements::{delete, insert},
     *,
 };
+use aparecium_tests::{Weapon, weapon};
+use pretty_assertions::assert_eq;
 use surrealdb::{
-    engine::local::{Db, Mem},
     Surreal,
+    engine::local::{Db, Mem},
 };
 
 async fn create_test_data(db: Surreal<Db>) -> Vec<Weapon> {

@@ -7,7 +7,7 @@
 use std::{collections::HashMap, fmt::Display, marker::PhantomData, ops::Deref};
 
 use serde::{Deserialize, Serialize};
-use surrealdb::sql::{self, thing, Thing};
+use surrealdb::sql::{self, Thing, thing};
 
 use crate::{Erroneous, Model, SurrealOrmError};
 
@@ -228,7 +228,7 @@ where
     T: Model,
 {
     fn from(simple_id: SurrealSimpleId<T>) -> Self {
-        simple_id.0 .0
+        simple_id.0.0
     }
 }
 
@@ -237,7 +237,7 @@ where
     T: Model,
 {
     fn from(simple_id: &SurrealSimpleId<T>) -> Self {
-        simple_id.0 .0.clone()
+        simple_id.0.0.clone()
     }
 }
 
@@ -246,7 +246,7 @@ where
     T: Model,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0 .0.fmt(f)
+        self.0.0.fmt(f)
     }
 }
 
@@ -256,7 +256,7 @@ where
     Id: Into<sql::Id>,
 {
     fn from(simple_id: SurrealSimpleId<T>) -> Self {
-        SurrealId(simple_id.0 .0, PhantomData, PhantomData)
+        SurrealId(simple_id.0.0, PhantomData, PhantomData)
     }
 }
 
@@ -275,7 +275,7 @@ where
 
     /// Converts the surreal id to a thing
     pub fn to_thing(&self) -> Thing {
-        self.0 .0.clone()
+        self.0.0.clone()
     }
 
     /// Converts the surreal id to a raw string
@@ -307,13 +307,13 @@ impl<T: Model> Default for SurrealUuid<T> {
 
 impl<T: Model> From<SurrealUuid<T>> for sql::Thing {
     fn from(uuid: SurrealUuid<T>) -> Self {
-        uuid.0 .0
+        uuid.0.0
     }
 }
 
 impl<T: Model, Id: Into<sql::Id>> From<SurrealUuid<T>> for SurrealId<T, Id> {
     fn from(uuid: SurrealUuid<T>) -> Self {
-        SurrealId(uuid.0 .0, PhantomData, PhantomData)
+        SurrealId(uuid.0.0, PhantomData, PhantomData)
     }
 }
 
@@ -329,7 +329,7 @@ impl<T: Model> SurrealUuid<T> {
 
     /// Converts the surreal id to a thing
     pub fn to_thing(&self) -> Thing {
-        self.0 .0.clone()
+        self.0.0.clone()
     }
 
     /// Converts the surreal id to a raw string
@@ -340,7 +340,7 @@ impl<T: Model> SurrealUuid<T> {
 
 impl<T: Model> Display for SurrealUuid<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0 .0.fmt(f)
+        self.0.0.fmt(f)
     }
 }
 
@@ -356,13 +356,13 @@ impl<T: Model> Default for SurrealUlid<T> {
 
 impl<T: Model, Id: Into<sql::Id>> From<SurrealUlid<T>> for SurrealId<T, Id> {
     fn from(ulid: SurrealUlid<T>) -> Self {
-        SurrealId(ulid.0 .0, PhantomData, PhantomData)
+        SurrealId(ulid.0.0, PhantomData, PhantomData)
     }
 }
 
 impl<T: Model> From<SurrealUlid<T>> for sql::Thing {
     fn from(ulid: SurrealUlid<T>) -> Self {
-        ulid.0 .0
+        ulid.0.0
     }
 }
 
@@ -378,7 +378,7 @@ impl<T: Model> SurrealUlid<T> {
 
     /// Converts the surreal id to a thing
     pub fn to_thing(&self) -> Thing {
-        self.0 .0.clone()
+        self.0.0.clone()
     }
 
     /// Converts the surreal id to a raw string
@@ -389,43 +389,43 @@ impl<T: Model> SurrealUlid<T> {
 
 impl<T: Model> Display for SurrealUlid<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0 .0.fmt(f)
+        self.0.0.fmt(f)
     }
 }
 
 impl<T: Model> From<SurrealSimpleId<T>> for sql::Value {
     fn from(simple_id: SurrealSimpleId<T>) -> Self {
-        sql::Value::Thing(simple_id.0 .0)
+        sql::Value::Thing(simple_id.0.0)
     }
 }
 
 impl<T: Model> From<&SurrealSimpleId<T>> for sql::Value {
     fn from(simple_id: &SurrealSimpleId<T>) -> Self {
-        sql::Value::Thing(simple_id.0 .0.clone())
+        sql::Value::Thing(simple_id.0.0.clone())
     }
 }
 
 impl<T: Model> From<SurrealUuid<T>> for sql::Value {
     fn from(uuid: SurrealUuid<T>) -> Self {
-        sql::Value::Thing(uuid.0 .0)
+        sql::Value::Thing(uuid.0.0)
     }
 }
 
 impl<T: Model> From<&SurrealUuid<T>> for sql::Value {
     fn from(uuid: &SurrealUuid<T>) -> Self {
-        sql::Value::Thing(uuid.0 .0.clone())
+        sql::Value::Thing(uuid.0.0.clone())
     }
 }
 
 impl<T: Model> From<SurrealUlid<T>> for sql::Value {
     fn from(ulid: SurrealUlid<T>) -> Self {
-        sql::Value::Thing(ulid.0 .0)
+        sql::Value::Thing(ulid.0.0)
     }
 }
 
 impl<T: Model> From<&SurrealUlid<T>> for sql::Value {
     fn from(ulid: &SurrealUlid<T>) -> Self {
-        sql::Value::Thing(ulid.0 .0.clone())
+        sql::Value::Thing(ulid.0.0.clone())
     }
 }
 
@@ -496,4 +496,3 @@ impl Model for TestUser {
         unimplemented!()
     }
 }
-

@@ -12,7 +12,7 @@ mod models;
 use aparecium::assert_not;
 use darling::FromDeriveInput;
 use models::{EdgeToken, NodeToken};
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 
 #[test]
 fn test_node_trait_derive() {
@@ -53,8 +53,8 @@ enum RelateFieldAttribute {
     DefaultOnly,
     BothAttrs,
 }
-use test_case::test_case;
 use RelateFieldAttribute::*;
+use test_case::test_case;
 #[test_case(SerdeSkipSerializingOnly)]
 #[test_case(DefaultOnly)]
 #[test_case(BothAttrs)]
@@ -157,9 +157,7 @@ fn test_edge_trait_derive() {
     assert!(node_no_whitespace.contains("impl<In,Out>aparecium::EdgeforWrites<In,Out>"));
     assert!(node_token.contains("impl < In , Out > aparecium :: Edge for Writes < In , Out >"));
     assert_not!(node_no_whitespace.contains("impl<In,Out>aparecium::NodeforWrites<In,Out>"));
-    assert_not!(
-        node_token.contains("impl < In , Out > aparecium :: Node for Writes < In , Out >")
-    );
+    assert_not!(node_token.contains("impl < In , Out > aparecium :: Node for Writes < In , Out >"));
 
     insta::assert_snapshot!(
         "edge_trait_derive",

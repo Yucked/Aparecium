@@ -101,4 +101,3 @@ impl Buildable for DefineFunctionStatement {
         format!("{build};")
     }
 }
-

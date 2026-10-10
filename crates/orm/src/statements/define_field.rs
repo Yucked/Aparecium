@@ -267,4 +267,3 @@ impl Display for DefineFieldStatement {
         write!(f, "{}", self.build())
     }
 }
-

@@ -1,6 +1,6 @@
 use crate::{
-    statements::Permissions, BindingsList, Buildable, Erroneous, LiteralLike, Parametric,
-    Queryable, StrandLike, TableLike,
+    BindingsList, Buildable, Erroneous, LiteralLike, Parametric, Queryable, StrandLike, TableLike,
+    statements::Permissions,
 };
 use std::fmt::{self, Display};
 
@@ -196,4 +196,3 @@ impl Display for DefineModelStatement {
         write!(f, "{}", self.build())
     }
 }
-

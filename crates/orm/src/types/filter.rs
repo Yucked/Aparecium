@@ -673,4 +673,3 @@ impl std::fmt::Display for Filter {
         write!(f, "{}", self.build())
     }
 }
-

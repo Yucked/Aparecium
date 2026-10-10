@@ -10,11 +10,11 @@ use std::{
     str::FromStr,
 };
 
+use crate::field_type::FieldType;
+use crate::helpers::get_crate_name;
 use darling::FromMeta;
 use proc_macro2::TokenStream;
-use crate::helpers::get_crate_name;
-use quote::{quote, ToTokens};
-use crate::field_type::FieldType;
+use quote::{ToTokens, quote};
 use syn::spanned::Spanned;
 
 use crate::models::*;
@@ -198,7 +198,7 @@ impl FromMeta for FieldTypeDb {
             syn::Expr::Verbatim(expr_verbatim) => expr_verbatim.to_string(),
             _ => {
                 return Err(darling::Error::custom("Expected a string literal for ty")
-                    .with_span(&expr.span()))
+                    .with_span(&expr.span()));
             }
         };
         let field_type = FieldType::from_str(&field_type).map_err(|_| {

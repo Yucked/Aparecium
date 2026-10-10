@@ -12,7 +12,7 @@ mod models;
 use aparecium::assert_not;
 use darling::FromDeriveInput;
 use models::NodeToken;
-use quote::{format_ident, quote, ToTokens};
+use quote::{ToTokens, format_ident, quote};
 use std::fmt::Display;
 
 // Test table name

@@ -30,4 +30,3 @@ impl Display for CrudType {
         write!(f, "{}", crud_type)
     }
 }
-

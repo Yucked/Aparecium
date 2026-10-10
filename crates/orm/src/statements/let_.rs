@@ -7,9 +7,9 @@
 use std::fmt::Display;
 
 use crate::{
+    Clause, Conditional, Operatable, Operation, Param, SchemaGetter, ValueLike,
     traits::{BindingsList, Buildable, Erroneous, Parametric, Queryable},
     types::expression::Expression,
-    Clause, Conditional, Operatable, Operation, Param, SchemaGetter, ValueLike,
 };
 
 /// Builds LET statement.
@@ -193,4 +193,3 @@ impl Conditional for LetStatement {
         self.get_param().build()
     }
 }
-

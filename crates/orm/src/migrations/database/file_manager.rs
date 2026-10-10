@@ -9,7 +9,7 @@ use std::{
 };
 
 use crate::DbResources;
-use surrealdb::{engine::any::Any, Connection, Surreal};
+use surrealdb::{Connection, Surreal, engine::any::Any};
 use typed_builder::TypedBuilder;
 
 use crate::migrations::*;

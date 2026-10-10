@@ -6,15 +6,14 @@
 
 use std::fmt::Display;
 
+use crate::field_type::FieldType;
+use crate::helpers::get_crate_name;
 use proc_macro::TokenStream;
 use proc_macro2::{Span, TokenTree};
-use crate::helpers::get_crate_name;
-use quote::{format_ident, quote, ToTokens};
-use crate::field_type::FieldType;
+use quote::{ToTokens, format_ident, quote};
 use syn::{
-    self,
+    self, Ident, Token,
     parse::{Parse, ParseStream},
-    Ident, Token,
 };
 
 use super::if_else::Body;

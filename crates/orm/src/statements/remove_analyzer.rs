@@ -6,8 +6,8 @@
 use std::fmt::{self, Display};
 
 use crate::{
-    traits::{BindingsList, Buildable, Erroneous, Parametric, Queryable},
     Binding,
+    traits::{BindingsList, Buildable, Erroneous, Parametric, Queryable},
 };
 
 /// Creates a REMOVE ANALYZER statement builder.
@@ -59,4 +59,3 @@ impl fmt::Display for RemoveAnalyzerStatement {
         write!(f, "{}", self.build())
     }
 }
-

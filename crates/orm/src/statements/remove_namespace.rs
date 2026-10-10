@@ -75,4 +75,3 @@ impl Parametric for RemoveNamespaceStatement {
 impl Erroneous for RemoveNamespaceStatement {}
 
 impl Queryable for RemoveNamespaceStatement {}
-

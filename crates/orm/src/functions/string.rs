@@ -1217,7 +1217,6 @@ pub mod is {
     );
 }
 
-
 create_fn_with_two_strings_args!(
     /// The string::distance::hamming function calculates the hamming distance between two strings.
     /// Also aliased as `string_distance_hamming!`

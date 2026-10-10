@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::{All, Table, statements::select, Buildable};
+    use aparecium::{All, Buildable, Table, statements::select};
     use aparecium::{statements::*, *};
 
     #[test]

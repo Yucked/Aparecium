@@ -165,4 +165,3 @@ impl Parametric for DefineTokenStatement {
 impl Queryable for DefineTokenStatement {}
 
 impl Erroneous for DefineTokenStatement {}
-

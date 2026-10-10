@@ -870,8 +870,8 @@ mod tests {
     }
 
     #[test]
-    fn test_multiple_type_params_generics_with_phantom_data_at_the_beginning_and_end_and_middle_and_lifetime(
-    ) {
+    fn test_multiple_type_params_generics_with_phantom_data_at_the_beginning_and_end_and_middle_and_lifetime()
+     {
         let input = quote! {
             PickedPerson, Person<'a, _, T, _, U, _> as PersonPickable, [name, age]
         };
@@ -920,8 +920,8 @@ mod tests {
     }
 
     #[test]
-    fn test_multiple_type_params_generics_with_phantom_data_at_the_beginning_and_end_and_middle_and_lifetime_and_const(
-    ) {
+    fn test_multiple_type_params_generics_with_phantom_data_at_the_beginning_and_end_and_middle_and_lifetime_and_const()
+     {
         let input = quote! {
             PickedPerson, Person<'a, _, T, _, U, _, _> as PersonPickable, [name, age]
         };

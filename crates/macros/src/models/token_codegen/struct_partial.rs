@@ -4,8 +4,8 @@
  * Copyright (c) 2024 Oyelowo Oyedayo
  */
 
-use proc_macro2::TokenStream;
 use crate::helpers::get_crate_name;
+use proc_macro2::TokenStream;
 use quote::quote;
 
 use crate::models::*;

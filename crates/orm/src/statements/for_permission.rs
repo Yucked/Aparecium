@@ -227,4 +227,3 @@ impl<const N: usize> From<[Raw; N]> for Permissions {
         Self::RawStatementList(value.to_vec())
     }
 }
-

@@ -4,18 +4,18 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 
-use pretty_assertions::assert_eq;
-use aparecium_tests::{weapon, Weapon, WeaponStats};
 use aparecium::{
     functions::{array, math},
     statements::{create, insert, select_value},
     *,
 };
-use surrealdb::{engine::local::Mem, Surreal};
+use aparecium_tests::{Weapon, WeaponStats, weapon};
+use pretty_assertions::assert_eq;
+use surrealdb::{Surreal, engine::local::Mem};
 
 #[tokio::test]
-async fn test_complex_code_block_with_sweet_macro_block_and_object_partial_and_arithementic_ops(
-) -> SurrealOrmResult<()> {
+async fn test_complex_code_block_with_sweet_macro_block_and_object_partial_and_arithementic_ops()
+-> SurrealOrmResult<()> {
     let db = Surreal::new::<Mem>(()).await.unwrap();
     db.use_ns("test").use_db("test").await.unwrap();
 

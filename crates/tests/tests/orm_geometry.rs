@@ -13,19 +13,19 @@ use geo::MultiPolygon;
 use geo::Point;
 use geo::Polygon;
 
+use aparecium::Buildable;
+use aparecium::{
+    All, Model, Node, Object, Operatable, ReturnableSelect, ReturnableStandard, SchemaGetter,
+    SurrealId, SurrealSimpleId, ToRaw,
+    statements::{insert, select},
+};
 use geo::point;
 use geo::polygon;
 use serde::Deserialize;
 use serde::Serialize;
 use std::time::Duration;
-use aparecium::Buildable;
-use aparecium::{
-    statements::{insert, select},
-    All, Model, Node, Object, Operatable, ReturnableSelect, ReturnableStandard, SchemaGetter,
-    SurrealId, SurrealSimpleId, ToRaw,
-};
-use surrealdb::engine::local::Mem;
 use surrealdb::Surreal;
+use surrealdb::engine::local::Mem;
 
 use geo::Coord;
 

@@ -14,8 +14,8 @@ mod tests {
 
     use crate::models::field_meta::custom_type_self_replacement::*;
     use syn::{
-        AngleBracketedGenericArguments, GenericArgument, Ident, Path, Type, TypePath,
-        parse_quote, punctuated::Punctuated, token::Comma,
+        AngleBracketedGenericArguments, GenericArgument, Ident, Path, Type, TypePath, parse_quote,
+        punctuated::Punctuated, token::Comma,
     };
 
     /// `vec![A, B, C]` -> `A, B, C,`
@@ -66,7 +66,7 @@ mod tests {
 
         assert_eq!(
             quote!(#ty_to_replace).to_string(),
-            quote!(User<'a, 'b, U, T , >).to_string()
+            quote!(User<'a, 'b, U, T>).to_string()
         );
     }
 

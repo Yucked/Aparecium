@@ -6,7 +6,7 @@
 use std::{collections::BTreeSet, path::PathBuf};
 
 use crate::{statements::*, *};
-use surrealdb::{engine::any::Any, Connection, Surreal};
+use surrealdb::{Connection, Surreal, engine::any::Any};
 
 use crate::migrations::*;
 

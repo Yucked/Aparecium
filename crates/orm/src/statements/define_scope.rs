@@ -139,4 +139,3 @@ impl Parametric for DefineScopeStatement {
 impl Queryable for DefineScopeStatement {}
 
 impl Erroneous for DefineScopeStatement {}
-

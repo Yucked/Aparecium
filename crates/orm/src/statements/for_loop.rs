@@ -7,9 +7,9 @@
 use std::fmt;
 
 use crate::{
+    Block, ErrorList, Param,
     expression::Expression,
     traits::{BindingsList, Buildable, Erroneous, Parametric, Queryable},
-    Block, ErrorList, Param,
 };
 
 #[allow(dead_code)]
@@ -193,4 +193,3 @@ impl fmt::Display for ForLoopStatement {
         write!(f, "{}", self.build())
     }
 }
-

@@ -7,9 +7,9 @@
 use std::ops::Deref;
 
 use crate::{
-    statements::{LetStatement, Subquery},
     Arrow, Binding, BindingsList, Buildable, Conditional, Erroneous, ErrorList, Model, Operatable,
     Operation, Param, Parametric, Setter, Table,
+    statements::{LetStatement, Subquery},
 };
 
 use super::{Filter, NumberLike, SurrealId};
@@ -499,8 +499,8 @@ impl<T: Into<Subquery>> From<T> for Clause {
 
 /// Use when you want no space. Also aliased as `E`.
 pub struct Empty;
-use surrealdb::sql;
 pub use Empty as E;
+use surrealdb::sql;
 
 impl Operatable for Empty {}
 
@@ -693,4 +693,3 @@ pub fn any_other_edges(edges: impl Into<crate::Tables>) -> AnyEdgeFilter {
         errors: vec![],
     }
 }
-

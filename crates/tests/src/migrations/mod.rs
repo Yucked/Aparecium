@@ -6,17 +6,17 @@
 
 use std::ops::Deref;
 
-use chrono::Utc;
-use serde::{Deserialize, Serialize};
 use aparecium::{
-    arr, cond, create_table_resources,
+    SurrealCrudNode, arr, cond, create_table_resources,
     functions::crypto,
     statements::{
-        define_analyzer, define_event, define_index, define_param, define_scope, define_token,
-        define_user, select, AnalyzerFilter, SnowballLanguage, Tokenizer, UserRole,
+        AnalyzerFilter, SnowballLanguage, Tokenizer, UserRole, define_analyzer, define_event,
+        define_index, define_param, define_scope, define_token, define_user, select,
     },
-    SurrealCrudNode, *,
+    *,
 };
+use chrono::Utc;
+use serde::{Deserialize, Serialize};
 
 use snake_cases::{AnimalSnakeCase, AnimalSnakeCaseEatsCrop};
 

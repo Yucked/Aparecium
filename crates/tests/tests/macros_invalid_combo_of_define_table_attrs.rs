@@ -14,7 +14,7 @@ use std::fmt::Display;
 use aparecium::assert_not;
 use darling::FromDeriveInput;
 use models::NodeToken;
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 use test_case::test_case;
 
 #[test]

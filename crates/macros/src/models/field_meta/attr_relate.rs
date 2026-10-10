@@ -10,9 +10,9 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use std::collections::HashSet;
 use syn::{
-    visit::{self, Visit},
     Constraint, GenericArgument, Ident, Lifetime, Path, PathArguments, PathSegment, Type,
     TypeParamBound, WhereClause,
+    visit::{self, Visit},
 };
 
 #[derive(Debug, Clone)]

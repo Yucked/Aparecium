@@ -4,7 +4,7 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 
-use crate::{statements::Subquery, Buildable, Erroneous, ErrorList, Parametric, ValueLike};
+use crate::{Buildable, Erroneous, ErrorList, Parametric, ValueLike, statements::Subquery};
 
 /// An expression is a value or statement that can be used within another query.
 #[derive(Clone, Debug)]
@@ -48,4 +48,3 @@ where
         Expression::Value(value.into())
     }
 }
-

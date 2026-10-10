@@ -11,10 +11,10 @@ use surrealdb::dbs::Capabilities;
 use surrealdb::opt::{Config, WaitFor};
 use typed_builder::TypedBuilder;
 
-use surrealdb::engine::any::{connect, Any};
+use surrealdb::engine::any::{Any, connect};
 
-use surrealdb::opt::auth::{Database, Root};
 use surrealdb::Surreal;
+use surrealdb::opt::auth::{Database, Root};
 
 #[derive(Clone, Debug)]
 pub enum UrlDb {

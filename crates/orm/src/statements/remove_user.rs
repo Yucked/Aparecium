@@ -139,4 +139,3 @@ impl Parametric for RemoveUserStatement {
 impl Erroneous for RemoveUserStatement {}
 
 impl Queryable for RemoveUserStatement {}
-

@@ -31,9 +31,9 @@
 use std::fmt::{self, Display};
 
 use crate::{
+    ErrorList, NumberLike, TableLike, ValueLike,
     traits::{BindingsList, Buildable, Erroneous, Parametric, Queryable},
     types::{Field, TableIndex},
-    ErrorList, NumberLike, TableLike, ValueLike,
 };
 
 /// Define a new database index.
@@ -507,4 +507,3 @@ pub fn search_analyzer(analyzer_name: impl Into<TableLike>) -> SearchAnalyzer {
         terms_order: None,
     }
 }
-

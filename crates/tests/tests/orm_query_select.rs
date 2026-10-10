@@ -4,14 +4,14 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 
-use chrono::Utc;
-use pretty_assertions::assert_eq;
-use aparecium_tests::{weapon, SpaceShip, Weapon};
 use aparecium::{
     statements::{insert, order, select, select_value},
     *,
 };
-use surrealdb::{engine::local::Mem, Surreal};
+use aparecium_tests::{SpaceShip, Weapon, weapon};
+use chrono::Utc;
+use pretty_assertions::assert_eq;
+use surrealdb::{Surreal, engine::local::Mem};
 
 #[tokio::test]
 async fn test_subquery_in_select_statement() -> SurrealOrmResult<()> {

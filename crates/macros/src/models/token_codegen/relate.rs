@@ -5,15 +5,15 @@
  */
 
 use std::{
-    collections::{hash_map::Entry, HashMap},
+    collections::{HashMap, hash_map::Entry},
     fmt::Display,
     ops::{Deref, DerefMut},
 };
 
+use crate::helpers::get_crate_name;
 use convert_case::{Case, Casing};
 use proc_macro2::TokenStream;
-use crate::helpers::get_crate_name;
-use quote::{format_ident, quote, ToTokens};
+use quote::{ToTokens, format_ident, quote};
 
 use crate::models::*;
 

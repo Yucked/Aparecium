@@ -6,9 +6,9 @@
 
 use std::time::Duration;
 
+use aparecium::*;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use aparecium::*;
 
 use crate::{Alien, SpaceShip, Weapon};
 

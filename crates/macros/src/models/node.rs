@@ -6,10 +6,10 @@
 
 use std::ops::Deref;
 
+use crate::helpers::get_crate_name;
 use crate::models::*;
 use darling::{FromDeriveInput, ToTokens};
 use proc_macro2::TokenStream;
-use crate::helpers::get_crate_name;
 use quote::quote;
 
 #[derive(Clone, Debug, FromDeriveInput)]

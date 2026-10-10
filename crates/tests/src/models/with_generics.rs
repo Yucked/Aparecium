@@ -1,6 +1,6 @@
+use aparecium::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use aparecium::*;
 
 #[derive(Node, Serialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]

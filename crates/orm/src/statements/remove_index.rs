@@ -97,4 +97,3 @@ impl Parametric for RemoveIndexStatement {
 impl Erroneous for RemoveIndexStatement {}
 
 impl Queryable for RemoveIndexStatement {}
-

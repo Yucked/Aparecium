@@ -161,4 +161,3 @@ impl Parametric for DefineEventStatement {
 impl Queryable for DefineEventStatement {}
 
 impl Erroneous for DefineEventStatement {}
-

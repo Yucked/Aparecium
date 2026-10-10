@@ -4,13 +4,13 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 
-use pretty_assertions::assert_eq;
+use aparecium::*;
 use aparecium_tests::{
     Alien, AlienWithExplicitAttributes, StudentWithDefineAttr, StudentWithDefineFnAttr,
     StudentWithGranularAttributes,
 };
-use aparecium::*;
-use surrealdb::{engine::local::Mem, Surreal};
+use pretty_assertions::assert_eq;
+use surrealdb::{Surreal, engine::local::Mem};
 
 #[tokio::test]
 async fn test_node_type_atttribute_auto_inferred() -> SurrealOrmResult<()> {
@@ -80,15 +80,19 @@ DEFINE FIELD spaceShips ON TABLE alien_with_explicit_attributes TYPE array<recor
 async fn test_node_attributes_() -> SurrealOrmResult<()> {
     let db = Surreal::new::<Mem>(()).await.unwrap();
     db.use_ns("test").use_db("test").await.unwrap();
-    insta::assert_snapshot!(StudentWithGranularAttributes::define_table()
-        .to_raw()
-        .build());
+    insta::assert_snapshot!(
+        StudentWithGranularAttributes::define_table()
+            .to_raw()
+            .build()
+    );
 
-    insta::assert_snapshot!(StudentWithGranularAttributes::define_fields()
-        .iter()
-        .map(|x| x.to_raw().build())
-        .collect::<Vec<_>>()
-        .join("\n"));
+    insta::assert_snapshot!(
+        StudentWithGranularAttributes::define_fields()
+            .iter()
+            .map(|x| x.to_raw().build())
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
 
     Ok(())
 }
@@ -99,11 +103,13 @@ async fn test_node_attributes_with_define_attribute() -> SurrealOrmResult<()> {
     db.use_ns("test").use_db("test").await.unwrap();
     insta::assert_snapshot!(StudentWithDefineAttr::define_table().to_raw().build());
 
-    insta::assert_snapshot!(StudentWithDefineAttr::define_fields()
-        .iter()
-        .map(|x| x.to_raw().build())
-        .collect::<Vec<_>>()
-        .join("\n"));
+    insta::assert_snapshot!(
+        StudentWithDefineAttr::define_fields()
+            .iter()
+            .map(|x| x.to_raw().build())
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
 
     Ok(())
 }
@@ -114,11 +120,13 @@ async fn test_node_attributes_with_define_fn_attribute() -> SurrealOrmResult<()>
     db.use_ns("test").use_db("test").await.unwrap();
     insta::assert_snapshot!(StudentWithDefineFnAttr::define_table().to_raw().build());
 
-    insta::assert_snapshot!(StudentWithDefineFnAttr::define_fields()
-        .iter()
-        .map(|x| x.to_raw().build())
-        .collect::<Vec<_>>()
-        .join("\n"));
+    insta::assert_snapshot!(
+        StudentWithDefineFnAttr::define_fields()
+            .iter()
+            .map(|x| x.to_raw().build())
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
 
     Ok(())
 }

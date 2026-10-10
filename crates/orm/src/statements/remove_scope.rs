@@ -81,4 +81,3 @@ impl Display for RemoveScopeStatement {
         write!(f, "{}", self.build())
     }
 }
-

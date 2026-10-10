@@ -4,15 +4,15 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 
-use pretty_assertions::assert_eq;
-use std::time::Duration;
-use aparecium_tests::{book, student, Book, Student, StudentWritesBook};
 use aparecium::{
     cond,
     statements::{order, relate, select},
     *,
 };
-use surrealdb::sql::{thing, Thing};
+use aparecium_tests::{Book, Student, StudentWritesBook, book, student};
+use pretty_assertions::assert_eq;
+use std::time::Duration;
+use surrealdb::sql::{Thing, thing};
 
 #[test]
 fn multiplication_tests1() {

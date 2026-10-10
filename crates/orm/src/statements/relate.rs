@@ -15,13 +15,12 @@
 // ;
 use std::marker::PhantomData;
 
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 
 use crate::{
-    derive_binding_and_errors_from_value,
+    ReturnableDefault, ReturnableStandard, Setter, ToRaw, derive_binding_and_errors_from_value,
     traits::{BindingsList, Buildable, Edge, Erroneous, ErrorList, Parametric, Queryable},
     types::{DurationLike, ReturnType},
-    ReturnableDefault, ReturnableStandard, Setter, ToRaw,
 };
 
 /// Creates a new RELATE statement.

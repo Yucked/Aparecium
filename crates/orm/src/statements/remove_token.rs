@@ -122,4 +122,3 @@ impl Parametric for RemoveTokenStatement {
 impl Erroneous for RemoveTokenStatement {}
 
 impl Queryable for RemoveTokenStatement {}
-

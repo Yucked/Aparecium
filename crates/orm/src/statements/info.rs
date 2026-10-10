@@ -7,8 +7,8 @@
 use std::fmt;
 
 use crate::{
-    traits::{BindingsList, Buildable, Erroneous, Parametric, Queryable},
     Scope, Table,
+    traits::{BindingsList, Buildable, Erroneous, Parametric, Queryable},
 };
 
 /// Creates statement for INFO for KV(i.e system), NAMESPACE, DATABASE, SCOPE, or TABLE.
@@ -149,4 +149,3 @@ impl fmt::Display for InfoStatement {
         write!(f, "{}", self.build())
     }
 }
-

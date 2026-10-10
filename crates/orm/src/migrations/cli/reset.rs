@@ -7,8 +7,8 @@ use clap::Args;
 use std::fs;
 use typed_builder::TypedBuilder;
 
-use crate::migrations::*;
 use crate::DbResources;
+use crate::migrations::*;
 
 /// Resets migrations. Deletes all migration files, migration table and reinitializes
 /// migrations.

@@ -4,12 +4,13 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 
-use proc_macro::TokenStream;
 use crate::helpers::get_crate_name;
-use quote::{quote, ToTokens};
+use proc_macro::TokenStream;
+use quote::{ToTokens, quote};
 use syn::{
+    Expr, Ident, Token,
     parse::{Parse, ParseStream},
-    token, Expr, Ident, Token,
+    token,
 };
 
 use super::{helpers::generate_variable_name, query_chain::QueriesChainParser};

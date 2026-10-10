@@ -5,18 +5,18 @@
  */
 
 // use super::studentwithgranularattributes;
-use serde::{Deserialize, Serialize};
-use std::time::Duration;
+use CrudType::*;
 use aparecium::{
     sql,
     statements::{
-        define_field, define_table, for_permission, select, DefineFieldStatement,
-        DefineTableStatement, Permissions, SelectStatement,
+        DefineFieldStatement, DefineTableStatement, Permissions, SelectStatement, define_field,
+        define_table, for_permission, select,
     },
     *,
 };
+use serde::{Deserialize, Serialize};
+use std::time::Duration;
 use typed_builder::TypedBuilder;
-use CrudType::*;
 
 fn age_permissions() -> Permissions {
     let student_with_granular_attributes::Schema {

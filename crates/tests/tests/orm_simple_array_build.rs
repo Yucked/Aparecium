@@ -4,11 +4,11 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 
-use pretty_assertions::assert_eq;
-use aparecium_tests::Alien;
 use aparecium::{
-    index, this, where_, All, AllGetter, Buildable, Last, Operatable, SchemaGetter, ToRaw,
+    All, AllGetter, Buildable, Last, Operatable, SchemaGetter, ToRaw, index, this, where_,
 };
+use aparecium_tests::Alien;
+use pretty_assertions::assert_eq;
 
 #[test]
 fn test_simple_array_element_access_with_last() {

@@ -59,67 +59,67 @@ pub(crate) mod use_;
 pub(crate) mod utils_block;
 pub(crate) mod utils_chain;
 
-pub use break_::{break_, BreakStatement};
-pub use continue_::{continue_, ContinueStatement};
-pub use create::{create, create_only, CreateStatement};
-pub use create_v2::{create_v2, CreateStatementV2};
+pub use break_::{BreakStatement, break_};
+pub use continue_::{ContinueStatement, continue_};
+pub use create::{CreateStatement, create, create_only};
+pub use create_v2::{CreateStatementV2, create_v2};
 pub use define_analyzer::{
-    define_analyzer, AnalyzerFilter, DefineAnalyzerStatement, SnowballLanguage, Tokenizer,
+    AnalyzerFilter, DefineAnalyzerStatement, SnowballLanguage, Tokenizer, define_analyzer,
 };
-pub use define_database::{define_database, DefineDatabaseStatement};
-pub use define_event::{define_event, DefineEventStatement};
-pub use define_field::{define_field, DefineFieldStatement};
-pub use define_function::{define_function, DefineFunctionStatement, FunctionArgument};
-pub use define_index::{define_index, search_analyzer, DefineIndexStatement, Scoring};
-pub use define_model::{define_model, DefineModelStatement, ModelName, ModelVersion};
-pub use define_namespace::{define_namespace, DefineNamespaceStatement};
-pub use define_param::{define_param, DefineParamStatement};
-pub use define_scope::{define_scope, DefineScopeStatement};
-pub use define_table::{define_table, DefineTableStatement};
-pub use define_token::{define_token, DefineTokenStatement};
-pub use define_user::{define_user, DefineUserStatement, UserRole};
-pub use delete::{delete, delete_only, DeleteStatement, DeleteStatementMini};
-pub use for_loop::{for_, ForLoopStatement};
-pub use for_permission::{for_permission, ForPermission, Permissions};
-pub use ifelse::{if_, IfElseStatement};
-pub use info::{info_for, InfoStatement};
-pub use insert::{insert, InsertStatement, Insertables};
-pub use let_::{let_, LetStatement};
-pub use live_select::{live, LiveSelectStatement};
-pub use relate::{relate, relate_only, RelateStatement};
-pub use remove_analyzer::{remove_analyzer, RemoveAnalyzerStatement};
-pub use remove_database::{remove_database, RemoveDatabaseStatement};
-pub use remove_event::{remove_event, RemoveEventStatement};
-pub use remove_field::{remove_field, RemoveFieldStatement};
-pub use remove_function::{remove_function, RemoveFunctionStatement};
-pub use remove_index::{remove_index, RemoveIndexStatement};
-pub use remove_login::{remove_login, RemoveLoginStatement};
-pub use remove_model::{remove_model, RemoveModelStatement};
-pub use remove_namespace::{remove_namespace, RemoveNamespaceStatement};
-pub use remove_param::{remove_param, RemoveParamStatement};
-pub use remove_scope::{remove_scope, RemoveScopeStatement};
-pub use remove_table::{remove_table, RemoveTableStatement};
-pub use remove_token::{remove_token, RemoveTokenStatement};
-pub use remove_user::{remove_user, RemoveUserStatement, UserPermissionScope};
-pub use return_::{return_, ReturnStatement};
+pub use define_database::{DefineDatabaseStatement, define_database};
+pub use define_event::{DefineEventStatement, define_event};
+pub use define_field::{DefineFieldStatement, define_field};
+pub use define_function::{DefineFunctionStatement, FunctionArgument, define_function};
+pub use define_index::{DefineIndexStatement, Scoring, define_index, search_analyzer};
+pub use define_model::{DefineModelStatement, ModelName, ModelVersion, define_model};
+pub use define_namespace::{DefineNamespaceStatement, define_namespace};
+pub use define_param::{DefineParamStatement, define_param};
+pub use define_scope::{DefineScopeStatement, define_scope};
+pub use define_table::{DefineTableStatement, define_table};
+pub use define_token::{DefineTokenStatement, define_token};
+pub use define_user::{DefineUserStatement, UserRole, define_user};
+pub use delete::{DeleteStatement, DeleteStatementMini, delete, delete_only};
+pub use for_loop::{ForLoopStatement, for_};
+pub use for_permission::{ForPermission, Permissions, for_permission};
+pub use ifelse::{IfElseStatement, if_};
+pub use info::{InfoStatement, info_for};
+pub use insert::{InsertStatement, Insertables, insert};
+pub use let_::{LetStatement, let_};
+pub use live_select::{LiveSelectStatement, live};
+pub use relate::{RelateStatement, relate, relate_only};
+pub use remove_analyzer::{RemoveAnalyzerStatement, remove_analyzer};
+pub use remove_database::{RemoveDatabaseStatement, remove_database};
+pub use remove_event::{RemoveEventStatement, remove_event};
+pub use remove_field::{RemoveFieldStatement, remove_field};
+pub use remove_function::{RemoveFunctionStatement, remove_function};
+pub use remove_index::{RemoveIndexStatement, remove_index};
+pub use remove_login::{RemoveLoginStatement, remove_login};
+pub use remove_model::{RemoveModelStatement, remove_model};
+pub use remove_namespace::{RemoveNamespaceStatement, remove_namespace};
+pub use remove_param::{RemoveParamStatement, remove_param};
+pub use remove_scope::{RemoveScopeStatement, remove_scope};
+pub use remove_table::{RemoveTableStatement, remove_table};
+pub use remove_token::{RemoveTokenStatement, remove_token};
+pub use remove_user::{RemoveUserStatement, UserPermissionScope, remove_user};
+pub use return_::{ReturnStatement, return_};
 pub use select::{
-    order, select, select_diff, select_value, Order, Orderables, SelectStatement,
-    SelectStatementMini, Selectables, Splittables,
+    Order, Orderables, SelectStatement, SelectStatementMini, Selectables, Splittables, order,
+    select, select_diff, select_value,
 };
-pub use show::{show_changes_for_table, ShowChangesStatement};
-pub use sleep::{sleep, SleepStatement};
+pub use show::{ShowChangesStatement, show_changes_for_table};
+pub use sleep::{SleepStatement, sleep};
 pub use subquery::Subquery;
-pub use throw::{throw, ThrowStatement};
+pub use throw::{ThrowStatement, throw};
 pub use transaction::{
-    begin_transaction, transaction_deprecated, BeginTransactionStatement, TransactionCompletion,
+    BeginTransactionStatement, TransactionCompletion, begin_transaction, transaction_deprecated,
 };
-pub use update::{update, update_only, UpdateStatement};
-pub use use_::{use_, UseStatement};
+pub use update::{UpdateStatement, update, update_only};
+pub use use_::{UseStatement, use_};
 
 /// helpers for statements
 pub mod utils {
-    pub use super::utils_block::{block, block_deprecated, Block};
-    pub use super::utils_chain::{chain, Chainable, QueryChain};
+    pub use super::utils_block::{Block, block, block_deprecated};
+    pub use super::utils_chain::{Chainable, QueryChain, chain};
 }
 
 #[allow(missing_docs)]

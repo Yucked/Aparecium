@@ -4,10 +4,10 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 use syn::{
-    parse::{Parse, ParseStream},
     Expr, Ident, Result as SynResult, Token,
+    parse::{Parse, ParseStream},
 };
 
 use super::{helpers::generate_variable_name, if_else::IfElseStatementAst};

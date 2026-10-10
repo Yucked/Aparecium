@@ -4,6 +4,11 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 
+use aparecium::statements::insert;
+use aparecium::statements::order;
+use aparecium::{statements::select, *};
+use aparecium_tests::weapon;
+use aparecium_tests::{Alien, SpaceShip, Weapon, alien, space_ship};
 use chrono::{DateTime, Utc};
 use geo::line_string;
 use geo::point;
@@ -11,17 +16,12 @@ use geo::polygon;
 use pretty_assertions::assert_eq;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
-use aparecium_tests::weapon;
-use aparecium_tests::{alien, space_ship, Alien, SpaceShip, Weapon};
-use aparecium::statements::insert;
-use aparecium::statements::order;
-use aparecium::{statements::select, *};
-use surrealdb::engine::local::Mem;
 use surrealdb::Surreal;
+use surrealdb::engine::local::Mem;
 
 #[tokio::test]
-async fn test_insert_alien_with_id_not_specified_but_generated_by_the_database(
-) -> SurrealOrmResult<()> {
+async fn test_insert_alien_with_id_not_specified_but_generated_by_the_database()
+-> SurrealOrmResult<()> {
     let db = Surreal::new::<Mem>(()).await.unwrap();
     db.use_ns("test").use_db("test").await.unwrap();
 
@@ -43,11 +43,13 @@ async fn test_insert_alien_with_id_not_specified_but_generated_by_the_database(
             .starts_with("space_ship"),
         true
     );
-    assert!(created_ship
-        .clone()
-        .id
-        .to_string()
-        .starts_with("space_ship:"));
+    assert!(
+        created_ship
+            .clone()
+            .id
+            .to_string()
+            .starts_with("space_ship:")
+    );
     assert_eq!(created_ship.clone().name, "SpaceShip1");
     assert_eq!(created_ship.clone().created, space_ship.created);
     Ok(())
@@ -100,11 +102,13 @@ async fn test_insert_alien_with_id_specified_as_uuid() -> SurrealOrmResult<()> {
 
     // Id is generated after creation
     assert_eq!(created_ship.clone().id.to_thing().tb, "space_ship");
-    assert!(created_ship
-        .clone()
-        .id
-        .to_string()
-        .starts_with("space_ship:"));
+    assert!(
+        created_ship
+            .clone()
+            .id
+            .to_string()
+            .starts_with("space_ship:")
+    );
     assert_eq!(created_ship.clone().id.to_string().len(), 55);
     assert_eq!(created_ship.clone().name, "SpaceShip1");
     assert_eq!(created_ship.clone().created, space_ship.created);

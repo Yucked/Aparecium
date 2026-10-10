@@ -18,14 +18,14 @@
 // ;
 use std::marker::PhantomData;
 
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use surrealdb::sql;
 
 use crate::{
-    derive_binding_and_errors_from_value, Binding, BindingsList, Buildable, Conditional,
-    DurationLike, Erroneous, ErrorList, Filter, Model, Parametric, PatchOp, Queryable, ReturnType,
-    ReturnableDefault, ReturnableStandard, Setter, SurrealId, SurrealSimpleId, SurrealUlid,
-    SurrealUuid, ToRaw,
+    Binding, BindingsList, Buildable, Conditional, DurationLike, Erroneous, ErrorList, Filter,
+    Model, Parametric, PatchOp, Queryable, ReturnType, ReturnableDefault, ReturnableStandard,
+    Setter, SurrealId, SurrealSimpleId, SurrealUlid, SurrealUuid, ToRaw,
+    derive_binding_and_errors_from_value,
 };
 
 /// Creates a new UPDATE statement.

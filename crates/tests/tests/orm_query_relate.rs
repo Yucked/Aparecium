@@ -7,16 +7,16 @@
 #![allow(non_snake_case)]
 use chrono::DateTime;
 
-use pretty_assertions::assert_eq;
-use std::time::Duration;
-use aparecium_tests::{
-    company, like, user, writes, AlienVisitsPlanet, Blog, Book, Company, CompanyLikeUser, Student,
-    StudentLiksBook, StudentWritesBlog, StudentWritesBook, User,
-};
 use aparecium::statements::{create, insert, order, relate, select, select_value};
 use aparecium::*;
+use aparecium_tests::{
+    AlienVisitsPlanet, Blog, Book, Company, CompanyLikeUser, Student, StudentLiksBook,
+    StudentWritesBlog, StudentWritesBook, User, company, like, user, writes,
+};
+use pretty_assertions::assert_eq;
+use std::time::Duration;
 use surrealdb::sql;
-use surrealdb::{engine::local::Mem, Surreal};
+use surrealdb::{Surreal, engine::local::Mem};
 
 #[test]
 fn can_get_structs_relations() {
@@ -106,7 +106,9 @@ async fn should_not_contain_error_when_valid_id_use_in_connection() -> SurrealOr
     let id = &result.clone().id.to_string();
     assert_eq!(
         sql::to_value(&result).unwrap().to_string(),
-        format!("{{ count: 0, id: {id}, in: student:⟨2⟩, out: book:⟨1⟩, timeWritten: {{ nanos: 0, secs: 923 }} }}")
+        format!(
+            "{{ count: 0, id: {id}, in: student:⟨2⟩, out: book:⟨1⟩, timeWritten: {{ nanos: 0, secs: 923 }} }}"
+        )
     );
 
     // Student 2 writes blog1
@@ -131,12 +133,14 @@ async fn should_not_contain_error_when_valid_id_use_in_connection() -> SurrealOr
 
     let result = relation.load_all_links()?.return_one(db.clone()).await?;
 
-    assert!(result
-        .clone()
-        .unwrap()
-        .id
-        .to_string()
-        .starts_with("writes:"));
+    assert!(
+        result
+            .clone()
+            .unwrap()
+            .id
+            .to_string()
+            .starts_with("writes:")
+    );
 
     assert_eq!(
         result.clone().unwrap().r#in.get_id().unwrap().to_string(),
@@ -149,7 +153,9 @@ async fn should_not_contain_error_when_valid_id_use_in_connection() -> SurrealOr
     let id = result.clone().unwrap().id.to_string();
     assert_eq!(
         sql::to_value(&result).unwrap().to_string(),
-        format!("{{ count: 545, id: {id}, in: student:⟨2⟩, out: blog:⟨1⟩, timeWritten: {{ nanos: 0, secs: 47 }} }}")
+        format!(
+            "{{ count: 545, id: {id}, in: student:⟨2⟩, out: blog:⟨1⟩, timeWritten: {{ nanos: 0, secs: 47 }} }}"
+        )
     );
 
     let writes::Schema { timeWritten, .. } = StudentWritesBook::schema();
@@ -330,7 +336,7 @@ fn test_recursive_edge_to_edge_connection_as_supported_in_surrealql() {
     );
 
     assert_eq!(
-       aliased_connection.clone().to_raw().build(),
+        aliased_connection.clone().to_raw().build(),
         "student:oyelowo->writes->writes->(writes, writes, likes  WHERE timeWritten <= 50)->book:⟨2⟩ AS writtenBooks"
     );
 
@@ -413,7 +419,9 @@ async fn relate_query() -> aparecium::SurrealOrmResult<()> {
     let relate_simple = relate(Student::with(student_id).writes__(E).book(book_id)).content(write);
     assert_eq!(
         relate_simple.to_raw().build(),
-        format!("RELATE student:oyelowo->writes->book:kivi CONTENT {{ count: 0, id: {write_id}, in: NONE, out: NONE, timeWritten: {{ nanos: 0, secs: 343 }} }} ;")
+        format!(
+            "RELATE student:oyelowo->writes->book:kivi CONTENT {{ count: 0, id: {write_id}, in: NONE, out: NONE, timeWritten: {{ nanos: 0, secs: 343 }} }} ;"
+        )
     );
 
     // // You can use return one method and it just returns the single object
@@ -502,7 +510,9 @@ async fn relate_query_with_sub_query() -> aparecium::SurrealOrmResult<()> {
     let write_id = write.get_id();
     assert_eq!(
         statement.to_raw().build(),
-        format!("RELATE (SELECT * FROM student)->writes->(SELECT * FROM book) CONTENT {{ count: 0, id: {write_id}, in: NONE, out: NONE, timeWritten: {{ nanos: 0, secs: 52 }} }} ;")
+        format!(
+            "RELATE (SELECT * FROM student)->writes->(SELECT * FROM book) CONTENT {{ count: 0, id: {write_id}, in: NONE, out: NONE, timeWritten: {{ nanos: 0, secs: 52 }} }} ;"
+        )
     );
 
     let result = statement.return_many(db.clone()).await?;

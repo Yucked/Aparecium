@@ -216,4 +216,3 @@ impl fmt::Display for TransactionCompletion {
         write!(f, "{}", self.build())
     }
 }
-

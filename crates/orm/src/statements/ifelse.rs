@@ -16,10 +16,10 @@
 use std::fmt;
 
 use crate::{
+    QueryChain,
     expression::Expression,
     traits::{BindingsList, Buildable, Conditional, Erroneous, Parametric, Queryable},
     types::Filter,
-    QueryChain,
 };
 
 /// Creates an IF ELSE statement with compile-time valid transition.
@@ -315,4 +315,3 @@ impl fmt::Display for IfElseStatement {
         write!(f, "{}", self.build())
     }
 }
-

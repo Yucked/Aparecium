@@ -1,5 +1,5 @@
-use aparecium_tests::{Rocket, Weapon};
 use aparecium::PartialUpdater;
+use aparecium_tests::{Rocket, Weapon};
 
 // type Lala<'a, T> = <Weapon<'a, T> as PartialUpdater>::StructPartial;
 

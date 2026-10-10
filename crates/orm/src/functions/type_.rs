@@ -485,7 +485,6 @@ macro_rules! type_thing {
 
 pub use type_thing as thing;
 
-
 // create_is_function macro
 macro_rules! create_is_function {
     ($(#[$attr:meta])* => $function_name:expr, $value_type: ty, $test_data_input:expr, $test_stringified_data_output: expr) => {

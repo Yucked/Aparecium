@@ -98,4 +98,3 @@ impl Parametric for RemoveFieldStatement {
 impl Erroneous for RemoveFieldStatement {}
 
 impl Queryable for RemoveFieldStatement {}
-

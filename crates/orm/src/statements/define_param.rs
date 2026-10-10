@@ -114,4 +114,3 @@ impl Display for DefineParamStatement {
         write!(f, "{}", self.build())
     }
 }
-

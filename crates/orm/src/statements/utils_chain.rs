@@ -194,4 +194,3 @@ impl From<Vec<Chainable>> for QueryChain {
         }
     }
 }
-

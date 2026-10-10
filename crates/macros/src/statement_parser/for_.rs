@@ -4,13 +4,13 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 
-use proc_macro::TokenStream;
 use crate::helpers::get_crate_name;
-use quote::{quote, ToTokens};
+use proc_macro::TokenStream;
+use quote::{ToTokens, quote};
 use syn::{
+    Expr, Ident,
     parse::{Parse, ParseStream},
     token::{self, Brace},
-    Expr, Ident,
 };
 
 use super::{
@@ -236,4 +236,3 @@ macro_rules! _for_loop {
     }};
 }
 // pub use _for_loop as for_;
-

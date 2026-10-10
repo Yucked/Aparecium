@@ -230,4 +230,3 @@ fn patch(path: impl Into<Field>) -> PatchOpInit {
         errors,
     }
 }
-

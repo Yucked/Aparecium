@@ -4,12 +4,12 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 
-use pretty_assertions::assert_eq;
+use aparecium::*;
 use aparecium_tests::{
     AlienVisitsPlanet, AlienVisitsPlanetExplicit, AlienVisitsPlanetWithExplicitAttributes,
 };
-use aparecium::*;
-use surrealdb::{engine::local::Mem, Surreal};
+use pretty_assertions::assert_eq;
+use surrealdb::{Surreal, engine::local::Mem};
 
 #[tokio::test]
 async fn test_node_atttributes_auto_inferred() -> SurrealOrmResult<()> {

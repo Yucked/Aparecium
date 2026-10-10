@@ -5,15 +5,15 @@
  */
 use std::fmt::Display;
 
-use serde::{Deserialize, Serialize};
 use crate::{
-    statements::{
-        begin_transaction, define_field, define_table, order, remove_table, select,
-        DefineTableStatement, RemoveTableStatement,
-    },
     All, Field, FieldType, Operatable, Raw, ReturnableSelect, Table, ToRaw,
+    statements::{
+        DefineTableStatement, RemoveTableStatement, begin_transaction, define_field, define_table,
+        order, remove_table, select,
+    },
 };
-use surrealdb::{engine::any::Any, sql::Thing, Surreal};
+use serde::{Deserialize, Serialize};
+use surrealdb::{Surreal, engine::any::Any, sql::Thing};
 
 use crate::migrations::*;
 

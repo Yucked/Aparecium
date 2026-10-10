@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::{ToRaw, Buildable};
+    use aparecium::{Buildable, ToRaw};
     use aparecium::{statements::*, *};
 
     #[test]

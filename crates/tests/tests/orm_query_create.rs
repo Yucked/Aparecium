@@ -4,6 +4,12 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 
+use aparecium::statements::order;
+use aparecium::{
+    statements::{create, select},
+    *,
+};
+use aparecium_tests::{Alien, SpaceShip, Weapon, alien, space_ship};
 use chrono::{DateTime, Utc};
 use geo::line_string;
 use geo::point;
@@ -11,18 +17,12 @@ use geo::polygon;
 use pretty_assertions::assert_eq;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
-use aparecium_tests::{alien, space_ship, Alien, SpaceShip, Weapon};
-use aparecium::statements::order;
-use aparecium::{
-    statements::{create, select},
-    *,
-};
-use surrealdb::engine::local::Mem;
 use surrealdb::Surreal;
+use surrealdb::engine::local::Mem;
 
 #[tokio::test]
-async fn test_create_alien_with_id_not_specified_but_generated_by_the_database(
-) -> SurrealOrmResult<()> {
+async fn test_create_alien_with_id_not_specified_but_generated_by_the_database()
+-> SurrealOrmResult<()> {
     let db = Surreal::new::<Mem>(()).await.unwrap();
     db.use_ns("test").use_db("test").await.unwrap();
 
@@ -44,11 +44,13 @@ async fn test_create_alien_with_id_not_specified_but_generated_by_the_database(
         created_ship.clone().id.to_string(),
         space_ship.id.to_string()
     );
-    assert!(created_ship
-        .clone()
-        .id
-        .to_string()
-        .starts_with("space_ship:"));
+    assert!(
+        created_ship
+            .clone()
+            .id
+            .to_string()
+            .starts_with("space_ship:")
+    );
     assert_eq!(created_ship.clone().name, "SpaceShip1");
     assert_eq!(created_ship.clone().created, space_ship.created);
     Ok(())
@@ -76,11 +78,13 @@ async fn test_create_alien_with_id_specified() -> SurrealOrmResult<()> {
         created_ship.clone().id.to_string(),
         space_ship.id.to_string()
     );
-    assert!(created_ship
-        .clone()
-        .id
-        .to_string()
-        .starts_with("space_ship:"));
+    assert!(
+        created_ship
+            .clone()
+            .id
+            .to_string()
+            .starts_with("space_ship:")
+    );
     assert_eq!(created_ship.clone().name, "SpaceShip1");
     assert_eq!(created_ship.clone().created, space_ship.created);
     Ok(())
@@ -107,11 +111,13 @@ async fn test_create_alien_with_id_specified_as_uuid() -> SurrealOrmResult<()> {
         created_ship.clone().id.to_string(),
         space_ship.id.to_string()
     );
-    assert!(created_ship
-        .clone()
-        .id
-        .to_string()
-        .starts_with("space_ship:"));
+    assert!(
+        created_ship
+            .clone()
+            .id
+            .to_string()
+            .starts_with("space_ship:")
+    );
     assert_eq!(created_ship.clone().id.to_string().len(), 55);
     assert_eq!(created_ship.clone().name, "SpaceShip1");
     assert_eq!(created_ship.clone().created, space_ship.created);
@@ -146,8 +152,8 @@ async fn test_creation_with_returning_selected_fields_with_helper_method() -> Su
 }
 
 #[tokio::test]
-async fn test_creation_with_returning_selected_fields_with_run_take_surreal_helper_methods(
-) -> SurrealOrmResult<()> {
+async fn test_creation_with_returning_selected_fields_with_run_take_surreal_helper_methods()
+-> SurrealOrmResult<()> {
     let db = Surreal::new::<Mem>(()).await.unwrap();
     db.use_ns("test").use_db("test").await.unwrap();
 

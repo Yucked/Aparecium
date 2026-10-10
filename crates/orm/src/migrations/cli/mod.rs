@@ -23,15 +23,17 @@ pub use list::{List, Status};
 pub use prune::Prune;
 pub use reset::Reset;
 
-use surrealdb::{engine::any::Any, Surreal};
+use surrealdb::{Surreal, engine::any::Any};
 use typed_builder::TypedBuilder;
 pub use up::{FastForwardDelta, Up, UpdateStrategy};
 
-use clap::{ArgAction, Parser};
 use crate::DbResources;
+use clap::{ArgAction, Parser};
 
 pub use self::config::DatabaseConnection;
-use crate::migrations::{MigrationConfig, MockPrompter, Mode, Prompter, RealPrompter, RenameOrDelete};
+use crate::migrations::{
+    MigrationConfig, MockPrompter, Mode, Prompter, RealPrompter, RenameOrDelete,
+};
 
 /// Surreal ORM CLI
 #[derive(Parser, Debug, Clone, TypedBuilder)]

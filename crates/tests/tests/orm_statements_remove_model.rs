@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::{Field, Param, ToRaw, Buildable};
+    use aparecium::{Buildable, Field, Param, ToRaw};
     use aparecium::{statements::*, *};
     use pretty_assertions::assert_eq;
 

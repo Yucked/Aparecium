@@ -13,22 +13,22 @@
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use surrealdb::{
+    Result, Surreal,
     engine::local::{Db, Mem},
     opt::IntoResource,
     sql::{self, Id},
-    Result, Surreal,
 };
 // use surreal_derive::{Edge, Node};
 
-use std::fmt::{Debug, Display};
 use aparecium::{
     functions::*,
     statements::{
-        define_field, define_table, for_permission, order, select, DefineFieldStatement,
-        DefineTableStatement, ForPermission, Permissions, SelectStatement,
+        DefineFieldStatement, DefineTableStatement, ForPermission, Permissions, SelectStatement,
+        define_field, define_table, for_permission, order, select,
     },
     *,
 };
+use std::fmt::{Debug, Display};
 
 use typed_builder::TypedBuilder;
 
@@ -95,8 +95,8 @@ fn erer() -> Filter {
     cond(value().is_not(NONE)).and(value().like("email"))
 }
 fn define_age() -> DefineFieldStatement {
-    use aparecium::{Model, Node};
     use CrudType::*;
+    use aparecium::{Model, Node};
     let student::Schema { age, firstName, .. } = Student::schema();
 
     use FieldType::*;

@@ -4,8 +4,8 @@
  * Copyright (c) 2024 Oyelowo Oyedayo
  */
 
-use crate::models::*;
 use crate::field_type::FieldType;
+use crate::models::*;
 
 use super::MyFieldReceiver;
 

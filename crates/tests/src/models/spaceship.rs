@@ -4,9 +4,9 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 
+use aparecium::{Model, Node, SurrealId, sql};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use aparecium::{sql, Model, Node, SurrealId};
 
 // #[derive(Serialize, Deserialize)]
 // struct SpaceShipId(SurrealId<SpaceShip, String>);

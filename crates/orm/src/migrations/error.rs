@@ -12,7 +12,9 @@ use crate::migrations::MigrationFilename;
 #[allow(clippy::result_large_err)]
 #[derive(Error, Debug)]
 pub enum MigrationError {
-    #[error("Checksum mismaatch in {migration_name}. Expected checksum: {expected_checksum}. Actual checksum: {actual_checksum}")]
+    #[error(
+        "Checksum mismaatch in {migration_name}. Expected checksum: {expected_checksum}. Actual checksum: {actual_checksum}"
+    )]
     ChecksumMismatch {
         migration_name: String,
         expected_checksum: String,
@@ -31,7 +33,9 @@ pub enum MigrationError {
     #[error("Migration - {filename} does not exist")]
     MigrationDoesNotExist { filename: MigrationFilename },
 
-    #[error("Migration with name: {0} not found in pending migrations. It has either been applied or does not exist.")]
+    #[error(
+        "Migration with name: {0} not found in pending migrations. It has either been applied or does not exist."
+    )]
     MigrationNotFoundFromPendingMigrations(MigrationFilename),
 
     #[error("Migration file - {0} - does not exist")]
@@ -40,7 +44,9 @@ pub enum MigrationError {
     #[error("Rollback failed. Error: {0}")]
     RollbackFailed(String),
 
-    #[error("Migration file name and database name mismatch. Migration file name: {migration_file_name}. Migration database name: {migration_db_name}")]
+    #[error(
+        "Migration file name and database name mismatch. Migration file name: {migration_file_name}. Migration database name: {migration_db_name}"
+    )]
     MigrationFileVsDbNamesMismatch {
         migration_file_name: String,
         migration_db_name: String,
@@ -58,7 +64,9 @@ pub enum MigrationError {
     #[error("Migration name does not exist")]
     MigrationNameDoesNotExist,
 
-    #[error("Invalid migration name. {0}. Make sure it's in the format - <timestamp>_<migration_name>.<up|down|>.surql if two way or <timestamp>_<migration_name.surql if one way")]
+    #[error(
+        "Invalid migration name. {0}. Make sure it's in the format - <timestamp>_<migration_name>.<up|down|>.surql if two way or <timestamp>_<migration_name.surql if one way"
+    )]
     InvalidMigrationName(String),
 
     #[error("Migration path not found")]
@@ -108,9 +116,11 @@ pub enum MigrationError {
     #[error("Problem reading migration file. Error: {0}")]
     ProblemReadingMigrationFile(String),
 
-    #[error("The field - {new_name} - on table - {table} - has an invalid old name - '{old_name}'. \
+    #[error(
+        "The field - {new_name} - on table - {table} - has an invalid old name - '{old_name}'. \
         It must have already been renamed previously or never existed before or wrongly spelt. \
-         Also, make sure you are using the correct case for the field name. It should be one of these: {renamables}", )]
+         Also, make sure you are using the correct case for the field name. It should be one of these: {renamables}"
+    )]
     InvalidOldFieldName {
         new_name: Box<Field>,
         table: Table,
@@ -118,23 +128,29 @@ pub enum MigrationError {
         renamables: String,
     },
 
-    #[error("The field - {field_expected} - on table - {table} - does not exist. \
+    #[error(
+        "The field - {field_expected} - on table - {table} - does not exist. \
         It must have already been renamed previously or never existed before or wrongly spelt. \
-         Also, make sure you are using the correct case for the field name. It should be one of these: {valid_fields}", )]
+         Also, make sure you are using the correct case for the field name. It should be one of these: {valid_fields}"
+    )]
     FieldNameDoesNotExist {
         field_expected: Box<Field>,
         table: Table,
         valid_fields: String,
     },
 
-    #[error("You are trying to rename the field - {field} - on table - {table} - to the same old field name - {field}. \
-        This is likely not intentional. Use a different name for the new field")]
+    #[error(
+        "You are trying to rename the field - {field} - on table - {table} - to the same old field name - {field}. \
+        This is likely not intentional. Use a different name for the new field"
+    )]
     RenamingToSameOldFieldDisallowed { field: Field, table: Table },
 
-    #[error("You are trying to rename the field-'{new_field}' - on table-'{table}' from a field-'{old_field}' \
+    #[error(
+        "You are trying to rename the field-'{new_field}' - on table-'{table}' from a field-'{old_field}' \
         currently still in use in the table. \
         This is likely not intentional. Use a different name for the new field. \
-        You can rename only from one of {renamables}")]
+        You can rename only from one of {renamables}"
+    )]
     CannotRenameFromOldFieldInUSeInTable {
         new_field: String,
         old_field: String,
@@ -152,17 +168,21 @@ pub enum MigrationError {
     InvalidDefineStatement(String),
 
     // TODO: Decide on how to handle suggestions in scenarios where there is a mismatch.
-    #[error("Invalid migration state. The number of registered migrations in the database ({db_migration_count}) does not match the number of migration files in the migration directory ({local_dir_migration_count}). \
+    #[error(
+        "Invalid migration state. The number of registered migrations in the database ({db_migration_count}) does not match the number of migration files in the migration directory ({local_dir_migration_count}). \
         This could be because you have deleted some migration files from the migration directory or you have deleted some migration records from the database. \
         If you have deleted some migration files from the migration directory, you can run the command 'cargo run -- prune' to delete all unapplied migrations from the database. \
         If you have deleted some migration records from the database, you can run the command 'cargo run -- reset' to delete all migration records from the database. \
-        If you have deleted some migration files from the migration directory and some migration records from the database, you can run the command 'cargo run -- reset --prune' to delete all migration records from the database and all unapplied migrations from the database.")]
+        If you have deleted some migration files from the migration directory and some migration records from the database, you can run the command 'cargo run -- reset --prune' to delete all migration records from the database and all unapplied migrations from the database."
+    )]
     InvalidMigrationState {
         db_migration_count: usize,
         local_dir_migration_count: usize,
     },
 
-    #[error("Problem detecting migration mode. One way error: {one_way_error}. Two way error: {two_way_error}")]
+    #[error(
+        "Problem detecting migration mode. One way error: {one_way_error}. Two way error: {two_way_error}"
+    )]
     ProblemDetectingMigrationMode {
         one_way_error: String,
         two_way_error: String,
@@ -176,8 +196,10 @@ There are {one_way_filecount} up only files and {two_way_filecount} up and down 
         two_way_filecount: usize,
     },
 
-    #[error("There {migration_count} unapplied migration files. Apply the Unapplied migration files to the database instance \
-        using the command 'cargo run -- up' to apply it/them or delete all unapplied migrations using 'cargo run -- prune'.")]
+    #[error(
+        "There {migration_count} unapplied migration files. Apply the Unapplied migration files to the database instance \
+        using the command 'cargo run -- up' to apply it/them or delete all unapplied migrations using 'cargo run -- prune'."
+    )]
     UnappliedMigrationExists { migration_count: usize },
 
     #[error("Invalid migration flag detection: {0}")]

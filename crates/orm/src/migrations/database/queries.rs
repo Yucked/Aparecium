@@ -6,8 +6,6 @@
 
 use std::{fmt::Display, ops::Deref};
 
-use itertools::intersperse;
-use serde::{Deserialize, Serialize};
 use crate::{
     statements::{
         remove_analyzer, remove_database, remove_event, remove_field, remove_function,
@@ -16,6 +14,8 @@ use crate::{
     },
     *,
 };
+use itertools::intersperse;
+use serde::{Deserialize, Serialize};
 
 use crate::migrations::*;
 
@@ -192,7 +192,7 @@ impl DefineStatementRaw {
         &self,
         override_name: Option<String>,
     ) -> MigrationResult<RemoveStatementRaw> {
-        use crate::sql::{statements::DefineStatement, Base, Statement};
+        use crate::sql::{Base, Statement, statements::DefineStatement};
 
         let query = crate::sql::parse(&self.to_string()).expect("Invalid statment");
         let stmt = query[0].clone();
@@ -268,7 +268,7 @@ impl DefineStatementRaw {
                         Base::Sc(_sc_name) => {
                             return Err(MigrationError::InvalidDefineStatement(
                                 "Users cannot be defined on scope in Define User statement".into(),
-                            ))
+                            ));
                         }
                     };
                     remove_stmt.to_raw().build()
@@ -281,7 +281,7 @@ impl DefineStatementRaw {
             _ => {
                 return Err(MigrationError::InvalidDefineStatement(
                     "Not a define statement. Expected a define statement".into(),
-                ))
+                ));
             }
         };
 

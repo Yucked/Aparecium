@@ -5,7 +5,7 @@
  */
 
 use crate::helpers::get_crate_name;
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 
 use super::Codegen;
 use crate::models::*;

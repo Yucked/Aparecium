@@ -237,4 +237,3 @@ impl Parametric for DefineUserStatement {
 impl Queryable for DefineUserStatement {}
 
 impl Erroneous for DefineUserStatement {}
-

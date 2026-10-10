@@ -5,14 +5,14 @@
  */
 // -- Define a global function which can be used in any query
 
-use chrono::TimeZone;
-use pretty_assertions::assert_eq;
-use aparecium_tests::SpaceShip;
 use aparecium::{
+    All, Buildable, Field, Model, NONE, Operatable, Param, SchemaGetter, SetterAssignable, ToRaw,
     cond, define_function, object,
     statements::{create, if_, select},
-    All, Buildable, Field, Model, Operatable, Param, SchemaGetter, SetterAssignable, ToRaw, NONE,
 };
+use aparecium_tests::SpaceShip;
+use chrono::TimeZone;
+use pretty_assertions::assert_eq;
 
 define_function!(get_or_create_spaceship(
     first_arg: string,

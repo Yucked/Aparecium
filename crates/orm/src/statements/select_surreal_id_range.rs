@@ -7,8 +7,8 @@
 use std::ops::Bound;
 
 use crate::{
-    statements::select::TargettablesForSelect, Binding, Model, SurrealId, SurrealSimpleId,
-    SurrealUlid, SurrealUuid, ValueLike,
+    Binding, Model, SurrealId, SurrealSimpleId, SurrealUlid, SurrealUuid, ValueLike,
+    statements::select::TargettablesForSelect,
 };
 use surrealdb::sql;
 
@@ -331,4 +331,3 @@ create_range!(SurrealSimpleId);
 create_range!(SurrealUuid);
 create_range!(SurrealUlid);
 ///////////////////////////////////////////
-

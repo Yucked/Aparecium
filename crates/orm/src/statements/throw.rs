@@ -7,8 +7,8 @@
 use std::fmt;
 
 use crate::{
-    traits::{BindingsList, Buildable, Erroneous, Parametric, Queryable},
     StrandLike,
+    traits::{BindingsList, Buildable, Erroneous, Parametric, Queryable},
 };
 
 /// Creates a THROW statement builder.
@@ -53,4 +53,3 @@ impl fmt::Display for ThrowStatement {
         write!(f, "{}", self.build())
     }
 }
-

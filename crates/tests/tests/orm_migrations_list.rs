@@ -4,8 +4,8 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 
-use aparecium_tests::migrator_support::{current_function, AssertionArg, TestConfig};
 use aparecium::migrations::{FastForwardDelta, Mode, Status};
+use aparecium_tests::migrator_support::{AssertionArg, TestConfig, current_function};
 use tempfile::tempdir;
 use test_case::test_case;
 

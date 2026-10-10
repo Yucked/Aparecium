@@ -4,15 +4,14 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 
-use aparecium_tests::migrator_support::{current_function, AssertionArg, TestConfig};
-use aparecium_tests::migrations::{
-    invalid_cases, Animal, AnimalV2, Planet, PlanetV2, Resources, ResourcesV2,
-};
 use aparecium::{
-    create_table_resources,
+    DbResources, create_table_resources,
     migrations::{Generate, Init, MockPrompter, Mode, RenameOrDelete},
-    DbResources,
 };
+use aparecium_tests::migrations::{
+    Animal, AnimalV2, Planet, PlanetV2, Resources, ResourcesV2, invalid_cases,
+};
+use aparecium_tests::migrator_support::{AssertionArg, TestConfig, current_function};
 use tempfile::tempdir;
 use test_case::test_case;
 
@@ -43,7 +42,10 @@ async fn test_cannot_generate_without_db_run_without_init(mode: Mode) {
     })
     .await;
 
-    assert!(!migration_dir.exists(), "Migration directory cannot be created with generate if not migration not already initialized");
+    assert!(
+        !migration_dir.exists(),
+        "Migration directory cannot be created with generate if not migration not already initialized"
+    );
 }
 
 #[test_case(Mode::Strict; "Strict")]
@@ -73,7 +75,10 @@ async fn test_cannot_generate_with_db_run_without_init(mode: Mode) {
     })
     .await;
 
-    assert!(!migration_dir.exists(), "Migration directory cannot be created with generate if not migration not already initialized");
+    assert!(
+        !migration_dir.exists(),
+        "Migration directory cannot be created with generate if not migration not already initialized"
+    );
 }
 
 #[test_case(Mode::Strict, true, RenameOrDelete::Rename; "Strict Reversible and single field name change diff strategy is implicit renaming")]
@@ -133,8 +138,10 @@ async fn test_successfully_handles_renaming(
     let assert_forward_up_migrations_snaps_v1 = || {
         assert!(snapshot.contains("DELETE migration;"));
         assert!(snapshot.contains("DEFINE TABLE animal SCHEMAFULL PERMISSIONS NONE;"));
-        assert!(snapshot
-            .contains("DEFINE FIELD attributes ON animal TYPE array<string> PERMISSIONS FULL;"));
+        assert!(
+            snapshot
+                .contains("DEFINE FIELD attributes ON animal TYPE array<string> PERMISSIONS FULL;")
+        );
         assert!(
             snapshot.contains("DEFINE FIELD createdAt ON animal TYPE datetime PERMISSIONS FULL;")
         );
@@ -147,17 +154,23 @@ async fn test_successfully_handles_renaming(
         );
         assert!(snapshot.contains("DEFINE FIELD velocity ON animal TYPE int PERMISSIONS FULL;"));
         assert!(snapshot.contains("DEFINE TABLE migration SCHEMAFULL PERMISSIONS NONE;"));
-        assert!(snapshot
-            .contains("DEFINE FIELD checksum_up ON migration TYPE string PERMISSIONS FULL;"));
+        assert!(
+            snapshot
+                .contains("DEFINE FIELD checksum_up ON migration TYPE string PERMISSIONS FULL;")
+        );
         assert!(snapshot.contains("DEFINE FIELD name ON migration TYPE string PERMISSIONS FULL;"));
-        assert!(snapshot.contains("DEFINE FIELD timestamp ON migration TYPE int PERMISSIONS FULL;"));
+        assert!(
+            snapshot.contains("DEFINE FIELD timestamp ON migration TYPE int PERMISSIONS FULL;")
+        );
 
         assert!(snapshot.contains("DEFINE TABLE planet SCHEMAFULL PERMISSIONS NONE;"));
         assert!(
             snapshot.contains("DEFINE FIELD createdAt ON planet TYPE datetime PERMISSIONS FULL;")
         );
 
-        assert!(snapshot.contains("DEFINE FIELD firstName ON planet TYPE string PERMISSIONS FULL;"));
+        assert!(
+            snapshot.contains("DEFINE FIELD firstName ON planet TYPE string PERMISSIONS FULL;")
+        );
         assert!(
             snapshot.contains("DEFINE FIELD id ON planet TYPE record<planet> PERMISSIONS FULL;")
         );
@@ -186,8 +199,10 @@ async fn test_successfully_handles_renaming(
 
         assert!(snapshot.contains("header: Basename - migration_init. Extension - up.surql"));
         assert_forward_up_migrations_snaps_v1();
-        assert!(snapshot
-            .contains("DEFINE FIELD checksum_down ON migration TYPE string PERMISSIONS FULL;"));
+        assert!(
+            snapshot
+                .contains("DEFINE FIELD checksum_down ON migration TYPE string PERMISSIONS FULL;")
+        );
     } else {
         assert!(
             snapshot.contains("header: Basename - migration_init. Extension - surql"),
@@ -201,8 +216,10 @@ async fn test_successfully_handles_renaming(
             !snapshot.contains("header: Basename - migration_init. Extension - up.surql"),
             "should not have up cos its one way"
         );
-        assert!(!snapshot
-            .contains("DEFINE FIELD checksum_down ON migration TYPE string PERMISSIONS FULL;"));
+        assert!(
+            !snapshot
+                .contains("DEFINE FIELD checksum_down ON migration TYPE string PERMISSIONS FULL;")
+        );
         assert_forward_up_migrations_snaps_v1();
     }
 
@@ -237,10 +254,14 @@ async fn test_successfully_handles_renaming(
             "Successfully handles explicit renaming"
         );
 
-        assert!(snapshot_v2_with_animal_explicit_planet_implicit_renaming
-            .contains("REMOVE FIELD createdAt ON TABLE animal;"));
-        assert!(snapshot_v2_with_animal_explicit_planet_implicit_renaming
-            .contains("REMOVE FIELD updatedAt ON TABLE animal;"));
+        assert!(
+            snapshot_v2_with_animal_explicit_planet_implicit_renaming
+                .contains("REMOVE FIELD createdAt ON TABLE animal;")
+        );
+        assert!(
+            snapshot_v2_with_animal_explicit_planet_implicit_renaming
+                .contains("REMOVE FIELD updatedAt ON TABLE animal;")
+        );
 
         match single_field_name_change_diff_strategy {
             RenameOrDelete::Rename => {
@@ -265,8 +286,10 @@ async fn test_successfully_handles_renaming(
         }
     };
     if reversible {
-        assert!(snapshot_v2_with_animal_explicit_planet_implicit_renaming
-            .contains("header: Basename - migration_gen_1. Extension - up.surql"));
+        assert!(
+            snapshot_v2_with_animal_explicit_planet_implicit_renaming
+                .contains("header: Basename - migration_gen_1. Extension - up.surql")
+        );
         assert!(
             !snapshot_v2_with_animal_explicit_planet_implicit_renaming
                 .contains("header: Basename - migration_gen_1. Extension - surql",),
@@ -275,8 +298,10 @@ async fn test_successfully_handles_renaming(
         assert_forward_up_migrations_snaps_v1();
         assert_up_forward_v2_with_renaming();
 
-        assert!(snapshot_v2_with_animal_explicit_planet_implicit_renaming
-            .contains("header: Basename - migration_gen_1. Extension - down.surql"));
+        assert!(
+            snapshot_v2_with_animal_explicit_planet_implicit_renaming
+                .contains("header: Basename - migration_gen_1. Extension - down.surql")
+        );
 
         assert!(
             snapshot_v2_with_animal_explicit_planet_implicit_renaming.contains(
@@ -287,11 +312,15 @@ async fn test_successfully_handles_renaming(
             "Successfully handles explicit renaming reversal"
         );
 
-        assert!(snapshot_v2_with_animal_explicit_planet_implicit_renaming
-            .contains("DEFINE FIELD createdAt ON animal TYPE datetime PERMISSIONS FULL;"));
+        assert!(
+            snapshot_v2_with_animal_explicit_planet_implicit_renaming
+                .contains("DEFINE FIELD createdAt ON animal TYPE datetime PERMISSIONS FULL;")
+        );
 
-        assert!(snapshot_v2_with_animal_explicit_planet_implicit_renaming
-            .contains("DEFINE FIELD updatedAt ON animal TYPE datetime PERMISSIONS FULL;"));
+        assert!(
+            snapshot_v2_with_animal_explicit_planet_implicit_renaming
+                .contains("DEFINE FIELD updatedAt ON animal TYPE datetime PERMISSIONS FULL;")
+        );
 
         match single_field_name_change_diff_strategy {
             RenameOrDelete::Rename => {
@@ -378,8 +407,10 @@ async fn test_can_generate_after_first_initializing_no_db_run(mode: Mode, revers
     let assert_forward_up_migrations_snaps = || {
         assert!(snapshot.contains("DELETE migration;"));
         assert!(snapshot.contains("DEFINE TABLE animal SCHEMAFULL PERMISSIONS NONE;"));
-        assert!(snapshot
-            .contains("DEFINE FIELD attributes ON animal TYPE array<string> PERMISSIONS FULL;"));
+        assert!(
+            snapshot
+                .contains("DEFINE FIELD attributes ON animal TYPE array<string> PERMISSIONS FULL;")
+        );
         assert!(
             snapshot.contains("DEFINE FIELD createdAt ON animal TYPE datetime PERMISSIONS FULL;")
         );
@@ -391,8 +422,11 @@ async fn test_can_generate_after_first_initializing_no_db_run(mode: Mode, revers
             snapshot.contains("DEFINE FIELD updatedAt ON animal TYPE datetime PERMISSIONS FULL;")
         );
         assert!(snapshot.contains("DEFINE FIELD velocity ON animal TYPE int PERMISSIONS FULL;"));
-        assert!(snapshot
-            .contains("DEFINE INDEX species_speed_idx ON animal FIELDS species, velocity UNIQUE;"));
+        assert!(
+            snapshot.contains(
+                "DEFINE INDEX species_speed_idx ON animal FIELDS species, velocity UNIQUE;"
+            )
+        );
         assert!(snapshot.contains("DEFINE EVENT event1 ON animal WHEN (species = 'Homo Erectus') AND (velocity > 545) THEN (SELECT * FROM crop);"));
         assert!(snapshot.contains("DEFINE EVENT event2 ON animal WHEN (species = 'Homo Sapien') AND (velocity < 10) THEN (SELECT * FROM eats);"));
 
@@ -401,24 +435,32 @@ async fn test_can_generate_after_first_initializing_no_db_run(mode: Mode, revers
         assert!(snapshot.contains("DEFINE FIELD id ON crop TYPE record<crop> PERMISSIONS FULL;"));
 
         assert!(snapshot.contains("DEFINE TABLE eats SCHEMAFULL PERMISSIONS NONE;"));
-        assert!(snapshot.contains("DEFINE FIELD createdAt ON eats TYPE datetime PERMISSIONS FULL;"));
+        assert!(
+            snapshot.contains("DEFINE FIELD createdAt ON eats TYPE datetime PERMISSIONS FULL;")
+        );
         assert!(snapshot.contains("DEFINE FIELD id ON eats TYPE record<eats> PERMISSIONS FULL;"));
         assert!(snapshot.contains("DEFINE FIELD in ON eats TYPE record<any> PERMISSIONS FULL;"));
         assert!(snapshot.contains("DEFINE FIELD out ON eats TYPE record<any> PERMISSIONS FULL;"));
         assert!(snapshot.contains("DEFINE FIELD place ON eats TYPE string PERMISSIONS FULL;"));
 
         assert!(snapshot.contains("DEFINE TABLE migration SCHEMAFULL PERMISSIONS NONE;"));
-        assert!(snapshot
-            .contains("DEFINE FIELD checksum_up ON migration TYPE string PERMISSIONS FULL;"));
+        assert!(
+            snapshot
+                .contains("DEFINE FIELD checksum_up ON migration TYPE string PERMISSIONS FULL;")
+        );
         assert!(snapshot.contains("DEFINE FIELD name ON migration TYPE string PERMISSIONS FULL;"));
-        assert!(snapshot.contains("DEFINE FIELD timestamp ON migration TYPE int PERMISSIONS FULL;"));
+        assert!(
+            snapshot.contains("DEFINE FIELD timestamp ON migration TYPE int PERMISSIONS FULL;")
+        );
 
         assert!(snapshot.contains("DEFINE TABLE planet SCHEMAFULL PERMISSIONS NONE;"));
         assert!(
             snapshot.contains("DEFINE FIELD createdAt ON planet TYPE datetime PERMISSIONS FULL;")
         );
 
-        assert!(snapshot.contains("DEFINE FIELD firstName ON planet TYPE string PERMISSIONS FULL;"));
+        assert!(
+            snapshot.contains("DEFINE FIELD firstName ON planet TYPE string PERMISSIONS FULL;")
+        );
         assert!(
             snapshot.contains("DEFINE FIELD id ON planet TYPE record<planet> PERMISSIONS FULL;")
         );
@@ -466,8 +508,10 @@ async fn test_can_generate_after_first_initializing_no_db_run(mode: Mode, revers
 
         assert!(snapshot.contains("header: Basename - migration_init. Extension - up.surql"));
         assert_forward_up_migrations_snaps();
-        assert!(snapshot
-            .contains("DEFINE FIELD checksum_down ON migration TYPE string PERMISSIONS FULL;"));
+        assert!(
+            snapshot
+                .contains("DEFINE FIELD checksum_down ON migration TYPE string PERMISSIONS FULL;")
+        );
     } else {
         assert!(
             snapshot.contains("header: Basename - migration_init. Extension - surql"),
@@ -481,8 +525,10 @@ async fn test_can_generate_after_first_initializing_no_db_run(mode: Mode, revers
             !snapshot.contains("header: Basename - migration_init. Extension - up.surql"),
             "should not have up cos its one way"
         );
-        assert!(!snapshot
-            .contains("DEFINE FIELD checksum_down ON migration TYPE string PERMISSIONS FULL;"));
+        assert!(
+            !snapshot
+                .contains("DEFINE FIELD checksum_down ON migration TYPE string PERMISSIONS FULL;")
+        );
         assert_forward_up_migrations_snaps();
     }
 

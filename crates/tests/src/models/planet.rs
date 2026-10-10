@@ -4,9 +4,9 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 
+use aparecium::{Node, SurrealSimpleId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use aparecium::{Node, SurrealSimpleId};
 
 // NOTE: Make PartialBuilder trait separate from Node, so it can be optional
 // Planet

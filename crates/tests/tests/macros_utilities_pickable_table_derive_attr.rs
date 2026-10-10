@@ -447,8 +447,8 @@ mod tests {
     }
 
     #[test]
-    fn test_derive_table_attributes_pickable_with_rename_all_serialize_with_lifetime_and_type_generics(
-    ) {
+    fn test_derive_table_attributes_pickable_with_rename_all_serialize_with_lifetime_and_type_generics()
+     {
         let input = syn::parse_quote! {
             #[derive(Pickable, Serialize, Deserialize)]
             #[serde(rename_all = "camelCase")]

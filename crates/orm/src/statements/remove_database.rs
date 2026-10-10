@@ -94,4 +94,3 @@ impl Parametric for RemoveDatabaseStatement {
 impl Erroneous for RemoveDatabaseStatement {}
 
 impl Queryable for RemoveDatabaseStatement {}
-

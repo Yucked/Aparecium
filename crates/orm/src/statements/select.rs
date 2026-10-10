@@ -30,8 +30,8 @@ use std::{
     ops::Deref,
 };
 
-use serde::{de::DeserializeOwned, Serialize};
-use surrealdb::{engine::local::Db, sql, Surreal};
+use serde::{Serialize, de::DeserializeOwned};
+use surrealdb::{Surreal, engine::local::Db, sql};
 
 use crate::{
     Aliasable, All, Binding, BindingsList, Buildable, Conditional, DurationLike, Erroneous,
@@ -1642,14 +1642,14 @@ impl<T: Model> SelectStatementMini<T> {
         self.0.update_bindings(orderables.get_bindings());
 
         let orders: Vec<Order> = orderables.into();
-        self.0 .0.order_by.extend(orders);
+        self.0.0.order_by.extend(orders);
         self
     }
 
     /// Starts the result at the offset
     pub fn start(mut self, start: impl Into<NumberLike>) -> Self {
         let start: NumberLike = start.into();
-        self.0 .0.start = Some(start.build());
+        self.0.0.start = Some(start.build());
         self.0.update_bindings(start.get_bindings());
         self
     }
@@ -1657,14 +1657,14 @@ impl<T: Model> SelectStatementMini<T> {
     /// Limits the number of results returned
     pub fn limit(mut self, limit: impl Into<NumberLike>) -> Self {
         let limit: NumberLike = limit.into();
-        self.0 .0.limit = Some(limit.build());
+        self.0.0.limit = Some(limit.build());
         self.0.update_bindings(limit.get_bindings());
         self
     }
 
     /// Parallelizes the query
     pub fn parallel(mut self) -> Self {
-        self.0 .0.parallel = true;
+        self.0.0.parallel = true;
         self
     }
 }
@@ -1705,7 +1705,7 @@ where
 {
     fn set_return_type(mut self, return_type: crate::ReturnType) -> Self {
         if let crate::ReturnType::Projections(projection) = return_type {
-            self.0 .0.projections = format!("{}, {}", self.0 .0.projections, projection.build());
+            self.0.0.projections = format!("{}, {}", self.0.0.projections, projection.build());
         }
         self
     }
@@ -1749,4 +1749,3 @@ impl From<SelectStatement> for SelectStatementCount {
         Self(value)
     }
 }
-

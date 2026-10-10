@@ -4,9 +4,9 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 
-use pretty_assertions::assert_eq;
-use aparecium_tests::Organization;
 use aparecium::{Buildable, Field, SchemaGetter, SetterAssignable, ToRaw};
+use aparecium_tests::Organization;
+use pretty_assertions::assert_eq;
 
 #[test]
 fn test_setter() {

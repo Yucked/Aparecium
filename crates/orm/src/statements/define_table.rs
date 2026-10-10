@@ -7,8 +7,8 @@
 use std::fmt::{self, Display};
 
 use crate::{
-    statements::{for_permission::Permissions, select::SelectStatement},
     BindingsList, Buildable, Erroneous, Parametric, Queryable, Table,
+    statements::{for_permission::Permissions, select::SelectStatement},
 };
 
 // DEFINE TABLE statement
@@ -303,4 +303,3 @@ enum SchemaType {
     Schemafull,
     Schemaless,
 }
-

@@ -4,8 +4,8 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 
-use serde::{Deserialize, Serialize};
 use crate::DbResources;
+use serde::{Deserialize, Serialize};
 
 use crate::migrations::*;
 

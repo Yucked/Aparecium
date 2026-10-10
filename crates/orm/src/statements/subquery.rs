@@ -4,7 +4,7 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use surrealdb::sql;
 
 use crate::{
@@ -49,7 +49,7 @@ fn statement_str_to_subquery(
     let query = sql::parse(statement).map_err(|err| {
         SurrealOrmError::InvalidSubquery(format!("Problem parsing subquery. Error: {err}"))
     })?;
-    let parsed_statement = query.0 .0.first().ok_or(SurrealOrmError::InvalidSubquery(
+    let parsed_statement = query.0.0.first().ok_or(SurrealOrmError::InvalidSubquery(
         "Problem parsing subquery. No statement found.".to_string(),
     ))?;
 

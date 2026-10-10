@@ -3,12 +3,12 @@
  * Email: oyelowo.oss@gmail.com
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
-use aparecium_tests::migrator_support::{current_function, AssertionArg, TestConfig};
-use pretty_assertions::assert_eq;
-use aparecium_tests::migrations::Resources;
 use aparecium::migrations::{
     FastForwardDelta, Informational, Init, MigrationFilename, MockPrompter, Mode,
 };
+use aparecium_tests::migrations::Resources;
+use aparecium_tests::migrator_support::{AssertionArg, TestConfig, current_function};
+use pretty_assertions::assert_eq;
 use tempfile::tempdir;
 use test_case::test_case;
 
@@ -91,7 +91,9 @@ async fn test_run_up_after_init_with_no_run(mode: Mode, reversible: bool) {
             .iter()
             .map(ToString::to_string)
             .collect::<Vec<String>>(),
-        vec!["DEFINE ANALYZER ascii TOKENIZERS CLASS FILTERS LOWERCASE,ASCII,EDGENGRAM(2,15),SNOWBALL(ENGLISH);"]
+        vec![
+            "DEFINE ANALYZER ascii TOKENIZERS CLASS FILTERS LOWERCASE,ASCII,EDGENGRAM(2,15),SNOWBALL(ENGLISH);"
+        ]
     );
 
     let tables = db_state.resources.tables();

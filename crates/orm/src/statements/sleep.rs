@@ -57,4 +57,3 @@ impl Display for SleepStatement {
         write!(f, "{}", self.build())
     }
 }
-

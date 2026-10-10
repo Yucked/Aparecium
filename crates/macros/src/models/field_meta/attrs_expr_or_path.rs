@@ -4,11 +4,11 @@
  * Copyright (c) 2024 Oyelowo Oyedayo
  */
 
+use crate::field_type::FieldType;
+use crate::helpers::get_crate_name;
 use darling::FromMeta;
 use proc_macro2::TokenStream;
-use crate::helpers::get_crate_name;
-use quote::{quote, ToTokens};
-use crate::field_type::FieldType;
+use quote::{ToTokens, quote};
 use syn::{Expr, Lit, Meta, MetaNameValue};
 
 use crate::models::*;

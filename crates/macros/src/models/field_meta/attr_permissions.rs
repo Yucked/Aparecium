@@ -6,7 +6,7 @@
 
 use darling::FromMeta;
 use proc_macro2::TokenStream;
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 use syn::{Expr, Lit, Meta, MetaNameValue, Path};
 
 use super::ExprOrPath;

@@ -230,4 +230,3 @@ impl Updater {
         }
     }
 }
-

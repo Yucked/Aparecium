@@ -1,8 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::{
-        All, Field, Operatable, ToRaw, chain, cond, statements::select, Buildable,
-    };
+    use aparecium::{All, Buildable, Field, Operatable, ToRaw, chain, cond, statements::select};
     use insta::assert_snapshot;
     use select::CanOrder;
     use surrealdb::sql;

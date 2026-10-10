@@ -6,12 +6,12 @@
 
 use std::{fmt::Display, ops::Deref};
 
+use crate::field_type::GeometryType;
 use darling::FromMeta;
 use quote::ToTokens;
-use crate::field_type::GeometryType;
 use syn::{
-    self, parse_quote, spanned::Spanned, visit::Visit, visit_mut::VisitMut, Expr, GenericArgument,
-    Ident, Lifetime, Path, PathArguments, Token, Type, TypeReference,
+    self, Expr, GenericArgument, Ident, Lifetime, Path, PathArguments, Token, Type, TypeReference,
+    parse_quote, spanned::Spanned, visit::Visit, visit_mut::VisitMut,
 };
 
 use crate::models::*;
@@ -82,8 +82,8 @@ impl FromMeta for CustomType {
                     syn::Lit::Str(ref lit_str) => syn::parse_str::<Type>(&lit_str.value())?,
                     _ => {
                         return Err(darling::Error::custom(
-                                "Unable to parse stringified type. Expected a valid Rust path or a stringified type",
-                            ));
+                            "Unable to parse stringified type. Expected a valid Rust path or a stringified type",
+                        ));
                     }
                 },
                 syn::Expr::Path(path) => Type::Path(syn::TypePath {

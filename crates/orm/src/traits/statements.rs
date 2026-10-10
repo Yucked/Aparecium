@@ -3,7 +3,7 @@ use crate::{
     AllGetter, Field, Model, Projections, Queryable, ReturnType, SurrealOrmError, SurrealOrmResult,
     ValueLike,
 };
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use surrealdb::{Connection, Surreal};
 
 // Create, Update, Relate, Delete
@@ -317,8 +317,7 @@ where
                 _ => all,
             };
 
-            let query =
-                self.set_return_type(ReturnType::Projections(Projections(selected_fields)));
+            let query = self.set_return_type(ReturnType::Projections(Projections(selected_fields)));
 
             get_one::<T>(response)
                 .map(|r| r.ok_or_else(|| SurrealOrmError::RecordNotFound(query.build())))?

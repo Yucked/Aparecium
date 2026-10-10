@@ -100,4 +100,3 @@ impl Parametric for RemoveEventStatement {
 impl Erroneous for RemoveEventStatement {}
 
 impl Queryable for RemoveEventStatement {}
-

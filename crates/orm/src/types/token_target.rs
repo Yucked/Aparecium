@@ -63,4 +63,3 @@ impl Display for TokenTarget {
         write!(f, "{}", target_str)
     }
 }
-

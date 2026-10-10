@@ -81,4 +81,3 @@ impl fmt::Display for RemoveModelStatement {
         write!(f, "{}", self.build())
     }
 }
-

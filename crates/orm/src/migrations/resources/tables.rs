@@ -8,8 +8,8 @@ use crate::migrations::{
     table_events::ComparisonEvents, table_fields::ComparisonFields,
     table_indexes::ComparisonIndexes, *,
 };
-use serde::{Deserialize, Serialize};
 use crate::{DbResources, Table};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct TableResourcesData {

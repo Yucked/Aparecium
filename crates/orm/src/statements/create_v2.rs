@@ -6,16 +6,16 @@
 
 use std::marker::PhantomData;
 
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use surrealdb::sql;
 
 use crate::{
+    ErrorList, Setter, ToRaw,
     traits::{
         Binding, BindingsList, Buildable, Erroneous, Node, Parametric, Queryable,
         ReturnableDefault, ReturnableStandard,
     },
     types::{DurationLike, ReturnType},
-    ErrorList, Setter, ToRaw,
 };
 
 #[derive(Debug, Clone)]

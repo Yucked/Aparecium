@@ -4,14 +4,14 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 
-use aparecium_tests::{space_ship, weapon, SpaceShip, Weapon};
 use aparecium::{
     statements::{insert, select, select_value},
     *,
 };
+use aparecium_tests::{SpaceShip, Weapon, space_ship, weapon};
 use surrealdb::{
-    engine::local::{Db, Mem},
     Surreal,
+    engine::local::{Db, Mem},
 };
 
 async fn create_test_data(db: Surreal<Db>) {

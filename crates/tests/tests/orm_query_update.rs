@@ -4,16 +4,16 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 
-use chrono::Utc;
-use geo::{line_string, point, polygon};
-use pretty_assertions::assert_eq;
-use std::time::Duration;
-use aparecium_tests::{alien, weapon, weapon_old, Alien, Rocket, SpaceShip, Weapon, WeaponOld};
 use aparecium::{
     statements::{create, insert, select, update},
     *,
 };
-use surrealdb::{engine::local::Mem, Surreal};
+use aparecium_tests::{Alien, Rocket, SpaceShip, Weapon, WeaponOld, alien, weapon, weapon_old};
+use chrono::Utc;
+use geo::{line_string, point, polygon};
+use pretty_assertions::assert_eq;
+use std::time::Duration;
+use surrealdb::{Surreal, engine::local::Mem};
 
 fn create_test_alien(age: u8, name: String) -> Alien {
     let point = point! {
@@ -242,20 +242,26 @@ async fn test_increment_and_decrement_update_conditionally() -> SurrealOrmResult
         weak_aliens
     };
     // None should be rook here
-    assert!(select_weak_aliens()
-        .await
-        .iter()
-        .all(|alien| alien.name != "Rook"));
+    assert!(
+        select_weak_aliens()
+            .await
+            .iter()
+            .all(|alien| alien.name != "Rook")
+    );
     // assert that none have tag street yet
-    assert!(select_weak_aliens()
-        .await
-        .iter()
-        .all(|alien| !alien.tags.contains(&"street".to_string())));
+    assert!(
+        select_weak_aliens()
+            .await
+            .iter()
+            .all(|alien| !alien.tags.contains(&"street".to_string()))
+    );
     // assert numbers of tags
-    assert!(select_weak_aliens()
-        .await
-        .iter()
-        .all(|alien| alien.tags.len() == 2));
+    assert!(
+        select_weak_aliens()
+            .await
+            .iter()
+            .all(|alien| alien.tags.len() == 2)
+    );
 
     let weak_aliens = update::<Alien>(Alien::table())
         .set([name.equal_to("Rook"), tags.append("street")])
@@ -269,39 +275,51 @@ async fn test_increment_and_decrement_update_conditionally() -> SurrealOrmResult
     // Assert that they all now have the name rook
     assert!(weak_aliens.iter().all(|alien| alien.name == "Rook"));
     // Assert that they all now have the tag street
-    assert!(weak_aliens
-        .iter()
-        .all(|alien| alien.tags.contains(&"street".to_string())));
+    assert!(
+        weak_aliens
+            .iter()
+            .all(|alien| alien.tags.contains(&"street".to_string()))
+    );
 
     // They should now all be rooks
-    assert!(select_weak_aliens()
-        .await
-        .iter()
-        .all(|alien| alien.name == "Rook"));
+    assert!(
+        select_weak_aliens()
+            .await
+            .iter()
+            .all(|alien| alien.name == "Rook")
+    );
 
-    assert!(select_weak_aliens()
-        .await
-        .iter()
-        .all(|alien| alien.tags.len() == 3));
+    assert!(
+        select_weak_aliens()
+            .await
+            .iter()
+            .all(|alien| alien.tags.len() == 3)
+    );
 
     let weak_aliens = update::<Alien>(Alien::table())
         .set([name.equal_to("Kiwi"), tags.remove("street")])
         .where_(cond(alien.weapon().strength.equal_to(5f64)).and(age.greater_than(3)))
         .return_many(db.clone())
         .await?;
-    assert!(weak_aliens
-        .iter()
-        .all(|alien| !alien.tags.contains(&"street".to_string())));
+    assert!(
+        weak_aliens
+            .iter()
+            .all(|alien| !alien.tags.contains(&"street".to_string()))
+    );
 
     // They should now all be kiwi
-    assert!(select_weak_aliens()
-        .await
-        .iter()
-        .all(|alien| alien.name == "Kiwi"));
-    assert!(select_weak_aliens()
-        .await
-        .iter()
-        .all(|alien| alien.tags.len() == 2));
+    assert!(
+        select_weak_aliens()
+            .await
+            .iter()
+            .all(|alien| alien.name == "Kiwi")
+    );
+    assert!(
+        select_weak_aliens()
+            .await
+            .iter()
+            .all(|alien| alien.tags.len() == 2)
+    );
     Ok(())
 }
 
@@ -982,9 +1000,11 @@ async fn test_update_single_id_patch_remove() -> SurrealOrmResult<()> {
         "Unable to parse data returned from the database. \
             Check that all fields are complete and the types are able to deserialize surrealdb data types properly.")
     );
-    assert!(updated_weapon_with_old
-        .to_string()
-        .contains("missing field `nice`"));
+    assert!(
+        updated_weapon_with_old
+            .to_string()
+            .contains("missing field `nice`")
+    );
 
     // that are not present in the new object. This is a destructive operation.
     let updated_weapon = &(update::<Weapon>(old_weapon.clone().id)

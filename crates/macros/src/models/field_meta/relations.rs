@@ -245,7 +245,7 @@ impl TryFrom<&Relate> for RelateAttribute {
                         Span::call_site(),
                         format!("too many edges or nodes, {}", get_relation_error(relation)),
                     )
-                    .into())
+                    .into());
                 }
             };
 

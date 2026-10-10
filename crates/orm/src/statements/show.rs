@@ -7,8 +7,8 @@
 use std::fmt;
 
 use crate::{
-    traits::{BindingsList, Buildable, Erroneous, Parametric, Queryable},
     DatetimeLike, NumberLike, TableLike,
+    traits::{BindingsList, Buildable, Erroneous, Parametric, Queryable},
 };
 
 /// Creates a SHOW CHANGES statement builder.
@@ -102,4 +102,3 @@ impl fmt::Display for ShowChangesStatement {
         write!(f, "{}", self.build())
     }
 }
-

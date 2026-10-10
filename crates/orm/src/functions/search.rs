@@ -137,4 +137,3 @@ macro_rules! search_highlight {
     };
 }
 pub use search_highlight as highlight;
-

@@ -3,11 +3,9 @@
  * Email: oyelowo.oss@gmail.com
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
+use aparecium::{Edge, LinkMany, LinkOne, Model, Node, Object, Relate, SurrealId, SurrealSimpleId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use aparecium::{
-    Edge, LinkMany, LinkOne, Model, Node, Object, Relate, SurrealId, SurrealSimpleId,
-};
 use surrealdb::sql;
 
 #[derive(Node, Serialize, Deserialize, Debug, Clone)]

@@ -4,9 +4,9 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 
-pub use proc_macro2::TokenStream;
 pub use crate::helpers::get_crate_name;
-pub use quote::{quote, ToTokens};
+pub use proc_macro2::TokenStream;
+pub use quote::{ToTokens, quote};
 
 macro_rules! create_tokenstream_wrapper {
     ($(#[$attr:meta])* => $name:ident) => {

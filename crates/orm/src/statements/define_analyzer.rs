@@ -195,4 +195,3 @@ impl Display for DefineAnalyzerStatement {
         write!(f, "{}", self.build())
     }
 }
-

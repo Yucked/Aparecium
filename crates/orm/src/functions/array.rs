@@ -104,7 +104,6 @@ macro_rules! array_add {
 }
 pub use array_add as add;
 
-
 /// The array::all function checks whether all array values are truthy.
 ///
 /// array::all(array) -> bool
@@ -819,7 +818,6 @@ macro_rules! array_transpose {
 }
 pub use array_transpose as transpose;
 
-
 /// The array::matches function returns true if the array matches the specified pattern.
 pub fn matches_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -> Function {
     let arr: ArrayLike = arr.into();
@@ -900,7 +898,6 @@ macro_rules! array_at {
 }
 pub use array_at as at;
 
-
 /// The array::clump function returns the original array split into sub-arrays of size. Similar to slice::chunks
 pub fn clump_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -> Function {
     let arr: ArrayLike = arr.into();
@@ -979,7 +976,6 @@ macro_rules! array_distinct {
 }
 pub use array_distinct as distinct;
 
-
 /// The array::find function returns the first value in an array which matches the given value.
 pub fn find_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -> Function {
     let arr: ArrayLike = arr.into();
@@ -1020,7 +1016,6 @@ macro_rules! array_find {
 }
 pub use array_find as find;
 
-
 /// The array::find_index function returns the index of the first value in an array which matches the given value.
 pub fn find_index_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -> Function {
     let arr: ArrayLike = arr.into();
@@ -1060,7 +1055,6 @@ macro_rules! array_find_index {
     };
 }
 pub use array_find_index as find_index;
-
 
 /// The array::filter_index function returns the index of the first value in an array which matches the given value.
 pub fn filter_index_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -> Function {
@@ -1149,7 +1143,6 @@ macro_rules! array_flatten {
 }
 pub use array_flatten as flatten;
 
-
 /// The array::group function flattens and returns the unique items in an array.
 ///
 /// array::group(array) -> array
@@ -1199,7 +1192,6 @@ macro_rules! array_group {
     };
 }
 pub use array_group as group;
-
 
 /// The array::insert function inserts a value into an array at a specific position.
 ///
@@ -1275,7 +1267,6 @@ macro_rules! array_insert {
 }
 pub use array_insert as insert;
 
-
 /// The array::len function calculates the length of an array, returning a number. This function
 /// includes all items when counting the number of items in the array. If you want to only count
 /// truthy values, then use the count() function.
@@ -1316,7 +1307,6 @@ macro_rules! array_len {
     };
 }
 pub use array_len as len;
-
 
 /// The array::pop function removes a value from the end of an array and returns it.
 ///
@@ -1361,7 +1351,6 @@ macro_rules! array_pop {
     };
 }
 pub use array_pop as pop;
-
 
 /// The array::prepend function prepends a value to the end of an array.
 ///
@@ -1418,7 +1407,6 @@ macro_rules! array_prepend {
     };
 }
 pub use array_prepend as prepend;
-
 
 /// The array::push function appends a value to the end of an array.
 ///
@@ -1477,7 +1465,6 @@ macro_rules! array_push {
 }
 pub use array_push as push;
 
-
 /// The array::remove function removes an item from a specific position in an array.
 ///
 /// array::remove(array, number) -> array
@@ -1534,7 +1521,6 @@ macro_rules! array_remove {
 }
 pub use array_remove as remove;
 
-
 /// The array::reverse function appends a value to the end of an array.
 ///
 /// array::reverse(array) -> array
@@ -1581,7 +1567,6 @@ macro_rules! array_reverse {
     };
 }
 pub use array_reverse as reverse;
-
 
 /// The array::sort function sorts an array in ascending or descending order.
 #[derive(Debug, Clone, PartialEq)]
@@ -1870,5 +1855,3 @@ macro_rules! array_join {
     };
 }
 pub use array_join as join;
-
-

@@ -434,4 +434,3 @@ pub mod scrypt {
     }
     pub use crypto_scrypt_generate as generate;
 }
-

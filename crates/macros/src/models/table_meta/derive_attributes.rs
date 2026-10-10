@@ -4,10 +4,10 @@
  * Copyright (c) 2024 Oyelowo Oyedayo
  */
 
-use darling::{ast::Data, util, FromDeriveInput};
-use proc_macro2::TokenStream;
 use crate::helpers::get_crate_name;
-use quote::{format_ident, quote, ToTokens};
+use darling::{FromDeriveInput, ast::Data, util};
+use proc_macro2::TokenStream;
+use quote::{ToTokens, format_ident, quote};
 use syn::Ident;
 
 use super::table::TableNameIdent;

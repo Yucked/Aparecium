@@ -4,8 +4,8 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 
-use convert_case::{Case, Casing};
 use crate::helpers::get_crate_name;
+use convert_case::{Case, Casing};
 use quote::format_ident;
 use syn::Ident;
 

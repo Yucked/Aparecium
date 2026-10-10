@@ -65,4 +65,3 @@ impl Parametric for DefineNamespaceStatement {
 
 impl Queryable for DefineNamespaceStatement {}
 impl Erroneous for DefineNamespaceStatement {}
-

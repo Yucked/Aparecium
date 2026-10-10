@@ -6,8 +6,8 @@
 use std::fmt::{self};
 
 use crate::{
-    traits::{BindingsList, Buildable, Erroneous, Parametric, Queryable},
     Param,
+    traits::{BindingsList, Buildable, Erroneous, Parametric, Queryable},
 };
 
 /// Creates a REMOVE PARAM statement builder.
@@ -59,4 +59,3 @@ impl fmt::Display for RemoveParamStatement {
         write!(f, "{}", self.build())
     }
 }
-

@@ -6,8 +6,8 @@
 
 use super::return_::ReturnExpr;
 use syn::{
-    parse::{Parse, ParseStream},
     Ident, Token,
+    parse::{Parse, ParseStream},
 };
 
 #[derive(Debug, Clone)]

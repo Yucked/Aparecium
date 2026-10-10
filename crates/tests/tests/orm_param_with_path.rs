@@ -4,9 +4,9 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 
+use aparecium::{All, Buildable, E, Operatable, SchemaGetter, ToRaw, index, this, value, where_};
+use aparecium_tests::{Student, student};
 use pretty_assertions::assert_eq;
-use aparecium_tests::{student, Student};
-use aparecium::{index, this, value, where_, All, Buildable, Operatable, SchemaGetter, ToRaw, E};
 
 #[test]
 fn test_param_with_path() {

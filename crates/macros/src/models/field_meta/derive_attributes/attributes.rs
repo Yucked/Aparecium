@@ -1,6 +1,6 @@
 use super::ExtractorResult;
 use crate::models::MyFieldReceiver;
-use syn::{spanned::Spanned, Attribute};
+use syn::{Attribute, spanned::Spanned};
 
 impl MyFieldReceiver {
     pub fn attributes(&self) -> &Vec<Attribute> {

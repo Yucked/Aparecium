@@ -808,7 +808,6 @@ macro_rules! time_group {
 
 pub use time_group as group;
 
-
 macro_rules! create_time_fn_with_single_array_of_datetime_arg {
     ($(#[$attr:meta])* => $function_name: expr) => {
         paste::paste! {

@@ -4,9 +4,9 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 
-use pretty_assertions::assert_eq;
-use aparecium_tests::{rocket, Rocket};
 use aparecium::*;
+use aparecium_tests::{Rocket, rocket};
+use pretty_assertions::assert_eq;
 
 #[test]
 fn test_rocket_add_field_to_real_number_complex() {

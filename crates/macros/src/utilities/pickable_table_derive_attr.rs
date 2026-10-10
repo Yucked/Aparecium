@@ -7,9 +7,9 @@
 use super::ident::{FieldAttribute, FieldIdentNormalizedDeserialized};
 use crate::models::{CaseString, ExtractorResult, Rename, StructGenerics, StructLevelCasing};
 
-use darling::{ast::Data, util, FromDeriveInput};
+use darling::{FromDeriveInput, ast::Data, util};
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote, ToTokens};
+use quote::{ToTokens, format_ident, quote};
 use std::str::FromStr;
 use syn::{Ident, Type};
 
@@ -101,4 +101,3 @@ impl ToTokens for TableDeriveAttributesPickable {
         ));
     }
 }
-

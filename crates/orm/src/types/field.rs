@@ -285,4 +285,3 @@ impl std::fmt::Display for Field {
         write!(f, "{}", self.build())
     }
 }
-

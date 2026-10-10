@@ -5,14 +5,14 @@
  */
 
 use crate::{
+    Alias, All, Binding, BindingsList, Buildable, E, Edge, Erroneous, ErrorList, Field, Filter,
+    Function, Model, NONE, NULL, Node, Operation, Param, Parametric,
     statements::{
         CreateStatement, DeleteStatement, IfElseStatement, InsertStatement, LetStatement,
         RelateStatement, SelectStatement, Subquery, UpdateStatement,
     },
-    Alias, All, Binding, BindingsList, Buildable, Edge, Erroneous, ErrorList, Field, Filter,
-    Function, Model, Node, Operation, Param, Parametric, E, NONE, NULL,
 };
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use surrealdb::sql;
 
 /// A value that can be used in a SQL statement. Serves as the bind and arbiter between
@@ -354,4 +354,3 @@ macro_rules! arr {
 //         }
 //     }
 // }
-

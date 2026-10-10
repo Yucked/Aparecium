@@ -88,4 +88,3 @@ macro_rules! function {
     };
 }
 pub use function;
-

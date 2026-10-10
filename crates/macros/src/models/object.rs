@@ -5,7 +5,7 @@
  */
 
 use crate::models::*;
-use darling::{ast, util, FromDeriveInput, ToTokens};
+use darling::{FromDeriveInput, ToTokens, ast, util};
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::Ident;

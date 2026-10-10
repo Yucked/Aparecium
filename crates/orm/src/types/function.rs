@@ -7,8 +7,8 @@
 use std::fmt::Display;
 
 use crate::{
-    traits::{BindingsList, Buildable, Parametric},
     Aliasable, Erroneous, ErrorList,
+    traits::{BindingsList, Buildable, Parametric},
 };
 
 /// Represents a subquery function.

@@ -70,4 +70,3 @@ impl Parametric for DefineDatabaseStatement {
 
 impl Queryable for DefineDatabaseStatement {}
 impl Erroneous for DefineDatabaseStatement {}
-

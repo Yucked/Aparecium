@@ -7,8 +7,8 @@
 use std::fmt::{self, Display};
 
 use crate::{
-    traits::{BindingsList, Buildable, Erroneous, Parametric, Queryable},
     Binding,
+    traits::{BindingsList, Buildable, Erroneous, Parametric, Queryable},
 };
 
 pub struct FunctionName(String);
@@ -81,4 +81,3 @@ impl fmt::Display for RemoveFunctionStatement {
         write!(f, "{}", self.build())
     }
 }
-

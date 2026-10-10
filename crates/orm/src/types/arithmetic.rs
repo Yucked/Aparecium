@@ -6,7 +6,7 @@
 
 use std::ops::{Add, Div, Mul, Sub};
 
-use crate::{statements::LetStatement, Buildable, Field, NumberLike, Operation, Parametric};
+use crate::{Buildable, Field, NumberLike, Operation, Parametric, statements::LetStatement};
 
 impl<T: Into<NumberLike>> Add<T> for LetStatement {
     type Output = Operation;

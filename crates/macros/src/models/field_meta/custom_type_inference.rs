@@ -4,10 +4,10 @@
  * Copyright (c) 2024 Oyelowo Oyedayo
 */
 
-use crate::helpers::get_crate_name;
-use quote::{format_ident, quote, ToTokens};
 use crate::field_type::FieldType;
-use syn::{self, spanned::Spanned, Expr};
+use crate::helpers::get_crate_name;
+use quote::{ToTokens, format_ident, quote};
+use syn::{self, Expr, spanned::Spanned};
 
 use crate::models::*;
 
@@ -284,9 +284,7 @@ impl<'a> FieldTypeInference<'a> {
         // single top-level struct, or one or deep lelve nested struct.
         let foreign_type = match relation_type {
             RelationType::NestObject(ref_object) => Some(ref_object.inner()),
-            RelationType::NestArray(foreign_array_object) => {
-                Some(foreign_array_object.inner())
-            }
+            RelationType::NestArray(foreign_array_object) => Some(foreign_array_object.inner()),
             RelationType::Relate(_)
             | RelationType::List(_)
             | RelationType::None

@@ -4,13 +4,13 @@
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
 
-use pretty_assertions::assert_eq;
-use aparecium_tests::{account, Account, Balance};
 use aparecium::{
     statements::{create, create_only, select, update},
     *,
 };
-use surrealdb::{engine::local::Mem, Surreal};
+use aparecium_tests::{Account, Balance, account};
+use pretty_assertions::assert_eq;
+use surrealdb::{Surreal, engine::local::Mem};
 
 #[test]
 fn test_duplicate_variable_name_properly_chain_bound_in_query_chain() {

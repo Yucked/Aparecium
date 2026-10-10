@@ -347,4 +347,3 @@ pub mod hash {
     }
     pub use geo_hash_encode as encode;
 }
-

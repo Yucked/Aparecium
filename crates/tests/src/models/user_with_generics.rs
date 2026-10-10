@@ -3,9 +3,9 @@
  * Email: oyelowo.oss@gmail.com
  * Copyright (c) 2023 Oyelowo Oyedayo
  */
+use aparecium::*;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use aparecium::*;
 
 #[derive(Node, Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]

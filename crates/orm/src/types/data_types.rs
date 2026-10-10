@@ -5,14 +5,14 @@
  */
 
 use crate::{
+    Binding, BindingsList, Buildable, Edge, Erroneous, ErrorList, Field, Model, Node, Operation,
+    Param, Parametric, ValueLike,
     statements::{
         CreateStatement, DeleteStatement, IfElseStatement, InsertStatement, LetStatement,
         RelateStatement, SelectStatement, UpdateStatement,
     },
-    Binding, BindingsList, Buildable, Edge, Erroneous, ErrorList, Field, Model, Node, Operation,
-    Param, Parametric, ValueLike,
 };
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use surrealdb::sql;
 
 /// Represents the value, or field, param which can all be used

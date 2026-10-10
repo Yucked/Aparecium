@@ -7,8 +7,8 @@
 use std::fmt::Display;
 
 use syn::{
-    parse::{Parse, ParseBuffer, ParseStream},
     Expr, Ident, Result as SynResult, Token,
+    parse::{Parse, ParseBuffer, ParseStream},
 };
 
 use super::{

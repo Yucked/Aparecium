@@ -70,4 +70,3 @@ impl Parametric for RemoveTableStatement {
 impl Erroneous for RemoveTableStatement {}
 
 impl Queryable for RemoveTableStatement {}
-

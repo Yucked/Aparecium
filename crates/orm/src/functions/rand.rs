@@ -584,11 +584,9 @@ pub mod uuid {
     pub use rand_uuid_v7 as v7;
 }
 
-
 macro_rules! create_test_for_fn_with_two_args {
     ($function_ident: expr) => {
-        paste::paste! {
-        }
+        paste::paste! {}
     };
 }
 create_test_for_fn_with_two_args!("float");

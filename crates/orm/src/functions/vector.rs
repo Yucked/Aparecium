@@ -629,4 +629,3 @@ macro_rules! vector_distance_minkowski {
     };
 }
 pub use vector_distance_minkowski;
-

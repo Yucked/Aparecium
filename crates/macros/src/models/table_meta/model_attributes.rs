@@ -6,9 +6,9 @@
 
 use std::str::FromStr;
 
-use syn::{self, parse_quote, GenericArgument, Path, PathArguments, Type};
+use syn::{self, GenericArgument, Path, PathArguments, Type, parse_quote};
 
-use super::{table::TableNameIdent, StructIdent};
+use super::{StructIdent, table::TableNameIdent};
 
 use crate::models::{edge::EdgeToken, node::NodeToken, object::ObjectToken, *};
 

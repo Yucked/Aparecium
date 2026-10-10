@@ -1,5 +1,5 @@
+use aparecium::{Pickable, pick};
 use serde::Serialize;
-use aparecium::{pick, Pickable};
 
 #[derive(Pickable, Debug, Serialize)]
 struct Person<'a, T: 'a, U: 'a> {

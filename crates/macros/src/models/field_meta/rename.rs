@@ -4,7 +4,7 @@
  * Copyright (c) 2024 Oyelowo Oyedayo
  */
 
-use darling::{util, FromMeta};
+use darling::{FromMeta, util};
 
 #[derive(Debug, Clone)]
 pub struct Rename {
@@ -30,7 +30,10 @@ impl FromMeta for Rename {
             serialize: Option<String>,
 
             #[darling(default)]
-            #[expect(dead_code, reason = "accepts `rename(deserialize = ..)`; only the serialized name is used")]
+            #[expect(
+                dead_code,
+                reason = "accepts `rename(deserialize = ..)`; only the serialized name is used"
+            )]
             deserialize: Option<util::Ignored>,
         }
 

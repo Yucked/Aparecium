@@ -14,12 +14,12 @@ use std::{
 
 use chrono::{DateTime, Utc};
 use nom::{
+    IResult,
     branch::alt,
-    bytes::complete::{tag, take_while1, take_while_m_n},
+    bytes::complete::{tag, take_while_m_n, take_while1},
     combinator::{all_consuming, cut, map_res},
     error::context,
     sequence::tuple,
-    IResult,
 };
 
 use crate::migrations::*;

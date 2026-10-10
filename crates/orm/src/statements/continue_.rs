@@ -44,4 +44,3 @@ impl fmt::Display for ContinueStatement {
         write!(f, "{}", self.build())
     }
 }
-

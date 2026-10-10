@@ -6,8 +6,8 @@
 
 use std::fmt::Display;
 
-use serde::{Deserialize, Serialize};
 use aparecium::Object;
+use serde::{Deserialize, Serialize};
 
 // Configuration
 #[derive(Object, Serialize, Deserialize, Debug, Clone, Default)]
