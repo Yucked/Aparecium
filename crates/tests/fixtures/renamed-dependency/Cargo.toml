@@ -1,0 +1,12 @@
+# Standalone consumer that names `aparecium` only as `apa`; checked by `tests/macros_compile.rs`.
+[package]
+name = "renamed-dependency-fixture"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# Not a member of the Aparecium workspace.
+[workspace]
+
+[dependencies]
+apa = { package = "aparecium", path = "../../../orm", default-features = false }
