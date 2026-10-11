@@ -1,10 +1,5 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
-use crate::{Buildable, Erroneous, Function, Parametric, ValueLike};
+use crate::{Function, ValueLike};
 // Count functions
 // These functions can be used when counting field values and expressions.
 
@@ -22,11 +17,12 @@ use crate::{Buildable, Erroneous, Function, Parametric, ValueLike};
 /// The following examples show this function, and its output, when used in a select statement:
 pub fn count_fn(countable: impl Into<ValueLike>) -> Function {
     let countable: ValueLike = countable.into();
-
-    Function {
-        query_string: format!("count({})", countable.build()),
-        bindings: countable.get_bindings(),
-        errors: countable.get_errors(),
+    let function = Function::new("count");
+    // `count()` takes no argument when counting rows.
+    if countable.is_empty() {
+        function
+    } else {
+        function.arg(countable)
     }
 }
 

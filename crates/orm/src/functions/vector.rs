@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 // Vector functions
 // A collection of essential vector operations that provide foundational functionality for numerical computation, machine learning, and data analysis. These operations include distance measurements, similarity coefficients, and other basic and complex operations related to vectors. Through understanding and implementing these functions, we can perform a wide variety of tasks ranging from data processing to advanced statistical analyses.
@@ -29,19 +24,13 @@
 // vector::add
 // The vector::add function performs element-wise addition of two vectors, where each element in the first vector is added to the corresponding element in the second vector.
 
-use crate::{ArrayLike, Buildable, Erroneous, Function, NumberLike, Parametric};
+use crate::{ArrayLike, Function, NumberLike};
 
-fn create_single_vector_arg_helper(vector: impl Into<ArrayLike>, func_name: &str) -> Function {
-    let vector: ArrayLike = vector.into();
-    let mut bindings = vec![];
-    let mut errors = vec![];
-    bindings.extend(vector.get_bindings());
-    errors.extend(vector.get_errors());
-    Function {
-        query_string: format!("vector::{func_name}({})", vector.build()),
-        bindings,
-        errors,
-    }
+fn create_single_vector_arg_helper(
+    vector: impl Into<ArrayLike>,
+    function_name: &'static str,
+) -> Function {
+    Function::new(function_name).arg(vector.into())
 }
 
 macro_rules! create_fn_with_single_vector_arg {
@@ -49,7 +38,7 @@ macro_rules! create_fn_with_single_vector_arg {
         paste::paste! {
             $(#[$attr])*
             pub fn [<$function_name _fn>](vector: impl Into<$crate::ArrayLike>) -> $crate::Function {
-                create_single_vector_arg_helper(vector, $function_path)
+                create_single_vector_arg_helper(vector, concat!("vector::", $function_path))
             }
 
             $(#[$attr])*
@@ -68,25 +57,11 @@ macro_rules! create_fn_with_single_vector_arg {
 fn create_two_vectors_args_helper(
     vector1: impl Into<ArrayLike>,
     vector2: impl Into<ArrayLike>,
-    func_name: &str,
+    function_name: &'static str,
 ) -> Function {
-    let vector1: ArrayLike = vector1.into();
-    let vector2: ArrayLike = vector2.into();
-    let mut bindings = vec![];
-    let mut errors = vec![];
-    bindings.extend(vector1.get_bindings());
-    bindings.extend(vector2.get_bindings());
-    errors.extend(vector1.get_errors());
-    errors.extend(vector2.get_errors());
-    Function {
-        query_string: format!(
-            "vector::{func_name}({}, {})",
-            vector1.build(),
-            vector2.build()
-        ),
-        bindings,
-        errors,
-    }
+    Function::new(function_name)
+        .arg(vector1.into())
+        .arg(vector2.into())
 }
 
 macro_rules! create_fn_with_two_vectors_args {
@@ -94,7 +69,7 @@ macro_rules! create_fn_with_two_vectors_args {
         paste::paste! {
             $(#[$attr])*
             pub fn [<$function_name _fn>](vector1: impl Into<$crate::ArrayLike>, vector2: impl Into<$crate::ArrayLike>) -> $crate::Function {
-                create_two_vectors_args_helper(vector1, vector2, $function_path)
+                create_two_vectors_args_helper(vector1, vector2, concat!("vector::", $function_path))
             }
 
             $(#[$attr])*
@@ -125,10 +100,10 @@ create_fn_with_single_vector_arg!(
     ///
     /// let name = Field::new("name");
     /// let result = vector::magnitude!(name);
-    /// assert_eq!(result.to_raw().build(), "vector::magnitude(name)");
+    /// assert_eq!(result.to_debug_sql(), "vector::magnitude(name)");
     ///
     /// let result = vector::magnitude!([1, 2, 3]);
-    /// assert_eq!(result.to_raw().build(), "vector::magnitude([1, 2, 3])");
+    /// assert_eq!(result.to_debug_sql(), "vector::magnitude([1, 2, 3])");
     /// ```
     =>
     "magnitude",
@@ -149,10 +124,10 @@ create_fn_with_single_vector_arg!(
     ///
     /// let name = Field::new("name");
     /// let result = vector::normalize!(name);
-    /// assert_eq!(result.to_raw().build(), "vector::normalize(name)");
+    /// assert_eq!(result.to_debug_sql(), "vector::normalize(name)");
     ///
     /// let result = vector::normalize!([1, 2, 3]);
-    /// assert_eq!(result.to_raw().build(), "vector::normalize([1, 2, 3])");
+    /// assert_eq!(result.to_debug_sql(), "vector::normalize([1, 2, 3])");
     /// ```
     =>
     "normalize",
@@ -173,10 +148,10 @@ create_fn_with_single_vector_arg!(
     ///
     /// let name = Field::new("name");
     /// let result = vector::project!(name);
-    /// assert_eq!(result.to_raw().build(), "vector::project(name)");
+    /// assert_eq!(result.to_debug_sql(), "vector::project(name)");
     ///
     /// let result = vector::project!([1, 2, 3]);
-    /// assert_eq!(result.to_raw().build(), "vector::project([1, 2, 3])");
+    /// assert_eq!(result.to_debug_sql(), "vector::project([1, 2, 3])");
     /// ```
     =>
     "project",
@@ -200,10 +175,10 @@ create_fn_with_two_vectors_args!(
     /// let arr1 = Field::new("arr1");
     /// let arr2 = Field::new("arr2");
     /// let result = vector::cross!(arr1, arr2);
-    /// assert_eq!(result.to_raw().build(), "vector::cross(arr1, arr2)");
+    /// assert_eq!(result.to_debug_sql(), "vector::cross(arr1, arr2)");
     ///
     /// let result = vector::cross!([1, 2, 3], [1, 2, 3]);
-    /// assert_eq!(result.to_raw().build(), "vector::cross([1, 2, 3], [1, 2, 3])");
+    /// assert_eq!(result.to_debug_sql(), "vector::cross([1, 2, 3], [1, 2, 3])");
     /// ```
     =>
     "cross",
@@ -228,10 +203,10 @@ create_fn_with_two_vectors_args!(
     /// let arr1 = Field::new("arr1");
     /// let arr2 = Field::new("arr2");
     /// let result = vector::dot!(arr1, arr2);
-    /// assert_eq!(result.to_raw().build(), "vector::dot(arr1, arr2)");
+    /// assert_eq!(result.to_debug_sql(), "vector::dot(arr1, arr2)");
     ///
     /// let result = vector::dot!([1, 2, 3], [1, 2, 3]);
-    /// assert_eq!(result.to_raw().build(), "vector::dot([1, 2, 3], [1, 2, 3])");
+    /// assert_eq!(result.to_debug_sql(), "vector::dot([1, 2, 3], [1, 2, 3])");
     /// ```
     =>
     "dot",
@@ -256,10 +231,10 @@ create_fn_with_two_vectors_args!(
     /// let arr1 = Field::new("arr1");
     /// let arr2 = Field::new("arr2");
     /// let result = vector::add!(arr1, arr2);
-    /// assert_eq!(result.to_raw().build(), "vector::add(arr1, arr2)");
+    /// assert_eq!(result.to_debug_sql(), "vector::add(arr1, arr2)");
     ///
     /// let result = vector::add!([1, 2, 3], [1, 2, 3]);
-    /// assert_eq!(result.to_raw().build(), "vector::add([1, 2, 3], [1, 2, 3])");
+    /// assert_eq!(result.to_debug_sql(), "vector::add([1, 2, 3], [1, 2, 3])");
     /// ```
     =>
     "add",
@@ -284,10 +259,10 @@ create_fn_with_two_vectors_args!(
     /// let arr1 = Field::new("arr1");
     /// let arr2 = Field::new("arr2");
     /// let result = vector::subtract!(arr1, arr2);
-    /// assert_eq!(result.to_raw().build(), "vector::subtract(arr1, arr2)");
+    /// assert_eq!(result.to_debug_sql(), "vector::subtract(arr1, arr2)");
     ///
     /// let result = vector::subtract!([1, 2, 3], [1, 2, 3]);
-    /// assert_eq!(result.to_raw().build(), "vector::subtract([1, 2, 3], [1, 2, 3])");
+    /// assert_eq!(result.to_debug_sql(), "vector::subtract([1, 2, 3], [1, 2, 3])");
     /// ```
     =>
     "subtract",
@@ -312,10 +287,10 @@ create_fn_with_two_vectors_args!(
     /// let arr1 = Field::new("arr1");
     /// let arr2 = Field::new("arr2");
     /// let result = vector::multiply!(arr1, arr2);
-    /// assert_eq!(result.to_raw().build(), "vector::multiply(arr1, arr2)");
+    /// assert_eq!(result.to_debug_sql(), "vector::multiply(arr1, arr2)");
     ///
     /// let result = vector::multiply!([1, 2, 3], [1, 2, 3]);
-    /// assert_eq!(result.to_raw().build(), "vector::multiply([1, 2, 3], [1, 2, 3])");
+    /// assert_eq!(result.to_debug_sql(), "vector::multiply([1, 2, 3], [1, 2, 3])");
     /// ```
     =>
     "multiply",
@@ -340,10 +315,10 @@ create_fn_with_two_vectors_args!(
     /// let arr1 = Field::new("arr1");
     /// let arr2 = Field::new("arr2");
     /// let result = vector::divide!(arr1, arr2);
-    /// assert_eq!(result.to_raw().build(), "vector::divide(arr1, arr2)");
+    /// assert_eq!(result.to_debug_sql(), "vector::divide(arr1, arr2)");
     ///
     /// let result = vector::divide!([1, 2, 3], [1, 2, 3]);
-    /// assert_eq!(result.to_raw().build(), "vector::divide([1, 2, 3], [1, 2, 3])");
+    /// assert_eq!(result.to_debug_sql(), "vector::divide([1, 2, 3], [1, 2, 3])");
     /// ```
     =>
     "divide",
@@ -368,10 +343,10 @@ create_fn_with_two_vectors_args!(
     /// let arr1 = Field::new("arr1");
     /// let arr2 = Field::new("arr2");
     /// let result = vector::angle!(arr1, arr2);
-    /// assert_eq!(result.to_raw().build(), "vector::angle(arr1, arr2)");
+    /// assert_eq!(result.to_debug_sql(), "vector::angle(arr1, arr2)");
     ///
     /// let result = vector::angle!([1, 2, 3], [1, 2, 3]);
-    /// assert_eq!(result.to_raw().build(), "vector::angle([1, 2, 3], [1, 2, 3])");
+    /// assert_eq!(result.to_debug_sql(), "vector::angle([1, 2, 3], [1, 2, 3])");
     /// ```
     =>
     "angle",
@@ -400,10 +375,10 @@ create_fn_with_two_vectors_args!(
     /// let arr1 = Field::new("arr1");
     /// let arr2 = Field::new("arr2");
     /// let result = vector::distance::chebyshev!(arr1, arr2);
-    /// assert_eq!(result.to_raw().build(), "vector::distance::chebyshev(arr1, arr2)");
+    /// assert_eq!(result.to_debug_sql(), "vector::distance::chebyshev(arr1, arr2)");
     ///
     /// let result = vector::distance::chebyshev!([1, 2, 3], [1, 2, 3]);
-    /// assert_eq!(result.to_raw().build(), "vector::distance::chebyshev([1, 2, 3], [1, 2, 3])");
+    /// assert_eq!(result.to_debug_sql(), "vector::distance::chebyshev([1, 2, 3], [1, 2, 3])");
     /// ```
     =>
     "distance_chebyshev",
@@ -431,10 +406,10 @@ create_fn_with_two_vectors_args!(
     /// let arr1 = Field::new("arr1");
     /// let arr2 = Field::new("arr2");
     /// let result = vector::distance::euclidean!(arr1, arr2);
-    /// assert_eq!(result.to_raw().build(), "vector::distance::euclidean(arr1, arr2)");
+    /// assert_eq!(result.to_debug_sql(), "vector::distance::euclidean(arr1, arr2)");
     ///
     /// let result = vector::distance::euclidean!([1, 2, 3], [1, 2, 3]);
-    /// assert_eq!(result.to_raw().build(), "vector::distance::euclidean([1, 2, 3], [1, 2, 3])");
+    /// assert_eq!(result.to_debug_sql(), "vector::distance::euclidean([1, 2, 3], [1, 2, 3])");
     /// ```
     =>
     "distance_euclidean",
@@ -462,10 +437,10 @@ create_fn_with_two_vectors_args!(
     /// let arr1 = Field::new("arr1");
     /// let arr2 = Field::new("arr2");
     /// let result = vector::distance::hamming!(arr1, arr2);
-    /// assert_eq!(result.to_raw().build(), "vector::distance::hamming(arr1, arr2)");
+    /// assert_eq!(result.to_debug_sql(), "vector::distance::hamming(arr1, arr2)");
     ///
     /// let result = vector::distance::hamming!([1, 2, 3], [1, 2, 3]);
-    /// assert_eq!(result.to_raw().build(), "vector::distance::hamming([1, 2, 3], [1, 2, 3])");
+    /// assert_eq!(result.to_debug_sql(), "vector::distance::hamming([1, 2, 3], [1, 2, 3])");
     /// ```
     =>
     "distance_hamming",
@@ -493,10 +468,10 @@ create_fn_with_two_vectors_args!(
     /// let arr1 = Field::new("arr1");
     /// let arr2 = Field::new("arr2");
     /// let result = vector::distance::manhattan!(arr1, arr2);
-    /// assert_eq!(result.to_raw().build(), "vector::distance::manhattan(arr1, arr2)");
+    /// assert_eq!(result.to_debug_sql(), "vector::distance::manhattan(arr1, arr2)");
     ///
     /// let result = vector::distance::manhattan!([1, 2, 3], [1, 2, 3]);
-    /// assert_eq!(result.to_raw().build(), "vector::distance::manhattan([1, 2, 3], [1, 2, 3])");
+    /// assert_eq!(result.to_debug_sql(), "vector::distance::manhattan([1, 2, 3], [1, 2, 3])");
     /// ```
     =>
     "distance_manhattan",
@@ -535,10 +510,10 @@ create_fn_with_two_vectors_args!(
     /// let arr1 = Field::new("arr1");
     /// let arr2 = Field::new("arr2");
     /// let result = vector::similarity::cosine!(arr1, arr2);
-    /// assert_eq!(result.to_raw().build(), "vector::similarity::cosine(arr1, arr2)");
+    /// assert_eq!(result.to_debug_sql(), "vector::similarity::cosine(arr1, arr2)");
     ///
     /// let result = vector::similarity::cosine!([1, 2, 3], [1, 2, 3]);
-    /// assert_eq!(result.to_raw().build(), "vector::similarity::cosine([1, 2, 3], [1, 2, 3])");
+    /// assert_eq!(result.to_debug_sql(), "vector::similarity::cosine([1, 2, 3], [1, 2, 3])");
     /// ```
     =>
     "similarity_cosine",
@@ -568,10 +543,10 @@ create_fn_with_two_vectors_args!(
     /// let arr1 = Field::new("arr1");
     /// let arr2 = Field::new("arr2");
     /// let result = vector::similarity::jaccard!(arr1, arr2);
-    /// assert_eq!(result.to_raw().build(), "vector::similarity::jaccard(arr1, arr2)");
+    /// assert_eq!(result.to_debug_sql(), "vector::similarity::jaccard(arr1, arr2)");
     ///
     /// let result = vector::similarity::jaccard!(vec![1, 2, 3], vec![1, 2, 3]);
-    /// assert_eq!(result.to_raw().build(), "vector::similarity::jaccard([1, 2, 3], [1, 2, 3])");
+    /// assert_eq!(result.to_debug_sql(), "vector::similarity::jaccard([1, 2, 3], [1, 2, 3])");
     /// ```
     =>
     "similarity_jaccard",
@@ -590,27 +565,10 @@ pub fn distance_minkowski_fn(
     vector2: impl Into<ArrayLike>,
     p: impl Into<NumberLike>,
 ) -> Function {
-    let vector1: ArrayLike = vector1.into();
-    let vector2: ArrayLike = vector2.into();
-    let p: NumberLike = p.into();
-    let mut bindings = vec![];
-    let mut errors = vec![];
-    bindings.extend(vector1.get_bindings());
-    bindings.extend(vector2.get_bindings());
-    bindings.extend(p.get_bindings());
-    errors.extend(vector1.get_errors());
-    errors.extend(vector2.get_errors());
-    errors.extend(p.get_errors());
-    Function {
-        query_string: format!(
-            "vector::distance::minkowski({}, {}, {})",
-            vector1.build(),
-            vector2.build(),
-            p.build()
-        ),
-        bindings,
-        errors,
-    }
+    Function::new("vector::distance::minkowski")
+        .arg(vector1.into())
+        .arg(vector2.into())
+        .arg(p.into())
 }
 
 /// The vector::distance::minkowski function computes the Minkowski distance between two vectors, a generalization of other distance metrics such as Euclidean and Manhattan when parameterized with different values of p.
@@ -620,7 +578,7 @@ pub fn distance_minkowski_fn(
 /// let arr1 = Field::new("arr1");
 /// let arr2 = Field::new("arr2");
 /// let result = vector::distance::minkowski!(arr1, arr2, 1);
-/// assert_eq!(result.to_raw().build(), "vector::distance::minkowski(arr1, arr2, 1)");
+/// assert_eq!(result.to_debug_sql(), "vector::distance::minkowski(arr1, arr2, 1)");
 /// ```
 #[macro_export]
 macro_rules! vector_distance_minkowski {

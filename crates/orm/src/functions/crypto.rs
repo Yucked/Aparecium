@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 // Crypto functions
 // These functions can be used when hashing data, encrypting data, and for securely authenticating users into the database.
@@ -21,44 +16,23 @@
 // crypto::scrypt::compare()	Compares an scrypt hash to a password
 // crypto::scrypt::generate()	Generates a new scrypt hashed password
 
-use crate::{Buildable, Erroneous, Function, Parametric, StrandLike};
+use crate::{Function, StrandLike};
 
 pub(crate) fn create_fn_with_single_value(
     value: impl Into<StrandLike>,
-    function_suffix: &str,
+    function_name: &'static str,
 ) -> Function {
-    let value: StrandLike = value.into();
-
-    Function {
-        query_string: format!("crypto::{function_suffix}({})", value.build()),
-        bindings: value.get_bindings(),
-        errors: value.get_errors(),
-    }
+    Function::new(function_name).arg(value.into())
 }
 
 pub(crate) fn create_fn_with_two_values(
     value1: impl Into<StrandLike>,
     value2: impl Into<StrandLike>,
-    function_suffix: &str,
+    function_name: &'static str,
 ) -> Function {
-    let value1: StrandLike = value1.into();
-    let value2: StrandLike = value2.into();
-    let mut bindings = vec![];
-    let mut errors = vec![];
-    bindings.extend(value1.get_bindings());
-    bindings.extend(value2.get_bindings());
-    errors.extend(value1.get_errors());
-    errors.extend(value2.get_errors());
-
-    Function {
-        query_string: format!(
-            "crypto::{function_suffix}({}, {})",
-            value1.build(),
-            value2.build()
-        ),
-        bindings,
-        errors,
-    }
+    Function::new(function_name)
+        .arg(value1.into())
+        .arg(value2.into())
 }
 
 macro_rules! create_fn_with_single_arg_value {
@@ -66,7 +40,7 @@ macro_rules! create_fn_with_single_arg_value {
         paste::paste! {
             $(#[$attr])*
             pub fn [<$function_name _fn>](value: impl Into<$crate::StrandLike>) -> $crate::Function {
-                create_fn_with_single_value(value, $function_name)
+                create_fn_with_single_value(value, concat!("crypto::", $function_name))
             }
 
             $(#[$attr])*
@@ -93,8 +67,8 @@ create_fn_with_single_arg_value!(
     /// use aparecium::{*, functions::crypto};
     ///
     /// let result = crypto::md5!("Oyelowo");
-    /// assert_eq!(result.fine_tune_params(), "crypto::md5($_param_00000001)");
-    /// assert_eq!(result.to_raw().build(), "crypto::md5('Oyelowo')");
+    /// assert_eq!(result.to_query().unwrap().sql(), "crypto::md5($_p0)");
+    /// assert_eq!(result.to_debug_sql(), "crypto::md5('Oyelowo')");
     /// ```
     => "md5"
 );
@@ -110,8 +84,8 @@ create_fn_with_single_arg_value!(
     /// use aparecium::{*, functions::crypto};
     ///
     /// let result = crypto::sha1!("Oyelowo");
-    /// assert_eq!(result.fine_tune_params(), "crypto::sha1($_param_00000001)");
-    /// assert_eq!(result.to_raw().build(), "crypto::sha1('Oyelowo')");
+    /// assert_eq!(result.to_query().unwrap().sql(), "crypto::sha1($_p0)");
+    /// assert_eq!(result.to_debug_sql(), "crypto::sha1('Oyelowo')");
     /// ```
     => "sha1"
 );
@@ -127,8 +101,8 @@ create_fn_with_single_arg_value!(
     /// use aparecium::{*, functions::crypto};
     ///
     /// let result = crypto::sha256!("Oyelowo");
-    /// assert_eq!(result.fine_tune_params(), "crypto::sha256($_param_00000001)");
-    /// assert_eq!(result.to_raw().build(), "crypto::sha256('Oyelowo')");
+    /// assert_eq!(result.to_query().unwrap().sql(), "crypto::sha256($_p0)");
+    /// assert_eq!(result.to_debug_sql(), "crypto::sha256('Oyelowo')");
     /// ```
     => "sha256"
 );
@@ -144,8 +118,8 @@ create_fn_with_single_arg_value!(
     /// use aparecium::{*, functions::crypto};
     ///
     /// let result = crypto::sha512!("Oyelowo");
-    /// assert_eq!(result.fine_tune_params(), "crypto::sha512($_param_00000001)");
-    /// assert_eq!(result.to_raw().build(), "crypto::sha512('Oyelowo')");
+    /// assert_eq!(result.to_query().unwrap().sql(), "crypto::sha512($_p0)");
+    /// assert_eq!(result.to_debug_sql(), "crypto::sha512('Oyelowo')");
     /// ```
     => "sha512"
 );
@@ -157,7 +131,7 @@ pub mod argon2 {
 
     /// The crypto::argon2::compare function compares a hashed-and-salted argon2 password value with an unhashed password value.
     pub fn compare_fn(hash: impl Into<StrandLike>, pass: impl Into<StrandLike>) -> Function {
-        create_fn_with_two_values(hash, pass, "argon2::compare")
+        create_fn_with_two_values(hash, pass, "crypto::argon2::compare")
     }
 
     /// The crypto::argon2::compare function compares a hashed-and-salted argon2 password value with an unhashed password value.
@@ -174,19 +148,19 @@ pub mod argon2 {
     /// let pass = let_("pass").equal_to("this is a strong password");
     ///
     /// let result = crypto::argon2::compare!(hash.get_param(), pass.get_param());
-    /// assert_eq!(result.fine_tune_params(), "crypto::argon2::compare($hash, $pass)");
-    /// assert_eq!(result.to_raw().build(), "crypto::argon2::compare($hash, $pass)");
+    /// assert_eq!(result.to_query().unwrap().sql(), "crypto::argon2::compare($hash, $pass)");
+    /// assert_eq!(result.to_debug_sql(), "crypto::argon2::compare($hash, $pass)");
     ///
     /// let hash_field = Field::new("hash_field");
     /// let result = crypto::argon2::compare!(hash_field, "Oyelowo");
-    /// assert_eq!(result.fine_tune_params(), "crypto::argon2::compare(hash_field, $_param_00000001)");
-    /// assert_eq!(result.to_raw().build(), "crypto::argon2::compare(hash_field, 'Oyelowo')");
+    /// assert_eq!(result.to_query().unwrap().sql(), "crypto::argon2::compare(hash_field, $_p0)");
+    /// assert_eq!(result.to_debug_sql(), "crypto::argon2::compare(hash_field, 'Oyelowo')");
     ///
     /// let hash_field = Field::new("hash_field");
     /// let pass = let_("pass").equal_to("Oyelowo");
     /// let result = crypto::argon2::compare!(hash_field, pass.get_param());
-    /// assert_eq!(result.fine_tune_params(), "crypto::argon2::compare(hash_field, $pass)");
-    /// assert_eq!(result.to_raw().build(), "crypto::argon2::compare(hash_field, $pass)");
+    /// assert_eq!(result.to_query().unwrap().sql(), "crypto::argon2::compare(hash_field, $pass)");
+    /// assert_eq!(result.to_debug_sql(), "crypto::argon2::compare(hash_field, $pass)");
     /// ```
     #[macro_export]
     macro_rules! crypto_argon2_compare {
@@ -199,7 +173,7 @@ pub mod argon2 {
     /// The crypto::argon2::generate function hashes and salts a password using the argon2 hashing
     /// algorithm.
     pub fn generate_fn(value: impl Into<StrandLike>) -> Function {
-        create_fn_with_single_value(value, "argon2::generate")
+        create_fn_with_single_value(value, "crypto::argon2::generate")
     }
 
     /// The crypto::argon2::generate function hashes and salts a password using the argon2 hashing
@@ -214,8 +188,8 @@ pub mod argon2 {
     ///
     /// let pass = let_("pass").equal_to("this is a strong password");
     /// let result = crypto::argon2::generate!(pass.get_param());
-    /// assert_eq!(result.fine_tune_params(), "crypto::argon2::generate($pass)");
-    /// assert_eq!(result.to_raw().build(), "crypto::argon2::generate($pass)");
+    /// assert_eq!(result.to_query().unwrap().sql(), "crypto::argon2::generate($pass)");
+    /// assert_eq!(result.to_debug_sql(), "crypto::argon2::generate($pass)");
     #[macro_export]
     macro_rules! crypto_argon2_generate {
         ( $value1:expr) => {
@@ -232,7 +206,7 @@ pub mod bcrypt {
 
     /// The crypto::bcrypt::compare function compares a hashed-and-salted bcrypt password value with an unhashed password value.
     pub fn compare_fn(hash: impl Into<StrandLike>, pass: impl Into<StrandLike>) -> Function {
-        create_fn_with_two_values(hash, pass, "bcrypt::compare")
+        create_fn_with_two_values(hash, pass, "crypto::bcrypt::compare")
     }
 
     /// The crypto::bcrypt::compare function compares a hashed-and-salted bcrypt password value with an unhashed password value.
@@ -248,13 +222,13 @@ pub mod bcrypt {
     /// let hash = let_("hash").equal_to("bcrypt_hash");
     /// let pass = let_("pass").equal_to("this is a strong password");
     /// let result = crypto::bcrypt::compare!(hash.get_param(), pass.get_param());
-    /// assert_eq!(result.fine_tune_params(), "crypto::bcrypt::compare($hash, $pass)");
-    /// assert_eq!(result.to_raw().build(), "crypto::bcrypt::compare($hash, $pass)");
+    /// assert_eq!(result.to_query().unwrap().sql(), "crypto::bcrypt::compare($hash, $pass)");
+    /// assert_eq!(result.to_debug_sql(), "crypto::bcrypt::compare($hash, $pass)");
     ///
     /// let hash_field = Field::new("hash_field");
     /// let result = crypto::bcrypt::compare!(hash_field, "Oyelowo");
-    /// assert_eq!(result.fine_tune_params(), "crypto::bcrypt::compare(hash_field, $_param_00000001)");
-    /// assert_eq!(result.to_raw().build(), "crypto::bcrypt::compare(hash_field, 'Oyelowo')");
+    /// assert_eq!(result.to_query().unwrap().sql(), "crypto::bcrypt::compare(hash_field, $_p0)");
+    /// assert_eq!(result.to_debug_sql(), "crypto::bcrypt::compare(hash_field, 'Oyelowo')");
     /// ```
     #[macro_export]
     macro_rules! crypto_bcrypt_compare {
@@ -266,7 +240,7 @@ pub mod bcrypt {
 
     /// The crypto::bcrypt::generate function hashes and salts a password using the bcrypt hashing algorithm.
     pub fn generate_fn(value: impl Into<StrandLike>) -> Function {
-        create_fn_with_single_value(value, "bcrypt::generate")
+        create_fn_with_single_value(value, "crypto::bcrypt::generate")
     }
 
     /// The crypto::bcrypt::generate function hashes and salts a password using the bcrypt hashing algorithm.
@@ -280,8 +254,8 @@ pub mod bcrypt {
     ///
     /// let pass = let_("pass").equal_to("this is a strong password");
     /// let result = crypto::bcrypt::generate!(pass.get_param());
-    /// assert_eq!(result.fine_tune_params(), "crypto::bcrypt::generate($pass)");
-    /// assert_eq!(result.to_raw().build(), "crypto::bcrypt::generate($pass)");
+    /// assert_eq!(result.to_query().unwrap().sql(), "crypto::bcrypt::generate($pass)");
+    /// assert_eq!(result.to_debug_sql(), "crypto::bcrypt::generate($pass)");
     /// ```
     #[macro_export]
     macro_rules! crypto_bcrypt_generate {
@@ -300,7 +274,7 @@ pub mod pbkdf2 {
     /// The crypto::pbkdf2::compare function compares a hashed-and-salted pbkdf2 password value
     /// with an unhashed password value.
     pub fn compare_fn(hash: impl Into<StrandLike>, pass: impl Into<StrandLike>) -> Function {
-        create_fn_with_two_values(hash, pass, "pbkdf2::compare")
+        create_fn_with_two_values(hash, pass, "crypto::pbkdf2::compare")
     }
 
     /// The crypto::pbkdf2::compare function compares a hashed-and-salted pbkdf2 password value
@@ -316,19 +290,19 @@ pub mod pbkdf2 {
     /// let pass = let_("pass").equal_to("this is a strong password");
     ///
     /// let result = crypto::pbkdf2::compare!(hash.get_param(), pass.get_param());
-    /// assert_eq!(result.fine_tune_params(), "crypto::pbkdf2::compare($hash, $pass)");
-    /// assert_eq!(result.to_raw().build(), "crypto::pbkdf2::compare($hash, $pass)");
+    /// assert_eq!(result.to_query().unwrap().sql(), "crypto::pbkdf2::compare($hash, $pass)");
+    /// assert_eq!(result.to_debug_sql(), "crypto::pbkdf2::compare($hash, $pass)");
     ///
     /// let hash_field = Field::new("hash_field");
     /// let result = crypto::pbkdf2::compare!(hash_field, "Oyelowo");
-    /// assert_eq!(result.fine_tune_params(), "crypto::pbkdf2::compare(hash_field, $_param_00000001)");
-    /// assert_eq!(result.to_raw().build(), "crypto::pbkdf2::compare(hash_field, 'Oyelowo')");
+    /// assert_eq!(result.to_query().unwrap().sql(), "crypto::pbkdf2::compare(hash_field, $_p0)");
+    /// assert_eq!(result.to_debug_sql(), "crypto::pbkdf2::compare(hash_field, 'Oyelowo')");
     ///
     /// let hash_field = Field::new("hash_field");
     /// let pass = let_("pass").equal_to("Oyelowo");
     /// let result = crypto::pbkdf2::compare!(hash_field, pass.get_param());
-    /// assert_eq!(result.fine_tune_params(), "crypto::pbkdf2::compare(hash_field, $pass)");
-    /// assert_eq!(result.to_raw().build(), "crypto::pbkdf2::compare(hash_field, $pass)");
+    /// assert_eq!(result.to_query().unwrap().sql(), "crypto::pbkdf2::compare(hash_field, $pass)");
+    /// assert_eq!(result.to_debug_sql(), "crypto::pbkdf2::compare(hash_field, $pass)");
     /// ```
     #[macro_export]
     macro_rules! crypto_pbkdf2_compare {
@@ -340,7 +314,7 @@ pub mod pbkdf2 {
 
     /// The crypto::pbkdf2::generate function hashes and salts a password using the pbkdf2 hashing algorithm.
     pub fn generate_fn(value: impl Into<StrandLike>) -> Function {
-        create_fn_with_single_value(value, "pbkdf2::generate")
+        create_fn_with_single_value(value, "crypto::pbkdf2::generate")
     }
 
     /// The crypto::pbkdf2::generate function hashes and salts a password using the pbkdf2 hashing algorithm. Also aliased as `crypto_pbkdf2_generate!`.
@@ -355,8 +329,8 @@ pub mod pbkdf2 {
     ///
     /// let pass = let_("pass").equal_to("this is a strong password");
     /// let result = crypto::pbkdf2::generate!(pass.get_param());
-    /// assert_eq!(result.fine_tune_params(), "crypto::pbkdf2::generate($pass)");
-    /// assert_eq!(result.to_raw().build(), "crypto::pbkdf2::generate($pass)");
+    /// assert_eq!(result.to_query().unwrap().sql(), "crypto::pbkdf2::generate($pass)");
+    /// assert_eq!(result.to_debug_sql(), "crypto::pbkdf2::generate($pass)");
     /// ```
     #[macro_export]
     macro_rules! crypto_pbkdf2_generate {
@@ -375,7 +349,7 @@ pub mod scrypt {
     /// The crypto::scrypt::compare function compares a hashed-and-salted scrypt password value
     /// with an unhashed password value.
     pub fn compare_fn(hash: impl Into<StrandLike>, pass: impl Into<StrandLike>) -> Function {
-        create_fn_with_two_values(hash, pass, "scrypt::compare")
+        create_fn_with_two_values(hash, pass, "crypto::scrypt::compare")
     }
 
     /// The crypto::scrypt::compare function compares a hashed-and-salted scrypt password value
@@ -394,8 +368,8 @@ pub mod scrypt {
     ///
     /// let hash_field = Field::new("hash_field");
     /// let result = crypto::scrypt::compare!(hash_field, "Oyelowo");
-    /// assert_eq!(result.fine_tune_params(), "crypto::scrypt::compare(hash_field, $_param_00000001)");
-    /// assert_eq!(result.to_raw().build(), "crypto::scrypt::compare(hash_field, 'Oyelowo')");
+    /// assert_eq!(result.to_query().unwrap().sql(), "crypto::scrypt::compare(hash_field, $_p0)");
+    /// assert_eq!(result.to_debug_sql(), "crypto::scrypt::compare(hash_field, 'Oyelowo')");
     /// ```
     #[macro_export]
     macro_rules! crypto_scrypt_compare {
@@ -407,7 +381,7 @@ pub mod scrypt {
 
     ///  The crypto::scrypt::generate function hashes and salts a password using the scrypt hashing algorithm.
     pub fn generate_fn(value: impl Into<StrandLike>) -> Function {
-        create_fn_with_single_value(value, "scrypt::generate")
+        create_fn_with_single_value(value, "crypto::scrypt::generate")
     }
 
     /// The crypto::scrypt::generate function hashes and salts a password using the scrypt hashing algorithm. Also aliased as `crypto_scrypt_generate!`.
@@ -423,8 +397,8 @@ pub mod scrypt {
     ///
     /// let pass = let_("pass").equal_to("this is a strong password");
     /// let result = crypto::scrypt::generate!(pass.get_param());
-    /// assert_eq!(result.fine_tune_params(), "crypto::scrypt::generate($pass)");
-    /// assert_eq!(result.to_raw().build(), "crypto::scrypt::generate($pass)");
+    /// assert_eq!(result.to_query().unwrap().sql(), "crypto::scrypt::generate($pass)");
+    /// assert_eq!(result.to_debug_sql(), "crypto::scrypt::generate($pass)");
     /// ```
     #[macro_export]
     macro_rules! crypto_scrypt_generate {

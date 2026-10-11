@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 // Math functions
 // These functions can be used when analysing numeric data and numeric collections.
@@ -21,28 +16,20 @@
 // math::sqrt()	Returns the square root of a number
 // math::sum()	Returns the total sum of a set of numbers
 
-use crate::{ArrayLike, Buildable, Erroneous, Function, NumberLike, Parametric};
+use crate::{ArrayLike, Function, NumberLike};
 
-fn create_fn_with_single_num_arg(number: impl Into<NumberLike>, function_name: &str) -> Function {
-    let number: NumberLike = number.into();
-    let query_string = format!("math::{function_name}({})", number.build());
-
-    Function {
-        query_string,
-        bindings: number.get_bindings(),
-        errors: number.get_errors(),
-    }
+fn create_fn_with_single_num_arg(
+    number: impl Into<NumberLike>,
+    function_name: &'static str,
+) -> Function {
+    Function::new(function_name).arg(number.into())
 }
 
-fn create_fn_with_single_array_arg(value: impl Into<ArrayLike>, function_name: &str) -> Function {
-    let value: ArrayLike = value.into();
-    let query_string = format!("math::{function_name}({})", value.build());
-
-    Function {
-        query_string,
-        bindings: value.get_bindings(),
-        errors: value.get_errors(),
-    }
+fn create_fn_with_single_array_arg(
+    value: impl Into<ArrayLike>,
+    function_name: &'static str,
+) -> Function {
+    Function::new(function_name).arg(value.into())
 }
 
 /// The math::fixed function returns a number with the specified number of decimal places.
@@ -53,20 +40,9 @@ fn create_fn_with_single_array_arg(value: impl Into<ArrayLike>, function_name: &
 /// SELECT * FROM math::fixed(13.146572, 2);
 /// 13.15
 pub fn fixed_fn(number: impl Into<NumberLike>, decimal_place: impl Into<NumberLike>) -> Function {
-    let number: NumberLike = number.into();
-    let dp: NumberLike = decimal_place.into();
-    let mut bindings = number.get_bindings();
-    let mut errors = number.get_errors();
-    bindings.extend(dp.get_bindings());
-    errors.extend(dp.get_errors());
-
-    let query_string = format!("math::fixed({}, {})", number.build(), dp.build());
-
-    Function {
-        query_string,
-        bindings,
-        errors,
-    }
+    Function::new("math::fixed")
+        .arg(number.into())
+        .arg(decimal_place.into())
 }
 
 /// The math::fixed function returns a number with the specified number of decimal places.
@@ -112,7 +88,7 @@ macro_rules! create_test_for_fn_with_single_arg {
             // during query execution
             $(#[$attr])*
             pub fn [<$function_name _fn>](number: impl Into<NumberLike>) -> Function {
-                create_fn_with_single_num_arg(number, $function_name)
+                create_fn_with_single_num_arg(number, concat!("math::", $function_name))
             }
 
             $(#[$attr])*
@@ -274,7 +250,7 @@ macro_rules! create_test_for_fn_with_single_array_arg {
         paste::paste! {
             $(#[$attr])*
             pub fn [<$function_name _fn>](number: impl Into<ArrayLike>) -> Function {
-                create_fn_with_single_array_arg(number, $function_name)
+                create_fn_with_single_array_arg(number, concat!("math::", $function_name))
             }
 
             $(#[$attr])*

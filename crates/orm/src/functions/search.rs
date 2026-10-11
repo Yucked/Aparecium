@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 // These functions are used in conjunction with the 'matches' operator to either collect the relevance score or highlight the searched keywords within the content.
 //
@@ -11,19 +6,13 @@
 // search::highlight()	Highlights the matching keywords
 // search::offsets()	Returns the position of the matching keywords
 
-use crate::{Buildable, Erroneous, Function, NumberLike, Parametric, StrandLike};
+use crate::{Function, NumberLike, StrandLike};
 
-fn create_single_search_arg_helper(search_arg: impl Into<StrandLike>, func_name: &str) -> Function {
-    let search_arg: StrandLike = search_arg.into();
-    let mut bindings = vec![];
-    let mut errors = vec![];
-    bindings.extend(search_arg.get_bindings());
-    errors.extend(search_arg.get_errors());
-    Function {
-        query_string: format!("search::{}({})", func_name, search_arg.build()),
-        bindings,
-        errors,
-    }
+fn create_single_search_arg_helper(
+    search_arg: impl Into<StrandLike>,
+    function_name: &'static str,
+) -> Function {
+    Function::new(function_name).arg(search_arg.into())
 }
 
 macro_rules! create_fn_with_single_search_arg {
@@ -31,7 +20,7 @@ macro_rules! create_fn_with_single_search_arg {
         paste::paste! {
             $(#[$attr])*
             pub fn [<$function_name _fn>](search_arg: impl ::std::convert::Into<$crate::StrandLike>) -> $crate::Function {
-                create_single_search_arg_helper(search_arg, $function_path)
+                create_single_search_arg_helper(search_arg, concat!("search::", $function_path))
             }
 
             $(#[$attr])*
@@ -59,7 +48,7 @@ create_fn_with_single_search_arg!(
     ///
     /// let title = Field::new("title");
     /// let result = search::score!(title);
-    /// assert_eq!(result.to_raw().build(), "search::score(title)");
+    /// assert_eq!(result.to_debug_sql(), "search::score(title)");
     /// ```
     =>
     "score",
@@ -78,7 +67,7 @@ create_fn_with_single_search_arg!(
     ///
     /// let title = Field::new("title");
     /// let result = search::offsets!(title);
-    /// assert_eq!(result.to_raw().build(), "search::offsets(title)");
+    /// assert_eq!(result.to_debug_sql(), "search::offsets(title)");
     /// ```
     =>
     "offsets",
@@ -91,28 +80,10 @@ pub fn highlight_fn(
     str2: impl Into<StrandLike>,
     predicate_ref_number: impl Into<NumberLike>,
 ) -> Function {
-    let str1: StrandLike = str1.into();
-    let str2: StrandLike = str2.into();
-    let predicate_ref_number: NumberLike = predicate_ref_number.into();
-    let mut bindings = vec![];
-    let mut errors = vec![];
-    bindings.extend(str1.get_bindings());
-    bindings.extend(str2.get_bindings());
-    bindings.extend(predicate_ref_number.get_bindings());
-    errors.extend(str1.get_errors());
-    errors.extend(str2.get_errors());
-    errors.extend(predicate_ref_number.get_errors());
-
-    Function {
-        query_string: format!(
-            "search::highlight({}, {}, {})",
-            str1.build(),
-            str2.build(),
-            predicate_ref_number.build()
-        ),
-        bindings,
-        errors,
-    }
+    Function::new("search::highlight")
+        .arg(str1.into())
+        .arg(str2.into())
+        .arg(predicate_ref_number.into())
 }
 
 /// The search::highlight function highlights the matching keywords for the predicate reference number.
@@ -128,7 +99,7 @@ pub fn highlight_fn(
 /// ```rust
 /// use aparecium::{*, functions::search};
 /// let result = search::highlight!("<b>", "</b>", 1);
-/// assert_eq!(result.to_raw().build(), "search::highlight('<b>', '</b>', 1)");
+/// assert_eq!(result.to_debug_sql(), "search::highlight('<b>', '</b>', 1)");
 /// ```
 #[macro_export]
 macro_rules! search_highlight {

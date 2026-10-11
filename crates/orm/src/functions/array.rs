@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 // array::add() Adds an item to an array if it doesn't exist
 // array::all() Checks whether all array values are truthy
@@ -49,9 +44,7 @@
 // array::transpose()	Performs 2d array transposition on two arrays
 // array::union()	Returns the unique merged values from two arrays
 
-use std::fmt::Display;
-
-use crate::{ArrayLike, Buildable, Erroneous, Function, NumberLike, Parametric, ValueLike};
+use crate::{ArrayLike, Function, NumberLike, ValueLike};
 
 /// The array::add function adds an item to an array only if it doesn't exist.
 /// array::add(array, value) -> array
@@ -60,20 +53,7 @@ use crate::{ArrayLike, Buildable, Erroneous, Function, NumberLike, Parametric, V
 /// SELECT * FROM array::add(["one", "two"], "three");
 /// ["one", "two", "three"]
 pub fn add_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -> Function {
-    let arr: ArrayLike = arr.into();
-    let value: ValueLike = value.into();
-    let mut bindings = vec![];
-    let mut errors = vec![];
-    bindings.extend(arr.get_bindings());
-    bindings.extend(value.get_bindings());
-    errors.extend(arr.get_errors());
-    errors.extend(value.get_errors());
-
-    Function {
-        query_string: format!("array::add({}, {})", arr.build(), value.build()),
-        bindings,
-        errors,
-    }
+    Function::new("array::add").arg(arr.into()).arg(value.into())
 }
 
 /// The array::add function adds an item to an array only if it doesn't exist.
@@ -85,14 +65,14 @@ pub fn add_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -> Functio
 /// use aparecium::{*, functions::array};
 /// array::add!(vec![1, 2, 3], 4);
 /// array::add!(&[1, 2, 3], 4);
-/// array::add!(arr![1, "oyelowo", 3], 4);
+/// array::add!(arr![1, "alice", 3], 4);
 ///
 /// let numbers = Field::new("numbers");
 /// let value = Param::new("value");
 /// let result = array::add!(numbers, value);
 ///
 /// assert_eq!(
-///    result.to_raw().build(),
+///    result.to_debug_sql(),
 ///    "array::add(numbers, $value)"
 /// );
 /// ```
@@ -112,17 +92,7 @@ pub use array_add as add;
 /// SELECT * FROM array::all([1, 2, 3, NONE, 'SurrealDB', 5]);
 /// false
 pub fn all_fn(arr: impl Into<ArrayLike>) -> Function {
-    let arr: ArrayLike = arr.into();
-    let mut bindings = vec![];
-    let mut errors = vec![];
-    bindings.extend(arr.get_bindings());
-    errors.extend(arr.get_errors());
-
-    Function {
-        query_string: format!("array::all({})", arr.build()),
-        bindings,
-        errors,
-    }
+    Function::new("array::all").arg(arr.into())
 }
 
 /// The array::all function checks whether all array values are truthy.
@@ -141,7 +111,7 @@ pub fn all_fn(arr: impl Into<ArrayLike>) -> Function {
 /// let result = array::all!(numbers_field);
 ///
 /// assert_eq!(
-///   result.to_raw().build(),
+///   result.to_debug_sql(),
 ///   "array::all(numbers)"
 ///   );
 ///   ```
@@ -161,17 +131,7 @@ pub use array_all as all;
 /// SELECT * FROM array::any([1, 2, 3, NONE, 'SurrealDB', 5]);
 /// true
 pub fn any_fn(arr: impl Into<ArrayLike>) -> Function {
-    let arr: ArrayLike = arr.into();
-    let mut bindings = vec![];
-    let mut errors = vec![];
-    bindings.extend(arr.get_bindings());
-    errors.extend(arr.get_errors());
-
-    Function {
-        query_string: format!("array::any({})", arr.build()),
-        bindings,
-        errors,
-    }
+    Function::new("array::any").arg(arr.into())
 }
 
 /// The array::any function checks whether any array values are truthy.
@@ -189,7 +149,7 @@ pub fn any_fn(arr: impl Into<ArrayLike>) -> Function {
 /// let numbers = Field::new("numbers");
 /// let result = array::any!(numbers);
 /// assert_eq!(
-///  result.to_raw().build(),
+///  result.to_debug_sql(),
 ///  "array::any(numbers)"
 ///  );
 ///  ```
@@ -209,19 +169,9 @@ pub use array_any as any;
 /// SELECT * FROM array::append([1,2,3,4], 5);
 /// [1,2,3,4,5]
 pub fn append_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -> Function {
-    let arr: ArrayLike = arr.into();
-    let value: ValueLike = value.into();
-    let mut bindings = vec![];
-    let mut errors = vec![];
-    bindings.extend(arr.get_bindings());
-    bindings.extend(value.get_bindings());
-    errors.extend(arr.get_errors());
-    errors.extend(value.get_errors());
-    Function {
-        query_string: format!("array::append({}, {})", arr.build(), value.build()),
-        bindings,
-        errors,
-    }
+    Function::new("array::append")
+        .arg(arr.into())
+        .arg(value.into())
 }
 
 /// The array::append function appends a value to the end of an array.
@@ -246,7 +196,7 @@ pub fn append_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -> Func
 /// # let value = Field::new("value");
 /// let result = array::append!(numbers, value);
 /// assert_eq!(
-///         result.to_raw().build(),
+///         result.to_debug_sql(),
 ///         "array::append(numbers, value)"
 ///     );
 /// ```
@@ -258,17 +208,11 @@ macro_rules! array_append {
 }
 pub use array_append as append;
 
-fn create_single_array_arg_helper(arr: impl Into<ArrayLike>, func_name: &str) -> Function {
-    let arr: ArrayLike = arr.into();
-    let mut bindings = vec![];
-    let mut errors = vec![];
-    bindings.extend(arr.get_bindings());
-    errors.extend(arr.get_errors());
-    Function {
-        query_string: format!("array::{func_name}({})", arr.build(), func_name = func_name),
-        bindings,
-        errors,
-    }
+fn create_single_array_arg_helper(
+    arr: impl Into<ArrayLike>,
+    function_name: &'static str,
+) -> Function {
+    Function::new(function_name).arg(arr.into())
 }
 
 macro_rules! create_fn_with_single_array_arg {
@@ -276,7 +220,8 @@ macro_rules! create_fn_with_single_array_arg {
         paste::paste! {
             $(#[$attr])*
             pub fn [<$function_name _fn>](arr: impl Into<$crate::ArrayLike>) -> $crate::Function {
-                create_single_array_arg_helper(arr, $function_name)
+                // Pathed: this module exports its own `concat` macro (`array::concat`).
+                create_single_array_arg_helper(arr, ::core::concat!("array::", $function_name))
             }
 
             $(#[$attr])*
@@ -308,7 +253,7 @@ create_fn_with_single_array_arg!(
     /// let numbers = Field::new("numbers");
     /// let result = array::boolean_not!(numbers);
     /// assert_eq!(
-    ///  result.to_raw().build(),
+    ///  result.to_debug_sql(),
     ///  "array::boolean_not(numbers)"
     ///  );
     ///  ```
@@ -332,7 +277,7 @@ create_fn_with_single_array_arg!(
     /// let numbers = Field::new("numbers");
     /// let result = array::first!(numbers);
     /// assert_eq!(
-    ///  result.to_raw().build(),
+    ///  result.to_debug_sql(),
     ///  "array::first(numbers)"
     ///  );
     ///  ```
@@ -356,7 +301,7 @@ create_fn_with_single_array_arg!(
     /// let numbers = Field::new("numbers");
     /// let result = array::last!(numbers);
     /// assert_eq!(
-    ///  result.to_raw().build(),
+    ///  result.to_debug_sql(),
     ///  "array::last(numbers)"
     ///  );
     ///  ```
@@ -380,7 +325,7 @@ create_fn_with_single_array_arg!(
     /// let numbers = Field::new("numbers");
     /// let result = array::max!(numbers);
     /// assert_eq!(
-    ///  result.to_raw().build(),
+    ///  result.to_debug_sql(),
     ///  "array::max(numbers)"
     ///  );
     ///  ```
@@ -404,7 +349,7 @@ create_fn_with_single_array_arg!(
     /// let numbers = Field::new("numbers");
     /// let result = array::min!(numbers);
     /// assert_eq!(
-    ///  result.to_raw().build(),
+    ///  result.to_debug_sql(),
     ///  "array::min(numbers)"
     ///  );
     ///  ```
@@ -415,21 +360,9 @@ create_fn_with_single_array_arg!(
 fn create_two_array_args_helper(
     arr1: impl Into<ArrayLike>,
     arr2: impl Into<ArrayLike>,
-    func_name: &str,
+    function_name: &'static str,
 ) -> Function {
-    let arr1: ArrayLike = arr1.into();
-    let arr2: ArrayLike = arr2.into();
-    let mut bindings = vec![];
-    let mut errors = vec![];
-    bindings.extend(arr1.get_bindings());
-    bindings.extend(arr2.get_bindings());
-    errors.extend(arr1.get_errors());
-    errors.extend(arr2.get_errors());
-    Function {
-        query_string: format!("array::{func_name}({}, {})", arr1.build(), arr2.build()),
-        bindings,
-        errors,
-    }
+    Function::new(function_name).arg(arr1.into()).arg(arr2.into())
 }
 
 macro_rules! create_fn_with_two_array_args {
@@ -437,7 +370,7 @@ macro_rules! create_fn_with_two_array_args {
         paste::paste! {
             $(#[$attr])*
             pub fn [<$function_name _fn>](arr1: impl Into<$crate::ArrayLike>, arr2: impl Into<$crate::ArrayLike>) -> $crate::Function {
-                create_two_array_args_helper(arr1, arr2, $function_name)
+                create_two_array_args_helper(arr1, arr2, ::core::concat!("array::", $function_name))
             }
 
             $(#[$attr])*
@@ -785,16 +718,7 @@ create_fn_with_two_array_args!(
 /// The following example shows this function, and its output, when used in a select statement:
 /// SELECT * FROM array::transpose([[1,2,3],[4,5,6],[7,8,9]]);
 pub fn transpose_fn(arr: impl Into<ArrayLike>) -> Function {
-    let arr: ArrayLike = arr.into();
-    let mut bindings = vec![];
-    let mut errors = vec![];
-    bindings.extend(arr.get_bindings());
-    errors.extend(arr.get_errors());
-    Function {
-        query_string: format!("array::transpose({})", arr.build()),
-        bindings,
-        errors,
-    }
+    Function::new("array::transpose").arg(arr.into())
 }
 
 /// The array::transpose function transposes an array of arrays, returning a single array containing the transposed values.
@@ -820,19 +744,9 @@ pub use array_transpose as transpose;
 
 /// The array::matches function returns true if the array matches the specified pattern.
 pub fn matches_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -> Function {
-    let arr: ArrayLike = arr.into();
-    let value: ValueLike = value.into();
-    let mut bindings = vec![];
-    let mut errors = vec![];
-    bindings.extend(arr.get_bindings());
-    bindings.extend(value.get_bindings());
-    errors.extend(arr.get_errors());
-    errors.extend(value.get_errors());
-    Function {
-        query_string: format!("array::matches({}, {})", arr.build(), value.build()),
-        bindings,
-        errors,
-    }
+    Function::new("array::matches")
+        .arg(arr.into())
+        .arg(value.into())
 }
 
 /// The array::matches function returns true if the array matches the specified pattern.
@@ -860,19 +774,7 @@ pub use array_matches as matches;
 
 /// The array:at function returns the value at the specified index in an array.
 pub fn at_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -> Function {
-    let arr: ArrayLike = arr.into();
-    let value: ValueLike = value.into();
-    let mut bindings = vec![];
-    let mut errors = vec![];
-    bindings.extend(arr.get_bindings());
-    bindings.extend(value.get_bindings());
-    errors.extend(arr.get_errors());
-    errors.extend(value.get_errors());
-    Function {
-        query_string: format!("array::at({}, {})", arr.build(), value.build()),
-        bindings,
-        errors,
-    }
+    Function::new("array::at").arg(arr.into()).arg(value.into())
 }
 
 /// The array:at function returns the value at the specified index in an array.
@@ -900,19 +802,9 @@ pub use array_at as at;
 
 /// The array::clump function returns the original array split into sub-arrays of size. Similar to slice::chunks
 pub fn clump_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -> Function {
-    let arr: ArrayLike = arr.into();
-    let value: ValueLike = value.into();
-    let mut bindings = vec![];
-    let mut errors = vec![];
-    bindings.extend(arr.get_bindings());
-    bindings.extend(value.get_bindings());
-    errors.extend(arr.get_errors());
-    errors.extend(value.get_errors());
-    Function {
-        query_string: format!("array::clump({}, {})", arr.build(), value.build()),
-        bindings,
-        errors,
-    }
+    Function::new("array::clump")
+        .arg(arr.into())
+        .arg(value.into())
 }
 
 /// The array::clump function returns the original array split into sub-arrays of size. Similar to slice::chunks
@@ -940,13 +832,7 @@ pub use array_clump as clump;
 
 /// The array::distinct function calculates the unique values in an array, returning a single array.
 pub fn distinct_fn(arr: impl Into<ArrayLike>) -> Function {
-    let arr: ArrayLike = arr.into();
-
-    Function {
-        query_string: format!("array::distinct({})", arr.build()),
-        bindings: arr.get_bindings(),
-        errors: arr.get_errors(),
-    }
+    Function::new("array::distinct").arg(arr.into())
 }
 
 /// The array::distinct function calculates the unique values in an array, returning a single
@@ -978,19 +864,7 @@ pub use array_distinct as distinct;
 
 /// The array::find function returns the first value in an array which matches the given value.
 pub fn find_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -> Function {
-    let arr: ArrayLike = arr.into();
-    let value: ValueLike = value.into();
-    let mut bindings = vec![];
-    let mut errors = vec![];
-    bindings.extend(arr.get_bindings());
-    bindings.extend(value.get_bindings());
-    errors.extend(arr.get_errors());
-    errors.extend(value.get_errors());
-    Function {
-        query_string: format!("array::find({}, {})", arr.build(), value.build()),
-        bindings,
-        errors,
-    }
+    Function::new("array::find").arg(arr.into()).arg(value.into())
 }
 
 /// The array::find function returns the first value in an array which matches the given value.
@@ -1018,19 +892,9 @@ pub use array_find as find;
 
 /// The array::find_index function returns the index of the first value in an array which matches the given value.
 pub fn find_index_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -> Function {
-    let arr: ArrayLike = arr.into();
-    let value: ValueLike = value.into();
-    let mut bindings = vec![];
-    let mut errors = vec![];
-    bindings.extend(arr.get_bindings());
-    bindings.extend(value.get_bindings());
-    errors.extend(arr.get_errors());
-    errors.extend(value.get_errors());
-    Function {
-        query_string: format!("array::find_index({}, {})", arr.build(), value.build()),
-        bindings,
-        errors,
-    }
+    Function::new("array::find_index")
+        .arg(arr.into())
+        .arg(value.into())
 }
 
 /// The array::find_index function returns the index of the first value in an array which matches the given value.
@@ -1058,19 +922,9 @@ pub use array_find_index as find_index;
 
 /// The array::filter_index function returns the index of the first value in an array which matches the given value.
 pub fn filter_index_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -> Function {
-    let arr: ArrayLike = arr.into();
-    let value: ValueLike = value.into();
-    let mut bindings = vec![];
-    let mut errors = vec![];
-    bindings.extend(arr.get_bindings());
-    bindings.extend(value.get_bindings());
-    errors.extend(arr.get_errors());
-    errors.extend(value.get_errors());
-    Function {
-        query_string: format!("array::filter_index({}, {})", arr.build(), value.build()),
-        bindings,
-        errors,
-    }
+    Function::new("array::filter_index")
+        .arg(arr.into())
+        .arg(value.into())
 }
 
 /// The array::filter_index function returns the index of the first value in an array which matches the given value.
@@ -1104,13 +958,7 @@ pub use array_filter_index as filter_index;
 /// SELECT * FROM array::flatten([ [1,2], [3, 4], 'SurrealDB', [5, 6, [7, 8]] ]);
 /// [1, 2, 3, 4, 'SurrealDB', 5, 6, [7, 8]]
 pub fn flatten_fn(arr: impl Into<ArrayLike>) -> Function {
-    let arr: ArrayLike = arr.into();
-
-    Function {
-        query_string: format!("array::flatten({})", arr.build()),
-        bindings: arr.get_bindings(),
-        errors: arr.get_errors(),
-    }
+    Function::new("array::flatten").arg(arr.into())
 }
 
 /// The array::flatten flattens an array of arrays, returning a new array with all sub-array
@@ -1151,13 +999,7 @@ pub use array_flatten as flatten;
 /// SELECT * FROM array::group([1, 2, 3, 4, [3,5,6], [2,4,5,6], 7, 8, 8, 9]);
 /// [1,2,3,4,5,6,7,8,9]
 pub fn group_fn(arr: impl Into<ArrayLike>) -> Function {
-    let arr: ArrayLike = arr.into();
-
-    Function {
-        query_string: format!("array::group({})", arr.build()),
-        bindings: arr.get_bindings(),
-        errors: arr.get_errors(),
-    }
+    Function::new("array::group").arg(arr.into())
 }
 
 /// The array::group function flattens and returns the unique items in an array.
@@ -1205,30 +1047,10 @@ pub fn insert_fn(
     value: impl Into<ValueLike>,
     index: impl Into<NumberLike>,
 ) -> Function {
-    let arr: ArrayLike = arr.into();
-    let value: ValueLike = value.into();
-    let index: NumberLike = index.into();
-
-    Function {
-        query_string: format!(
-            "array::insert({}, {}, {})",
-            arr.build(),
-            value.build(),
-            index.build()
-        ),
-        bindings: arr
-            .get_bindings()
-            .into_iter()
-            .chain(value.get_bindings())
-            .chain(index.get_bindings())
-            .collect(),
-        errors: arr
-            .get_errors()
-            .into_iter()
-            .chain(value.get_errors())
-            .chain(index.get_errors())
-            .collect(),
-    }
+    Function::new("array::insert")
+        .arg(arr.into())
+        .arg(value.into())
+        .arg(index.into())
 }
 
 /// The array::insert function inserts a value into an array at a specific position.
@@ -1271,13 +1093,7 @@ pub use array_insert as insert;
 /// includes all items when counting the number of items in the array. If you want to only count
 /// truthy values, then use the count() function.
 pub fn len_fn(arr: impl Into<ArrayLike>) -> Function {
-    let arr: ArrayLike = arr.into();
-
-    Function {
-        query_string: format!("array::len({})", arr.build()),
-        bindings: arr.get_bindings(),
-        errors: arr.get_errors(),
-    }
+    Function::new("array::len").arg(arr.into())
 }
 
 /// The array::len function calculates the length of an array, returning a number.
@@ -1316,13 +1132,7 @@ pub use array_len as len;
 /// SELECT * FROM array::pop([1,2,3,4]);
 /// 4
 pub fn pop_fn(arr: impl Into<ArrayLike>) -> Function {
-    let arr: ArrayLike = arr.into();
-
-    Function {
-        query_string: format!("array::pop({})", arr.build()),
-        bindings: arr.get_bindings(),
-        errors: arr.get_errors(),
-    }
+    Function::new("array::pop").arg(arr.into())
 }
 
 /// The array::pop function removes a value from the end of an array and returns it.
@@ -1360,22 +1170,9 @@ pub use array_pop as pop;
 /// SELECT * FROM array::prepend([1,2,3,4], 5);
 /// [5,1,2,3,4]
 pub fn prepend_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -> Function {
-    let arr: ArrayLike = arr.into();
-    let value: ValueLike = value.into();
-
-    Function {
-        query_string: format!("array::prepend({}, {})", arr.build(), value.build()),
-        bindings: arr
-            .get_bindings()
-            .into_iter()
-            .chain(value.get_bindings())
-            .collect(),
-        errors: arr
-            .get_errors()
-            .into_iter()
-            .chain(value.get_errors())
-            .collect(),
-    }
+    Function::new("array::prepend")
+        .arg(arr.into())
+        .arg(value.into())
 }
 
 /// The array::prepend function prepends a value to the end of an array.
@@ -1417,22 +1214,7 @@ pub use array_prepend as prepend;
 /// [1,2,3,4,5]
 /// The ordering of the array.
 pub fn push_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -> Function {
-    let arr: ArrayLike = arr.into();
-    let value: ValueLike = value.into();
-
-    Function {
-        query_string: format!("array::push({}, {})", arr.build(), value.build()),
-        bindings: arr
-            .get_bindings()
-            .into_iter()
-            .chain(value.get_bindings())
-            .collect(),
-        errors: arr
-            .get_errors()
-            .into_iter()
-            .chain(value.get_errors())
-            .collect(),
-    }
+    Function::new("array::push").arg(arr.into()).arg(value.into())
 }
 
 /// The array::push function appends a value to the end of an array.
@@ -1473,22 +1255,9 @@ pub use array_push as push;
 /// SELECT * FROM array::remove([1,2,3,4,5], 2);
 /// [1,2,4,5]
 pub fn remove_fn(arr: impl Into<ArrayLike>, number: impl Into<ValueLike>) -> Function {
-    let arr: ArrayLike = arr.into();
-    let number: ValueLike = number.into();
-
-    Function {
-        query_string: format!("array::remove({}, {})", arr.build(), number.build()),
-        bindings: arr
-            .get_bindings()
-            .into_iter()
-            .chain(number.get_bindings())
-            .collect(),
-        errors: arr
-            .get_errors()
-            .into_iter()
-            .chain(number.get_errors())
-            .collect(),
-    }
+    Function::new("array::remove")
+        .arg(arr.into())
+        .arg(number.into())
 }
 
 /// The array::remove function removes an item from a specific position in an array.
@@ -1529,13 +1298,7 @@ pub use array_remove as remove;
 /// SELECT * FROM array::reverse([1,2,3,4,5]);
 /// [5,4,3,2,1]
 pub fn reverse_fn(arr: impl Into<ArrayLike>) -> Function {
-    let arr: ArrayLike = arr.into();
-
-    Function {
-        query_string: format!("array::reverse({})", arr.build()),
-        bindings: arr.get_bindings(),
-        errors: arr.get_errors(),
-    }
+    Function::new("array::reverse").arg(arr.into())
 }
 
 /// The array::reverse function appends a value to the end of an array.
@@ -1581,34 +1344,16 @@ pub enum Ordering {
     Empty,
 }
 
-impl Display for Ordering {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Ordering::Asc => "'asc'",
-                Ordering::Desc => "'desc'",
-                Ordering::False => "false",
-                Ordering::Empty => "",
-            }
-        )
-    }
-}
-
 /// The array::sort function calculates the length of an array, returning a number. This function
 /// includes all items when counting the number of items in the array. If you want to only count
 /// truthy values, then use the count() function.
 pub fn sort_fn(arr: impl Into<ArrayLike>, ordering: Ordering) -> Function {
-    let arr: ArrayLike = arr.into();
-    let query_string = match ordering {
-        Ordering::Empty => format!("array::sort({})", arr.build()),
-        _ => format!("array::sort({}, {ordering})", arr.build()),
-    };
-    Function {
-        query_string,
-        bindings: arr.get_bindings(),
-        errors: arr.get_errors(),
+    let function = Function::new("array::sort").arg(arr.into());
+    match ordering {
+        Ordering::Asc => function.arg(ValueLike::from("asc")),
+        Ordering::Desc => function.arg(ValueLike::from("desc")),
+        Ordering::False => function.arg(ValueLike::from(false)),
+        Ordering::Empty => function,
     }
 }
 /// The array::sort function calculates the length of an array, returning a number. This function
@@ -1657,13 +1402,7 @@ pub mod sort {
 
     /// The array::sort::asc function is a shorthand convenience function for the array::sort function, to sort values in an array in ascending order.
     pub fn asc_fn(arr: impl Into<ArrayLike>) -> Function {
-        let arr: ArrayLike = arr.into();
-
-        Function {
-            query_string: format!("array::sort::asc({})", arr.build()),
-            bindings: arr.get_bindings(),
-            errors: arr.get_errors(),
-        }
+        Function::new("array::sort::asc").arg(arr.into())
     }
 
     /// The array::sort::asc function is a shorthand convenience function for the array::sort function, to sort values in an array in ascending order.
@@ -1693,13 +1432,7 @@ pub mod sort {
     /// The array::sort::desc function is a shorthand convenience function for the array::sort
     /// function, to sort values in an array in descending order.
     pub fn desc_fn(arr: impl Into<ArrayLike>) -> Function {
-        let arr: ArrayLike = arr.into();
-
-        Function {
-            query_string: format!("array::sort::desc({})", arr.build()),
-            bindings: arr.get_bindings(),
-            errors: arr.get_errors(),
-        }
+        Function::new("array::sort::desc").arg(arr.into())
     }
 
     /// The array::sort::desc function is a shorthand convenience function for the array::sort function, to sort values in an array in descending order.
@@ -1752,30 +1485,10 @@ pub fn slice_fn(
     start: impl Into<NumberLike>,
     len: impl Into<NumberLike>,
 ) -> Function {
-    let arr: ArrayLike = arr.into();
-    let start: NumberLike = start.into();
-    let len: NumberLike = len.into();
-
-    Function {
-        query_string: format!(
-            "array::slice({}, {}, {})",
-            arr.build(),
-            start.build(),
-            len.build()
-        ),
-        bindings: arr
-            .get_bindings()
-            .into_iter()
-            .chain(start.get_bindings())
-            .chain(len.get_bindings())
-            .collect(),
-        errors: arr
-            .get_errors()
-            .into_iter()
-            .chain(start.get_errors())
-            .chain(len.get_errors())
-            .collect(),
-    }
+    Function::new("array::slice")
+        .arg(arr.into())
+        .arg(start.into())
+        .arg(len.into())
 }
 
 /// Slice function returns a portion of an array.
@@ -1810,22 +1523,9 @@ pub use array_slice as slice;
 
 /// The array::join function joins the elements of an array into a string, and returns the string.
 pub fn join_fn(arr: impl Into<ArrayLike>, separator: impl Into<ValueLike>) -> Function {
-    let arr: ArrayLike = arr.into();
-    let separator: ValueLike = separator.into();
-
-    Function {
-        query_string: format!("array::join({}, {})", arr.build(), separator.build()),
-        bindings: arr
-            .get_bindings()
-            .into_iter()
-            .chain(separator.get_bindings())
-            .collect(),
-        errors: arr
-            .get_errors()
-            .into_iter()
-            .chain(separator.get_errors())
-            .collect(),
-    }
+    Function::new("array::join")
+        .arg(arr.into())
+        .arg(separator.into())
 }
 
 /// The array::join function joins the elements of an array into a string, and returns the string.

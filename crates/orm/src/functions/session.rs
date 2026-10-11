@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 // Session functions
 // These functions can be used when working with and manipulating text and string values.
@@ -21,13 +16,7 @@ macro_rules! create_function {
         paste::paste! {
             $(#[$attr])*
             pub fn [<$function_name _fn>]() -> $crate::Function {
-                let query_string = format!("{}()", $function_name);
-
-                $crate::Function {
-                    query_string,
-                    bindings: vec![],
-                    errors: vec![],
-                }
+                $crate::Function::new(concat!("session::", $function_name))
             }
 
             $(#[$attr])*

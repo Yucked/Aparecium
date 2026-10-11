@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 // Time functions
 // These functions can be used when working with and manipulating datetime values.
@@ -33,17 +28,11 @@
 // time::from::secs()	Calculates a datetimes based on an amount of seconds since January 1, 1970 0:00:00 UTC.
 // time::from::unix()	Calculates a datetimes based on an amount of seconds since January 1, 1970 0:00:00 UTC.
 
-use crate::{Buildable, DatetimeLike, DurationLike, Erroneous, Function, Parametric, StrandLike};
+use crate::{DatetimeLike, DurationLike, Function, StrandLike};
 
 /// The time::now function returns the current datetime as an ISO8601 timestamp.The time::now function returns the current datetime as an ISO8601 timestamp.
 pub fn now_fn() -> Function {
-    let query_string = "now()".to_string();
-
-    Function {
-        query_string,
-        bindings: vec![],
-        errors: vec![],
-    }
+    Function::new("now")
 }
 
 /// The time::now function returns the current datetime as an ISO8601 timestamp.The time::now function returns the current datetime as an ISO8601 timestamp.
@@ -53,7 +42,7 @@ pub fn now_fn() -> Function {
 /// use aparecium::{*, functions::time};
 ///
 /// let result = time::now!();
-/// assert_eq!(result.to_raw().build(), "now()");
+/// assert_eq!(result.to_debug_sql(), "now()");
 /// ```
 #[macro_export]
 macro_rules! now {
@@ -69,14 +58,7 @@ macro_rules! create_time_fn_with_single_datetime_arg {
         paste::paste! {
             $(#[$attr])*
             pub fn [<$function_name _fn>](datetime: impl Into<$crate::DatetimeLike>) -> $crate::Function {
-                let datetime: $crate::DatetimeLike = datetime.into();
-                let query_string = format!("time::{}({})", $function_name, datetime.build());
-
-                $crate::Function {
-                    query_string,
-                    bindings: datetime.get_bindings(),
-                    errors: datetime.get_errors(),
-                }
+                $crate::Function::new(concat!("time::", $function_name)).arg(datetime.into())
             }
 
             $(#[$attr])*
@@ -109,19 +91,19 @@ create_time_fn_with_single_datetime_arg!(
     /// let dt = chrono::DateTime::from_timestamp(61, 0).unwrap();
     ///
     /// let result = time::day!(dt);
-    /// assert_eq!(result.fine_tune_params(), "time::day($_param_00000001)");
+    /// assert_eq!(result.to_query().unwrap().sql(), "time::day($_p0)");
     /// assert_eq!(
-    ///    result.to_raw().build(),
-    ///    "time::day('1970-01-01T00:01:01Z')"
+    ///    result.to_debug_sql(),
+    ///    "time::day(d'1970-01-01T00:01:01Z')"
     /// );
     ///
     /// let rebirth_date = Field::new("rebirth_date");
     /// let result = time::day!(rebirth_date);
-    /// assert_eq!(result.to_raw().build(), "time::day(rebirth_date)");
+    /// assert_eq!(result.to_debug_sql(), "time::day(rebirth_date)");
     ///
     /// let param = Param::new("rebirth_date");
     /// let result = time::day!(param);
-    /// assert_eq!(result.to_raw().build(), "time::day($rebirth_date)");
+    /// assert_eq!(result.to_debug_sql(), "time::day($rebirth_date)");
     /// ```
     =>
     "day"
@@ -142,19 +124,19 @@ create_time_fn_with_single_datetime_arg!(
     /// let dt = chrono::DateTime::from_timestamp(61, 0).unwrap();
     ///
     /// let result = time::hour!(dt);
-    /// assert_eq!(result.fine_tune_params(), "time::hour($_param_00000001)");
+    /// assert_eq!(result.to_query().unwrap().sql(), "time::hour($_p0)");
     /// assert_eq!(
-    ///    result.to_raw().build(),
-    ///    "time::hour('1970-01-01T00:01:01Z')"
+    ///    result.to_debug_sql(),
+    ///    "time::hour(d'1970-01-01T00:01:01Z')"
     /// );
     ///
     /// let rebirth_date = Field::new("rebirth_date");
     /// let result = time::hour!(rebirth_date);
-    /// assert_eq!(result.to_raw().build(), "time::hour(rebirth_date)");
+    /// assert_eq!(result.to_debug_sql(), "time::hour(rebirth_date)");
     ///
     /// let param = Param::new("rebirth_date");
     /// let result = time::hour!(param);
-    /// assert_eq!(result.to_raw().build(), "time::hour($rebirth_date)");
+    /// assert_eq!(result.to_debug_sql(), "time::hour($rebirth_date)");
     /// ```
     =>
     "hour"
@@ -175,19 +157,19 @@ create_time_fn_with_single_datetime_arg!(
     /// let dt = chrono::DateTime::from_timestamp(61, 0).unwrap();
     ///
     /// let result = time::minute!(dt);
-    /// assert_eq!(result.fine_tune_params(), "time::minute($_param_00000001)");
+    /// assert_eq!(result.to_query().unwrap().sql(), "time::minute($_p0)");
     /// assert_eq!(
-    ///    result.to_raw().build(),
-    ///    "time::minute('1970-01-01T00:01:01Z')"
+    ///    result.to_debug_sql(),
+    ///    "time::minute(d'1970-01-01T00:01:01Z')"
     /// );
     ///
     /// let rebirth_date = Field::new("rebirth_date");
     /// let result = time::minute!(rebirth_date);
-    /// assert_eq!(result.to_raw().build(), "time::minute(rebirth_date)");
+    /// assert_eq!(result.to_debug_sql(), "time::minute(rebirth_date)");
     ///
     /// let param = Param::new("rebirth_date");
     /// let result = time::minute!(param);
-    /// assert_eq!(result.to_raw().build(), "time::minute($rebirth_date)");
+    /// assert_eq!(result.to_debug_sql(), "time::minute($rebirth_date)");
     /// ```
     =>
     "minute"
@@ -208,19 +190,19 @@ create_time_fn_with_single_datetime_arg!(
     /// let dt = chrono::DateTime::from_timestamp(61, 0).unwrap();
     ///
     /// let result = time::month!(dt);
-    /// assert_eq!(result.fine_tune_params(), "time::month($_param_00000001)");
+    /// assert_eq!(result.to_query().unwrap().sql(), "time::month($_p0)");
     /// assert_eq!(
-    ///    result.to_raw().build(),
-    ///    "time::month('1970-01-01T00:01:01Z')"
+    ///    result.to_debug_sql(),
+    ///    "time::month(d'1970-01-01T00:01:01Z')"
     /// );
     ///
     /// let rebirth_date = Field::new("rebirth_date");
     /// let result = time::month!(rebirth_date);
-    /// assert_eq!(result.to_raw().build(), "time::month(rebirth_date)");
+    /// assert_eq!(result.to_debug_sql(), "time::month(rebirth_date)");
     ///
     /// let param = Param::new("rebirth_date");
     /// let result = time::month!(param);
-    /// assert_eq!(result.to_raw().build(), "time::month($rebirth_date)");
+    /// assert_eq!(result.to_debug_sql(), "time::month($rebirth_date)");
     /// ```
     =>
     "month"
@@ -243,17 +225,17 @@ create_time_fn_with_single_datetime_arg!(
     ///
     /// let result = time::nano!(dt);
     /// assert_eq!(
-    ///    result.to_raw().build(),
-    ///    "time::nano('1970-01-01T00:01:01Z')"
+    ///    result.to_debug_sql(),
+    ///    "time::nano(d'1970-01-01T00:01:01Z')"
     /// );
     ///
     /// let rebirth_date = Field::new("rebirth_date");
     /// let result = time::nano!(rebirth_date);
-    /// assert_eq!(result.to_raw().build(), "time::nano(rebirth_date)");
+    /// assert_eq!(result.to_debug_sql(), "time::nano(rebirth_date)");
     ///
     /// let param = Param::new("rebirth_date");
     /// let result = time::nano!(param);
-    /// assert_eq!(result.to_raw().build(), "time::nano($rebirth_date)");
+    /// assert_eq!(result.to_debug_sql(), "time::nano($rebirth_date)");
     /// ```
     =>
     "nano"
@@ -275,17 +257,17 @@ create_time_fn_with_single_datetime_arg!(
     ///
     /// let result = time::second!(dt);
     /// assert_eq!(
-    ///    result.to_raw().build(),
-    ///    "time::second('1970-01-01T00:01:01Z')"
+    ///    result.to_debug_sql(),
+    ///    "time::second(d'1970-01-01T00:01:01Z')"
     /// );
     ///
     /// let rebirth_date = Field::new("rebirth_date");
     /// let result = time::second!(rebirth_date);
-    /// assert_eq!(result.to_raw().build(), "time::second(rebirth_date)");
+    /// assert_eq!(result.to_debug_sql(), "time::second(rebirth_date)");
     ///
     /// let param = Param::new("rebirth_date");
     /// let result = time::second!(param);
-    /// assert_eq!(result.to_raw().build(), "time::second($rebirth_date)");
+    /// assert_eq!(result.to_debug_sql(), "time::second($rebirth_date)");
     /// ```
     =>
     "second"
@@ -307,17 +289,17 @@ create_time_fn_with_single_datetime_arg!(
     ///
     /// let result = time::unix!(dt);
     /// assert_eq!(
-    ///    result.to_raw().build(),
-    ///    "time::unix('1970-01-01T00:01:01Z')"
+    ///    result.to_debug_sql(),
+    ///    "time::unix(d'1970-01-01T00:01:01Z')"
     /// );
     ///
     /// let rebirth_date = Field::new("rebirth_date");
     /// let result = time::unix!(rebirth_date);
-    /// assert_eq!(result.to_raw().build(), "time::unix(rebirth_date)");
+    /// assert_eq!(result.to_debug_sql(), "time::unix(rebirth_date)");
     ///
     /// let param = Param::new("rebirth_date");
     /// let result = time::unix!(param);
-    /// assert_eq!(result.to_raw().build(), "time::unix($rebirth_date)");
+    /// assert_eq!(result.to_debug_sql(), "time::unix($rebirth_date)");
     /// ```
     =>
     "unix"
@@ -339,17 +321,17 @@ create_time_fn_with_single_datetime_arg!(
     ///
     /// let result = time::wday!(dt);
     /// assert_eq!(
-    ///    result.to_raw().build(),
-    ///    "time::wday('1970-01-01T00:01:01Z')"
+    ///    result.to_debug_sql(),
+    ///    "time::wday(d'1970-01-01T00:01:01Z')"
     /// );
     ///
     /// let rebirth_date = Field::new("rebirth_date");
     /// let result = time::wday!(rebirth_date);
-    /// assert_eq!(result.to_raw().build(), "time::wday(rebirth_date)");
+    /// assert_eq!(result.to_debug_sql(), "time::wday(rebirth_date)");
     ///
     /// let param = Param::new("rebirth_date");
     /// let result = time::wday!(param);
-    /// assert_eq!(result.to_raw().build(), "time::wday($rebirth_date)");
+    /// assert_eq!(result.to_debug_sql(), "time::wday($rebirth_date)");
     /// ```
     =>
     "wday"
@@ -371,17 +353,17 @@ create_time_fn_with_single_datetime_arg!(
     ///
     /// let result = time::week!(dt);
     /// assert_eq!(
-    ///    result.to_raw().build(),
-    ///    "time::week('1970-01-01T00:01:01Z')"
+    ///    result.to_debug_sql(),
+    ///    "time::week(d'1970-01-01T00:01:01Z')"
     /// );
     ///
     /// let rebirth_date = Field::new("rebirth_date");
     /// let result = time::week!(rebirth_date);
-    /// assert_eq!(result.to_raw().build(), "time::week(rebirth_date)");
+    /// assert_eq!(result.to_debug_sql(), "time::week(rebirth_date)");
     ///
     /// let param = Param::new("rebirth_date");
     /// let result = time::week!(param);
-    /// assert_eq!(result.to_raw().build(), "time::week($rebirth_date)");
+    /// assert_eq!(result.to_debug_sql(), "time::week($rebirth_date)");
     /// ```
     =>
     "week"
@@ -403,17 +385,17 @@ create_time_fn_with_single_datetime_arg!(
     ///
     /// let result = time::yday!(dt);
     /// assert_eq!(
-    ///    result.to_raw().build(),
-    ///    "time::yday('1970-01-01T00:01:01Z')"
+    ///    result.to_debug_sql(),
+    ///    "time::yday(d'1970-01-01T00:01:01Z')"
     /// );
     ///
     /// let rebirth_date = Field::new("rebirth_date");
     /// let result = time::yday!(rebirth_date);
-    /// assert_eq!(result.to_raw().build(), "time::yday(rebirth_date)");
+    /// assert_eq!(result.to_debug_sql(), "time::yday(rebirth_date)");
     ///
     /// let param = Param::new("rebirth_date");
     /// let result = time::yday!(param);
-    /// assert_eq!(result.to_raw().build(), "time::yday($rebirth_date)");
+    /// assert_eq!(result.to_debug_sql(), "time::yday($rebirth_date)");
     /// ```
     =>
     "yday"
@@ -435,17 +417,17 @@ create_time_fn_with_single_datetime_arg!(
     ///
     /// let result = time::year!(dt);
     /// assert_eq!(
-    ///    result.to_raw().build(),
-    ///    "time::year('1970-01-01T00:01:01Z')"
+    ///    result.to_debug_sql(),
+    ///    "time::year(d'1970-01-01T00:01:01Z')"
     /// );
     ///
     /// let rebirth_date = Field::new("rebirth_date");
     /// let result = time::year!(rebirth_date);
-    /// assert_eq!(result.to_raw().build(), "time::year(rebirth_date)");
+    /// assert_eq!(result.to_debug_sql(), "time::year(rebirth_date)");
     ///
     /// let param = Param::new("rebirth_date");
     /// let result = time::year!(param);
-    /// assert_eq!(result.to_raw().build(), "time::year($rebirth_date)");
+    /// assert_eq!(result.to_debug_sql(), "time::year($rebirth_date)");
     /// ```
     =>
     "year"
@@ -453,20 +435,9 @@ create_time_fn_with_single_datetime_arg!(
 
 /// The time::floor function rounds a datetime down by a specific duration.
 pub fn floor_fn(datetime: impl Into<DatetimeLike>, duration: impl Into<DurationLike>) -> Function {
-    let datetime: DatetimeLike = datetime.into();
-    let duration: DurationLike = duration.into();
-    let mut bindings = datetime.get_bindings();
-    let mut errors = datetime.get_errors();
-    bindings.extend(duration.get_bindings());
-    errors.extend(duration.get_errors());
-
-    let query_string = format!("time::floor({}, {})", datetime.build(), duration.build(),);
-
-    Function {
-        query_string,
-        bindings,
-        errors,
-    }
+    Function::new("time::floor")
+        .arg(datetime.into())
+        .arg(duration.into())
 }
 
 /// The time::floor function rounds a datetime down by a specific duration.
@@ -483,15 +454,15 @@ pub fn floor_fn(datetime: impl Into<DatetimeLike>, duration: impl Into<DurationL
 /// let duration = std::time::Duration::from_secs(10);
 /// let result = time::floor!(dt, duration);
 /// assert_eq!(
-///   result.to_raw().build(),
-///   "time::floor('1970-01-01T00:01:01Z', 10s)"
+///   result.to_debug_sql(),
+///   "time::floor(d'1970-01-01T00:01:01Z', 10s)"
 /// );
 ///
 /// let rebirth_date = Field::new("rebirth_date");
 /// let duration = Field::new("duration");
 /// let result = time::floor!(rebirth_date, duration);
 /// assert_eq!(
-///  result.to_raw().build(),
+///  result.to_debug_sql(),
 ///  "time::floor(rebirth_date, duration)"
 ///  );
 ///  
@@ -499,7 +470,7 @@ pub fn floor_fn(datetime: impl Into<DatetimeLike>, duration: impl Into<DurationL
 ///  let duration = Param::new("duration");
 ///  let result = time::floor!(param, duration);
 ///  assert_eq!(
-///     result.to_raw().build(),
+///     result.to_debug_sql(),
 ///     "time::floor($rebirth_date, $duration)"
 ///  );
 ///  ```
@@ -514,20 +485,9 @@ pub use time_floor as floor;
 
 /// The time::ceil function rounds a datetime up by a specific duration.
 pub fn ceil_fn(datetime: impl Into<DatetimeLike>, duration: impl Into<DurationLike>) -> Function {
-    let datetime: DatetimeLike = datetime.into();
-    let duration: DurationLike = duration.into();
-    let mut bindings = datetime.get_bindings();
-    let mut errors = datetime.get_errors();
-    bindings.extend(duration.get_bindings());
-    errors.extend(duration.get_errors());
-
-    let query_string = format!("time::ceil({}, {})", datetime.build(), duration.build(),);
-
-    Function {
-        query_string,
-        bindings,
-        errors,
-    }
+    Function::new("time::ceil")
+        .arg(datetime.into())
+        .arg(duration.into())
 }
 
 /// The time::ceil function rounds a datetime up by a specific duration.
@@ -539,15 +499,15 @@ pub fn ceil_fn(datetime: impl Into<DatetimeLike>, duration: impl Into<DurationLi
 ///   let duration = std::time::Duration::from_secs(10);
 ///   let result = time::ceil!(dt, duration);
 ///   assert_eq!(
-///   result.to_raw().build(),
-///   "time::ceil('1970-01-01T00:01:01Z', 10s)"
+///   result.to_debug_sql(),
+///   "time::ceil(d'1970-01-01T00:01:01Z', 10s)"
 ///   );
 ///
 ///   let rebirth_date = Field::new("rebirth_date");
 ///   let duration = Field::new("duration");
 ///   let result = time::ceil!(rebirth_date, duration);
 ///   assert_eq!(
-///   result.to_raw().build(),
+///   result.to_debug_sql(),
 ///   "time::ceil(rebirth_date, duration)"
 ///   );
 ///
@@ -555,7 +515,7 @@ pub fn ceil_fn(datetime: impl Into<DatetimeLike>, duration: impl Into<DurationLi
 ///   let duration = Param::new("duration");
 ///   let result = time::ceil!(param, duration);
 ///   assert_eq!(
-///   result.to_raw().build(),
+///   result.to_debug_sql(),
 ///   "time::ceil($rebirth_date, $duration)"
 ///   );
 ///   ```
@@ -576,20 +536,9 @@ pub use time_ceil as ceil;
 /// SELECT * FROM time::format("2021-11-01T08:30:17+00:00", "%Y-%m-%d");
 /// "2021-11-01"
 pub fn format_fn(datetime: impl Into<DatetimeLike>, format: impl Into<StrandLike>) -> Function {
-    let datetime: DatetimeLike = datetime.into();
-    let format: StrandLike = format.into();
-    let mut bindings = datetime.get_bindings();
-    let mut errors = datetime.get_errors();
-    bindings.extend(format.get_bindings());
-    errors.extend(format.get_errors());
-
-    let query_string = format!("time::format({}, {})", datetime.build(), format.build());
-
-    Function {
-        query_string,
-        bindings,
-        errors,
-    }
+    Function::new("time::format")
+        .arg(datetime.into())
+        .arg(format.into())
 }
 
 /// The time::format function outputs a datetime according to a specific format.
@@ -605,15 +554,15 @@ pub fn format_fn(datetime: impl Into<DatetimeLike>, format: impl Into<StrandLike
 /// let dt = chrono::DateTime::from_timestamp(61, 0).unwrap();
 /// let result = time::format_!(dt, "%Y-%m-%d");
 /// assert_eq!(
-///     result.to_raw().build(),
-///     "time::format('1970-01-01T00:01:01Z', '%Y-%m-%d')"
+///     result.to_debug_sql(),
+///     "time::format(d'1970-01-01T00:01:01Z', '%Y-%m-%d')"
 /// );
 ///
 /// let rebirth_date = Field::new("rebirth_date");
 /// let format = Field::new("format");
 /// let result = time::format_!(rebirth_date, format);
 /// assert_eq!(
-///     result.to_raw().build(),
+///     result.to_debug_sql(),
 ///     "time::format(rebirth_date, format)"
 /// );
 ///
@@ -621,7 +570,7 @@ pub fn format_fn(datetime: impl Into<DatetimeLike>, format: impl Into<StrandLike
 /// let format = Param::new("format");
 /// let result = time::format_!(param, format);
 /// assert_eq!(
-///     result.to_raw().build(),
+///     result.to_debug_sql(),
 ///     "time::format($rebirth_date, $format)"
 /// );
 /// ```
@@ -641,11 +590,7 @@ pub use time_format as format_;
 /// SELECT * FROM time::timezone();
 /// "+05:30"
 pub fn timezone_fn() -> Function {
-    Function {
-        query_string: "time::timezone()".to_string(),
-        bindings: vec![],
-        errors: vec![],
-    }
+    Function::new("time::timezone")
 }
 
 /// The time::timezone function returns the current local timezone offset in hours.
@@ -656,7 +601,7 @@ pub fn timezone_fn() -> Function {
 ///
 /// let result = time::timezone!();
 /// assert_eq!(
-///    result.to_raw().build(),
+///    result.to_debug_sql(),
 ///    "time::timezone()"
 /// );
 /// ```
@@ -670,18 +615,9 @@ pub use time_timezone as timezone;
 
 /// The time::round function rounds a datetime up by a specific duration.
 pub fn round_fn(datetime: impl Into<DatetimeLike>, duration: impl Into<DurationLike>) -> Function {
-    let datetime: DatetimeLike = datetime.into();
-    let duration: DurationLike = duration.into();
-    let mut bindings = datetime.get_bindings();
-    let mut errors = datetime.get_errors();
-    bindings.extend(duration.get_bindings());
-    errors.extend(duration.get_errors());
-
-    Function {
-        query_string: format!("time::round({}, {})", datetime.build(), duration.build()),
-        bindings,
-        errors,
-    }
+    Function::new("time::round")
+        .arg(datetime.into())
+        .arg(duration.into())
 }
 
 /// The time::round function rounds a datetime up by a specific duration.
@@ -699,21 +635,21 @@ pub fn round_fn(datetime: impl Into<DatetimeLike>, duration: impl Into<DurationL
 /// let duration = std::time::Duration::from_secs(10);
 /// let result = time::round!(dt, duration);
 /// assert_eq!(
-///     result.to_raw().build(),
-///     "time::round('1970-01-01T00:01:01Z', 10s)"
+///     result.to_debug_sql(),
+///     "time::round(d'1970-01-01T00:01:01Z', 10s)"
 /// );
 /// let rebirth_date = Field::new("rebirth_date");
 /// let duration = Field::new("duration");
 /// let result = time::round!(rebirth_date, duration);
 /// assert_eq!(
-///     result.to_raw().build(),
+///     result.to_debug_sql(),
 ///     "time::round(rebirth_date, duration)"
 /// );
 /// let param = Param::new("rebirth_date");
 /// let duration = Param::new("duration");
 /// let result = time::round!(param, duration);
 /// assert_eq!(
-///     result.to_raw().build(),
+///     result.to_debug_sql(),
 ///     "time::round($rebirth_date, $duration)"
 /// );
 /// ```
@@ -730,20 +666,9 @@ pub use time_round as round;
 /// second argument must be a string, and can be one of the following values: year, month, day,
 /// hour, minute, second.
 pub fn group_fn(datetime: impl Into<DatetimeLike>, interval: impl Into<StrandLike>) -> Function {
-    let datetime: DatetimeLike = datetime.into();
-    let interval: StrandLike = interval.into();
-    let mut bindings = datetime.get_bindings();
-    let mut errors = datetime.get_errors();
-    bindings.extend(interval.get_bindings());
-    errors.extend(interval.get_errors());
-
-    let query_string = format!("time::group({}, {})", datetime.build(), interval.build());
-
-    Function {
-        query_string,
-        bindings,
-        errors,
-    }
+    Function::new("time::group")
+        .arg(datetime.into())
+        .arg(interval.into())
 }
 
 /// The time::group function reduces and rounds a datetime down to a particular time interval. The
@@ -761,21 +686,21 @@ pub fn group_fn(datetime: impl Into<DatetimeLike>, interval: impl Into<StrandLik
 /// let dt = chrono::DateTime::from_timestamp(61, 0).unwrap();
 /// let result = time::group!(dt, "year");
 /// assert_eq!(
-///    result.to_raw().build(),
-///    "time::group('1970-01-01T00:01:01Z', 'year')"
+///    result.to_debug_sql(),
+///    "time::group(d'1970-01-01T00:01:01Z', 'year')"
 /// );
 ///
 /// let rebirth_date = Field::new("rebirth_date");
 /// let result = time::group!(rebirth_date, "year");
 /// assert_eq!(
-///   result.to_raw().build(),
+///   result.to_debug_sql(),
 ///   "time::group(rebirth_date, 'year')"
 /// );
 ///
 /// let param = Param::new("rebirth_date");
 /// let result = time::group!(param, "month");
 /// assert_eq!(
-///     result.to_raw().build(),
+///     result.to_debug_sql(),
 ///     "time::group($rebirth_date, 'month')"
 ///  );
 #[macro_export]
@@ -813,14 +738,7 @@ macro_rules! create_time_fn_with_single_array_of_datetime_arg {
         paste::paste! {
             $(#[$attr])*
             pub fn [<$function_name _fn>](datetime: impl ::std::convert::Into<$crate::ArrayLike>) -> $crate::Function {
-                let datetime: $crate::ArrayLike = datetime.into();
-                let query_string = format!("time::{}({})", $function_name, datetime.build());
-
-                $crate::Function {
-                    query_string,
-                    bindings: datetime.get_bindings(),
-                    errors: datetime.get_errors(),
-                }
+                $crate::Function::new(concat!("time::", $function_name)).arg(datetime.into())
             }
 
             $(#[$attr])*
@@ -855,17 +773,17 @@ create_time_fn_with_single_array_of_datetime_arg!(
     ///
     /// let result = time::max!([dt1, dt2, dt3]);
     /// assert_eq!(
-    ///    result.to_raw().build(),
-    ///    "time::max(['1970-01-01T00:01:01Z', '1970-01-01T00:01:02Z', '1970-01-01T00:01:03Z'])"
+    ///    result.to_debug_sql(),
+    ///    "time::max([d'1970-01-01T00:01:01Z', d'1970-01-01T00:01:02Z', d'1970-01-01T00:01:03Z'])"
     /// );
     ///
     /// let rebirth_date = Field::new("rebirth_date");
     /// let result = time::max!(rebirth_date);
-    /// assert_eq!(result.to_raw().build(), "time::max(rebirth_date)");
+    /// assert_eq!(result.to_debug_sql(), "time::max(rebirth_date)");
     ///
     /// let param = Param::new("rebirth_date");
     /// let result = time::max!(param);
-    /// assert_eq!(result.to_raw().build(), "time::max($rebirth_date)");
+    /// assert_eq!(result.to_debug_sql(), "time::max($rebirth_date)");
     /// ```
     =>
     "max"
@@ -889,17 +807,17 @@ create_time_fn_with_single_array_of_datetime_arg!(
     ///
     /// let result = time::min!([dt1, dt2, dt3]);
     /// assert_eq!(
-    ///    result.to_raw().build(),
-    ///    "time::min(['1970-01-01T00:01:01Z', '1970-01-01T00:01:02Z', '1970-01-01T00:01:03Z'])"
+    ///    result.to_debug_sql(),
+    ///    "time::min([d'1970-01-01T00:01:01Z', d'1970-01-01T00:01:02Z', d'1970-01-01T00:01:03Z'])"
     /// );
     ///
     /// let rebirth_date = Field::new("rebirth_date");
     /// let result = time::min!(rebirth_date);
-    /// assert_eq!(result.to_raw().build(), "time::min(rebirth_date)");
+    /// assert_eq!(result.to_debug_sql(), "time::min(rebirth_date)");
     ///
     /// let param = Param::new("rebirth_date");
     /// let result = time::min!(param);
-    /// assert_eq!(result.to_raw().build(), "time::min($rebirth_date)");
+    /// assert_eq!(result.to_debug_sql(), "time::min($rebirth_date)");
     /// ```
     =>
     "min"
@@ -911,14 +829,7 @@ macro_rules! create_time_fn_with_single_number_arg {
 
             $(#[$attr])*
             pub fn [<$function_name _fn>](number: impl ::std::convert::Into<$crate::NumberLike>) -> $crate::Function {
-                let number: $crate::NumberLike = number.into();
-                let query_string = format!("time::{}({})", $function_path, number.build());
-
-                $crate::Function {
-                    query_string,
-                    bindings: number.get_bindings(),
-                    errors: number.get_errors(),
-                }
+                $crate::Function::new(concat!("time::", $function_path)).arg(number.into())
             }
 
             $(#[$attr])*
@@ -937,8 +848,6 @@ macro_rules! create_time_fn_with_single_number_arg {
 
 /// The time::from module contains functions that convert a number into a datetime.
 pub mod from {
-    use crate::*;
-
     create_time_fn_with_single_number_arg!(
         /// The time::from::micros function converts a number of microseconds into a datetime.
         /// The function is also aliased as `time_from_micros!`.
@@ -952,15 +861,15 @@ pub mod from {
         /// use aparecium::{*, functions::time};
         ///
         /// let result = time::from::micros!(1);
-        /// assert_eq!(result.to_raw().build(), "time::from::micros(1)");
+        /// assert_eq!(result.to_debug_sql(), "time::from::micros(1)");
         ///
         /// let rebirth_date = Field::new("rebirth_date");
         /// let result = time::from::micros!(rebirth_date);
-        /// assert_eq!(result.to_raw().build(), "time::from::micros(rebirth_date)");
+        /// assert_eq!(result.to_debug_sql(), "time::from::micros(rebirth_date)");
         ///
         /// let param = Param::new("rebirth_date");
         /// let result = time::from::micros!(param);
-        /// assert_eq!(result.to_raw().build(), "time::from::micros($rebirth_date)");
+        /// assert_eq!(result.to_debug_sql(), "time::from::micros($rebirth_date)");
         /// ```
         =>
         "micros",
@@ -980,15 +889,15 @@ pub mod from {
         /// use aparecium::{*, functions::time};
         ///
         /// let result = time::from::millis!(1);
-        /// assert_eq!(result.to_raw().build(), "time::from::millis(1)");
+        /// assert_eq!(result.to_debug_sql(), "time::from::millis(1)");
         ///
         /// let rebirth_date = Field::new("rebirth_date");
         /// let result = time::from::millis!(rebirth_date);
-        /// assert_eq!(result.to_raw().build(), "time::from::millis(rebirth_date)");
+        /// assert_eq!(result.to_debug_sql(), "time::from::millis(rebirth_date)");
         ///
         /// let param = Param::new("rebirth_date");
         /// let result = time::from::millis!(param);
-        /// assert_eq!(result.to_raw().build(), "time::from::millis($rebirth_date)");
+        /// assert_eq!(result.to_debug_sql(), "time::from::millis($rebirth_date)");
         /// ```
         =>
         "millis",
@@ -1009,15 +918,15 @@ pub mod from {
         /// use aparecium::{*, functions::time};
         ///
         /// let result = time::from::secs!(1);
-        /// assert_eq!(result.to_raw().build(), "time::from::secs(1)");
+        /// assert_eq!(result.to_debug_sql(), "time::from::secs(1)");
         ///
         /// let rebirth_date = Field::new("rebirth_date");
         /// let result = time::from::secs!(rebirth_date);
-        /// assert_eq!(result.to_raw().build(), "time::from::secs(rebirth_date)");
+        /// assert_eq!(result.to_debug_sql(), "time::from::secs(rebirth_date)");
         ///
         /// let param = Param::new("rebirth_date");
         /// let result = time::from::secs!(param);
-        /// assert_eq!(result.to_raw().build(), "time::from::secs($rebirth_date)");
+        /// assert_eq!(result.to_debug_sql(), "time::from::secs($rebirth_date)");
         /// ```
         =>
         "secs",
@@ -1038,15 +947,15 @@ pub mod from {
         /// use aparecium::{*, functions::time};
         ///
         /// let result = time::from::unix!(1);
-        /// assert_eq!(result.to_raw().build(), "time::from::unix(1)");
+        /// assert_eq!(result.to_debug_sql(), "time::from::unix(1)");
         ///
         /// let rebirth_date = Field::new("rebirth_date");
         /// let result = time::from::unix!(rebirth_date);
-        /// assert_eq!(result.to_raw().build(), "time::from::unix(rebirth_date)");
+        /// assert_eq!(result.to_debug_sql(), "time::from::unix(rebirth_date)");
         ///
         /// let param = Param::new("rebirth_date");
         /// let result = time::from::unix!(param);
-        /// assert_eq!(result.to_raw().build(), "time::from::unix($rebirth_date)");
+        /// assert_eq!(result.to_debug_sql(), "time::from::unix($rebirth_date)");
         /// ```
         =>
         "unix",

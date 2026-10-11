@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 // Embedded scripting functions
 // SurrealDB allows for advanced functions with complicated logic, by allowing embedded functions to be written in JavaScript. These functions support the ES2020 JavaScript specification.
@@ -15,29 +10,17 @@
 // };
 //
 
-use crate::{Buildable, Function, Param};
+use crate::{Function, Param};
 
 /// SurrealDB allows for advanced functions with complicated logic, by allowing embedded functions to be written in JavaScript. These functions support the ES2020 JavaScript specification.
 ///
 /// [See more](https://surrealdb.com/docs/functions/script)
 pub fn function_fn<T: Into<Param>>(args: Vec<T>, jscode_body: impl Into<String>) -> Function {
-    let query_string = format!(
-        "function({}) {}",
-        args.into_iter()
-            .map(|a| {
-                let a: Param = a.into();
-                a.build()
-            })
-            .collect::<Vec<_>>()
-            .join(", "),
-        jscode_body.into()
-    );
-
-    Function {
-        query_string,
-        bindings: vec![],
-        errors: vec![],
-    }
+    args.into_iter()
+        .fold(Function::new("function"), |function, arg| {
+            function.arg(arg.into())
+        })
+        .with_body(jscode_body.into())
 }
 
 /// Creates a new function
@@ -54,7 +37,7 @@ pub fn function_fn<T: Into<Param>>(args: Vec<T>, jscode_body: impl Into<String>)
 /// let f2 = function!((), {
 ///    return [1, 2, 3].map(v => v * 10);
 /// });
-/// assert_eq!(f2.to_raw().build(), "function() { return [1, 2, 3].map(v => v * 10); }");
+/// assert_eq!(f2.to_debug_sql(), "function() { return [1, 2, 3].map(v => v * 10); }");
 ///
 /// // Function arguments
 /// // Additional arguments can be passed in to the function from SurrealDB, and these are accessible using the arguments object within the JavaScript function.
@@ -65,7 +48,7 @@ pub fn function_fn<T: Into<Param>>(args: Vec<T>, jscode_body: impl Into<String>)
 /// let f3 = function!((value, words), "{
 ///   return `${arguments[0]} is ${arguments[1]}`;
 /// }");
-/// assert_eq!(f3.to_raw().build(), "function($value, $words) {
+/// assert_eq!(f3.to_debug_sql(), "function($value, $words) {
 ///   return `${arguments[0]} is ${arguments[1]}`;
 /// }");
 ///
@@ -75,7 +58,7 @@ pub fn function_fn<T: Into<Param>>(args: Vec<T>, jscode_body: impl Into<String>)
 ///     (name, id),
 ///     "{ return [1, 2, 3].map(v => v * 10) ; }"
 /// );
-/// assert_eq!(f5.to_raw().build(), "function($name, $id) { return [1, 2, 3].map(v => v * 10) ; }");
+/// assert_eq!(f5.to_debug_sql(), "function($name, $id) { return [1, 2, 3].map(v => v * 10) ; }");
 /// ```
 /// [See more](https://surrealdb.com/docs/functions/script)
 #[macro_export]

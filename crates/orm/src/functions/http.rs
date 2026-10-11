@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 // HTTP functions
 // These functions can be used when opening and submitting remote web requests, and webhooks.
@@ -15,7 +10,7 @@
 // http::patch()	Perform a remote HTTP PATCH request
 // http::delete()	Perform a remote HTTP DELETE request
 
-use crate::{Buildable, Erroneous, Function, ObjectLike, Parametric, StrandLike};
+use crate::{Function, ObjectLike, Render, Sql, StrandLike, render::sql};
 
 /// Represents URL
 pub type Url = StrandLike;
@@ -23,29 +18,20 @@ pub type Url = StrandLike;
 fn create_fn_with_two_args(
     url: impl Into<Url>,
     custom_headers: Option<impl Into<ObjectLike>>,
-    method: &str,
+    function_name: &'static str,
 ) -> Function {
-    let url: Url = url.into();
-    let mut all_bindings = url.get_bindings();
-    let mut errors = url.get_errors();
+    let function = Function::new(function_name).arg(url.into());
+    match custom_headers {
+        Some(headers) => function.arg(headers.into()),
+        None => function,
+    }
+}
 
-    let string = match custom_headers {
-        None => {
-            format!("http::{method}({})", &url.build())
-        }
-        Some(headers) => {
-            let headers: ObjectLike = headers.into();
-            all_bindings.extend(headers.get_bindings());
-            errors.extend(headers.get_errors());
-
-            format!("http::{method}({}, {})", url.build(), headers.build())
-        }
-    };
-
-    Function {
-        query_string: string,
-        bindings: all_bindings,
-        errors,
+/// An omitted body or header argument is an empty object.
+fn object_or_empty(object: Option<impl Into<ObjectLike>>) -> Sql {
+    match object {
+        Some(object) => object.into().to_sql(),
+        None => sql!("{ }"),
     }
 }
 
@@ -53,43 +39,12 @@ fn create_fn_with_three_args(
     url: impl Into<Url>,
     request_body: Option<impl Into<ObjectLike>>,
     custom_headers: Option<impl Into<ObjectLike>>,
-    method: &str,
+    function_name: &'static str,
 ) -> Function {
-    let url: Url = url.into();
-    let mut all_bindings = url.get_bindings();
-    let mut errors = url.get_errors();
-
-    let string = match request_body {
-        None => {
-            format!("http::{method}({}, {{ }}", &url.build())
-        }
-        Some(body) => {
-            let body: ObjectLike = body.into();
-            all_bindings.extend(body.get_bindings());
-            errors.extend(body.get_errors());
-
-            format!("http::{method}({}, {}", url.build(), body.build())
-        }
-    };
-
-    let string = match custom_headers {
-        None => {
-            format!("{string}, {{ }})")
-        }
-        Some(headers) => {
-            let headers: ObjectLike = headers.into();
-            all_bindings.extend(headers.get_bindings());
-            errors.extend(headers.get_errors());
-
-            format!("{string}, {})", headers.build())
-        }
-    };
-
-    Function {
-        query_string: string,
-        bindings: all_bindings,
-        errors,
-    }
+    Function::new(function_name)
+        .arg(url.into())
+        .arg(object_or_empty(request_body))
+        .arg(object_or_empty(custom_headers))
 }
 
 macro_rules! create_fn_with_url_and_head {
@@ -97,7 +52,7 @@ macro_rules! create_fn_with_url_and_head {
         paste::paste! {
             $(#[$attr])*
             pub fn [<$function_name _fn>](url: impl Into<Url>, custom_headers: Option<impl Into<ObjectLike>>) -> Function {
-               create_fn_with_two_args(url, custom_headers, $function_name)
+               create_fn_with_two_args(url, custom_headers, concat!("http::", $function_name))
            }
 
            $(#[$attr])*
@@ -223,7 +178,7 @@ macro_rules! create_fn_with_3args_url_body_and_head {
                 request_body: Option<impl Into<ObjectLike>>,
                 custom_headers: Option<impl Into<ObjectLike>>,
             ) -> Function {
-               create_fn_with_three_args(url, request_body, custom_headers, $function_name)
+               create_fn_with_three_args(url, request_body, custom_headers, concat!("http::", $function_name))
            }
 
             $(#[$attr])*

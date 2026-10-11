@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 // Parse functions
 // These functions can be used when parsing email addresses and URL web addresses.
@@ -17,20 +12,13 @@
 // parse::url::port()	Parses and returns the port number from a URL
 // parse::url::query()	Parses and returns the query string from a URL
 
-use crate::{Buildable, Erroneous, Function, Parametric, StrandLike};
+use crate::{Function, StrandLike};
 
 fn create_fn_with_single_string_arg(
     string: impl Into<StrandLike>,
-    function_name: &str,
+    function_name: &'static str,
 ) -> Function {
-    let string: StrandLike = string.into();
-    let query_string = format!("parse::{function_name}({})", string.build());
-
-    Function {
-        query_string,
-        bindings: string.get_bindings(),
-        errors: string.get_errors(),
-    }
+    Function::new(function_name).arg(string.into())
 }
 
 macro_rules! create_test_for_fn_with_single_arg {
@@ -38,7 +26,7 @@ macro_rules! create_test_for_fn_with_single_arg {
         ::paste::paste! {
             $(#[$attr])*
             pub fn [<$function_name _fn>](number: impl Into<$crate::StrandLike>) -> $crate::Function {
-                create_fn_with_single_string_arg(number, format!("{}::{}", $module_name, $function_name).as_str())
+                create_fn_with_single_string_arg(number, concat!("parse::", $module_name, "::", $function_name))
             }
 
             $(#[$attr])*

@@ -1,9 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
-
 // These functions can be used when generating random data values.
 //
 // Function	Description
@@ -19,7 +13,20 @@
 // rand::uuid::v4() Generates and returns a random Version 4 UUID
 // rand::uuid::v7() Generates and returns a random Version 7 UUID
 
-use crate::{Buildable, Erroneous, Function, NumberLike, Parametric, ValueLike};
+use crate::{Function, NumberLike, ValueLike};
+
+/// `name()`, or `name(from, to)` when both bounds are given.
+fn range_fn(
+    function_name: &'static str,
+    from: Option<impl Into<NumberLike>>,
+    to: Option<impl Into<NumberLike>>,
+) -> Function {
+    let function = Function::new(function_name);
+    match (from, to) {
+        (Some(from), Some(to)) => function.arg(from.into()).arg(to.into()),
+        _ => function,
+    }
+}
 
 /// The rand function generates a random float, between 0 and 1.
 ///
@@ -43,13 +50,7 @@ use crate::{Buildable, Erroneous, Function, NumberLike, Parametric, ValueLike};
 ///    }
 /// ]
 pub fn rand_fn() -> Function {
-    let query_string = "rand()".to_string();
-
-    Function {
-        query_string,
-        bindings: vec![],
-        errors: vec![],
-    }
+    Function::new("rand")
 }
 
 /// The `rand` function generates a random float, between 0 and 1.
@@ -58,7 +59,7 @@ pub fn rand_fn() -> Function {
 /// ```rust
 /// use aparecium::{*, functions::rand};
 ///
-/// assert_eq!(rand!().to_raw().build(), "rand()");
+/// assert_eq!(rand!().to_debug_sql(), "rand()");
 /// ```
 #[macro_export]
 macro_rules! rand_rand {
@@ -71,13 +72,7 @@ pub use rand_rand as rand;
 
 /// The rand::bool function generates a random boolean value.
 pub fn bool_fn() -> Function {
-    let query_string = "rand::bool()".to_string();
-
-    Function {
-        query_string,
-        bindings: vec![],
-        errors: vec![],
-    }
+    Function::new("rand::bool")
 }
 
 /// The `rand::bool!` function generates a random boolean value.
@@ -86,7 +81,7 @@ pub fn bool_fn() -> Function {
 /// # Example
 /// ```rust
 /// use aparecium::{*, functions::rand};
-/// assert_eq!(rand::bool!().to_raw().build(), "rand::bool()");
+/// assert_eq!(rand::bool!().to_debug_sql(), "rand::bool()");
 /// ```
 #[macro_export]
 macro_rules! rand_bool {
@@ -99,13 +94,7 @@ pub use rand_bool as bool;
 
 /// The rand::uuid function generates a random UUID.
 pub fn uuid_fn() -> Function {
-    let query_string = "rand::uuid()".to_string();
-
-    Function {
-        query_string,
-        bindings: vec![],
-        errors: vec![],
-    }
+    Function::new("rand::uuid")
 }
 
 /// The `rand::uuid!` function generates a random UUID.
@@ -114,7 +103,7 @@ pub fn uuid_fn() -> Function {
 /// # Example
 /// ```rust
 /// use aparecium::{*, functions::rand};
-/// assert_eq!(rand::uuid!().to_raw().build(), "rand::uuid()");
+/// assert_eq!(rand::uuid!().to_debug_sql(), "rand::uuid()");
 /// ```
 #[macro_export]
 macro_rules! rand_uuid {
@@ -127,24 +116,11 @@ pub use rand_uuid as uuid;
 
 /// The rand::enum function generates a random value, from a multitude of values.
 pub fn enum_fn<T: Into<ValueLike>>(values: Vec<T>) -> Function {
-    let mut bindings = vec![];
-
-    let values = values
+    values
         .into_iter()
-        .map(|v| {
-            let v: ValueLike = v.into();
-            bindings.extend(v.get_bindings());
-            v.build()
+        .fold(Function::new("rand::enum"), |function, value| {
+            function.arg(value.into())
         })
-        .collect::<Vec<_>>();
-
-    let query_string = format!("rand::enum({})", values.join(", "));
-
-    Function {
-        query_string,
-        bindings,
-        errors: vec![],
-    }
 }
 
 /// The `rand::enum_!` function generates a random value, from a multitude of values.
@@ -153,8 +129,8 @@ pub fn enum_fn<T: Into<ValueLike>>(values: Vec<T>) -> Function {
 /// # Example
 /// ```rust
 /// use aparecium::{*, functions::rand};
-/// assert_eq!(rand::enum_!(1, 2, 3).to_raw().build(), "rand::enum(1, 2, 3)");
-/// assert_eq!(rand::enum_!(arr![1, 2, 3]).to_raw().build(), "rand::enum(1, 2, 3)");
+/// assert_eq!(rand::enum_!(1, 2, 3).to_debug_sql(), "rand::enum(1, 2, 3)");
+/// assert_eq!(rand::enum_!(arr![1, 2, 3]).to_debug_sql(), "rand::enum(1, 2, 3)");
 /// ```
 #[macro_export]
 macro_rules! rand_enum {
@@ -178,28 +154,7 @@ pub fn float_fn(
     from: Option<impl Into<NumberLike>>,
     to: Option<impl Into<NumberLike>>,
 ) -> Function {
-    let mut bindings = vec![];
-    let mut errors = vec![];
-
-    let query_string = match (from, to) {
-        (Some(from), Some(to)) => {
-            let from: NumberLike = from.into();
-            let to: NumberLike = to.into();
-
-            bindings.extend(from.get_bindings());
-            bindings.extend(to.get_bindings());
-            errors.extend(from.get_errors());
-            errors.extend(to.get_errors());
-            format!("rand::float({}, {})", from.build(), to.build())
-        }
-        _ => "rand::float()".to_string(),
-    };
-
-    Function {
-        query_string,
-        bindings,
-        errors,
-    }
+    range_fn("rand::float", from, to)
 }
 
 /// The `rand::float!` function generates a random float, between 0 and 1 if no arguments are
@@ -217,16 +172,17 @@ pub fn float_fn(
 /// # Example
 /// ```rust
 /// use aparecium::{*, functions::rand};
-/// assert_eq!(rand::float!().to_raw().build(), "rand::float()");
-/// assert_eq!(rand::float!(1, 2).to_raw().build(), "rand::float(1, 2)");
+/// assert_eq!(rand::float!().to_debug_sql(), "rand::float()");
+/// assert_eq!(rand::float!(1, 2).to_debug_sql(), "rand::float(1, 2)");
 ///
 /// # let minimum_field = Field::new("minimum_field");
 /// # let maximum_field = Field::new("maximum_field");
-/// assert_eq!(rand::float!(minimum_field, maximum_field).to_raw().build(), "rand::float(minimum_field, maximum_field)");
+/// assert_eq!(rand::float!(minimum_field, maximum_field).to_debug_sql(), "rand::float(minimum_field, maximum_field)");
 ///
 /// # let minimum_param = Param::new("minimum_param");
 /// # let maximum_param = Param::new("maximum_param");
-/// assert_eq!(rand::float!(minimum_param, maximum_param).to_raw().build(), "rand::float($minimum_param, $maximum_param)");
+/// assert_eq!(rand::float!(minimum_param, maximum_param).to_debug_sql(), "rand::float($minimum_param, $maximum_param)");
+/// ```
 #[macro_export]
 macro_rules! rand_float {
     () => {
@@ -248,30 +204,8 @@ pub use rand_float as float;
 /// If two numbers are provided, then the function generates a random int, between two numbers.
 ///
 /// rand::int(number, number) -> int
-/// The following examples show this function, and its output, when used in a select statement:
 pub fn int_fn(from: Option<impl Into<NumberLike>>, to: Option<impl Into<NumberLike>>) -> Function {
-    let mut bindings = vec![];
-    let mut errors = vec![];
-
-    let query_string = match (from, to) {
-        (Some(from), Some(to)) => {
-            let from: NumberLike = from.into();
-            let to: NumberLike = to.into();
-
-            bindings.extend(from.get_bindings());
-            bindings.extend(to.get_bindings());
-            errors.extend(from.get_errors());
-            errors.extend(to.get_errors());
-            format!("rand::int({}, {})", from.build(), to.build())
-        }
-        _ => "rand::int()".to_string(),
-    };
-
-    Function {
-        query_string,
-        bindings,
-        errors,
-    }
+    range_fn("rand::int", from, to)
 }
 
 /// Generates a random integer if no arguments are provided, otherwise it generates a random
@@ -288,14 +222,14 @@ pub fn int_fn(from: Option<impl Into<NumberLike>>, to: Option<impl Into<NumberLi
 /// # Example
 /// ```rust
 /// use aparecium::{*, functions::rand};
-/// assert_eq!(rand::int!().to_raw().build(), "rand::int()");
-/// assert_eq!(rand::int!(1, 2).to_raw().build(), "rand::int(1, 2)");
+/// assert_eq!(rand::int!().to_debug_sql(), "rand::int()");
+/// assert_eq!(rand::int!(1, 2).to_debug_sql(), "rand::int(1, 2)");
 /// # let minimum_field = Field::new("minimum_field");
 /// # let maximum_field = Field::new("maximum_field");
-/// assert_eq!(rand::int!(minimum_field, maximum_field).to_raw().build(), "rand::int(minimum_field, maximum_field)");
+/// assert_eq!(rand::int!(minimum_field, maximum_field).to_debug_sql(), "rand::int(minimum_field, maximum_field)");
 /// # let minimum_param = Param::new("minimum_param");
 /// # let maximum_param = Param::new("maximum_param");
-/// assert_eq!(rand::int!(minimum_param, maximum_param).to_raw().build(), "rand::int($minimum_param, $maximum_param)");
+/// assert_eq!(rand::int!(minimum_param, maximum_param).to_debug_sql(), "rand::int($minimum_param, $maximum_param)");
 /// ```
 #[macro_export]
 macro_rules! rand_int {
@@ -318,29 +252,7 @@ pub use rand_int as int;
 ///
 /// rand::time(number, number) -> datetime
 pub fn time_fn(from: Option<impl Into<NumberLike>>, to: Option<impl Into<NumberLike>>) -> Function {
-    let mut bindings = vec![];
-    let mut errors = vec![];
-
-    let query_string = match (from, to) {
-        (Some(from), Some(to)) => {
-            let from: NumberLike = from.into();
-            let to: NumberLike = to.into();
-            let query_string = format!("rand::time({}, {})", from.build(), to.build());
-
-            bindings.extend(from.get_bindings());
-            bindings.extend(to.get_bindings());
-            errors.extend(from.get_errors());
-            errors.extend(to.get_errors());
-            query_string
-        }
-        _ => "rand::time()".to_string(),
-    };
-
-    Function {
-        query_string,
-        bindings,
-        errors,
-    }
+    range_fn("rand::time", from, to)
 }
 
 /// Generates a random datetime if no arguments are provided, otherwise it generates a random
@@ -357,14 +269,14 @@ pub fn time_fn(from: Option<impl Into<NumberLike>>, to: Option<impl Into<NumberL
 /// # Example
 /// ```rust
 /// use aparecium::{*, functions::rand};
-/// assert_eq!(rand::time!().to_raw().build(), "rand::time()");
-/// assert_eq!(rand::time!(1, 2).to_raw().build(), "rand::time(1, 2)");
+/// assert_eq!(rand::time!().to_debug_sql(), "rand::time()");
+/// assert_eq!(rand::time!(1, 2).to_debug_sql(), "rand::time(1, 2)");
 /// # let minimum_field = Field::new("minimum_field");
 /// # let maximum_field = Field::new("maximum_field");
-/// assert_eq!(rand::time!(minimum_field, maximum_field).to_raw().build(), "rand::time(minimum_field, maximum_field)");
+/// assert_eq!(rand::time!(minimum_field, maximum_field).to_debug_sql(), "rand::time(minimum_field, maximum_field)");
 /// # let minimum_param = Param::new("minimum_param");
 /// # let maximum_param = Param::new("maximum_param");
-/// assert_eq!(rand::time!(minimum_param, maximum_param).to_raw().build(), "rand::time($minimum_param, $maximum_param)");
+/// assert_eq!(rand::time!(minimum_param, maximum_param).to_debug_sql(), "rand::time($minimum_param, $maximum_param)");
 /// ```
 #[macro_export]
 macro_rules! rand_time {
@@ -391,34 +303,9 @@ pub fn string_fn(
     from: Option<impl Into<NumberLike>>,
     to: Option<impl Into<NumberLike>>,
 ) -> Function {
-    let mut bindings = vec![];
-    let mut errors = vec![];
-
-    let query_string = match (from, to) {
-        (Some(length), None) => {
-            let length: NumberLike = length.into();
-
-            bindings.extend(length.get_bindings());
-            format!("rand::string({})", length.build())
-        }
-        (Some(from), Some(to)) => {
-            let from: NumberLike = from.into();
-            let to: NumberLike = to.into();
-
-            bindings.extend(from.get_bindings());
-            bindings.extend(to.get_bindings());
-            errors.extend(from.get_errors());
-            errors.extend(to.get_errors());
-
-            format!("rand::string({}, {})", from.build(), to.build())
-        }
-        _ => "rand::string()".to_string(),
-    };
-
-    Function {
-        query_string,
-        bindings,
-        errors,
+    match (from, to) {
+        (Some(length), None) => Function::new("rand::string").arg(length.into()),
+        (from, to) => range_fn("rand::string", from, to),
     }
 }
 
@@ -438,15 +325,15 @@ pub fn string_fn(
 /// ```rust
 /// use aparecium::{*, functions::rand};
 ///
-/// assert_eq!(rand::string!().to_raw().build(), "rand::string()");
-/// assert_eq!(rand::string!(1).to_raw().build(), "rand::string(1)");
-/// assert_eq!(rand::string!(1, 2).to_raw().build(), "rand::string(1, 2)");
+/// assert_eq!(rand::string!().to_debug_sql(), "rand::string()");
+/// assert_eq!(rand::string!(1).to_debug_sql(), "rand::string(1)");
+/// assert_eq!(rand::string!(1, 2).to_debug_sql(), "rand::string(1, 2)");
 /// # let minimum_field = Field::new("minimum_field");
 /// # let maximum_field = Field::new("maximum_field");
-/// assert_eq!(rand::string!(minimum_field, maximum_field).to_raw().build(), "rand::string(minimum_field, maximum_field)");
+/// assert_eq!(rand::string!(minimum_field, maximum_field).to_debug_sql(), "rand::string(minimum_field, maximum_field)");
 /// # let minimum_param = Param::new("minimum_param");
 /// # let maximum_param = Param::new("maximum_param");
-/// assert_eq!(rand::string!(minimum_param, maximum_param).to_raw().build(), "rand::string($minimum_param, $maximum_param)");
+/// assert_eq!(rand::string!(minimum_param, maximum_param).to_debug_sql(), "rand::string($minimum_param, $maximum_param)");
 /// ```
 #[macro_export]
 macro_rules! rand_string {
@@ -470,22 +357,10 @@ pub use rand_string as string;
 /// rand::guid() -> string
 /// If a number is provided, then the function generates a random guid, with a specific length.
 pub fn guid_fn(length: Option<impl Into<NumberLike>>) -> Function {
+    let function = Function::new("rand::guid");
     match length {
-        None => Function {
-            query_string: "rand::guid()".into(),
-            bindings: vec![],
-            errors: vec![],
-        },
-        Some(length) => {
-            let length: NumberLike = length.into();
-            let query_string = format!("rand::guid({})", length.build());
-
-            Function {
-                query_string,
-                bindings: length.get_bindings(),
-                errors: length.get_errors(),
-            }
-        }
+        Some(length) => function.arg(length.into()),
+        None => function,
     }
 }
 
@@ -502,12 +377,12 @@ pub fn guid_fn(length: Option<impl Into<NumberLike>>) -> Function {
 /// ```rust
 /// use aparecium::{*, functions::rand};
 ///
-/// assert_eq!(rand::guid!().to_raw().build(), "rand::guid()");
-/// assert_eq!(rand::guid!(1).to_raw().build(), "rand::guid(1)");
+/// assert_eq!(rand::guid!().to_debug_sql(), "rand::guid()");
+/// assert_eq!(rand::guid!(1).to_debug_sql(), "rand::guid(1)");
 /// # let length_field = Field::new("length_field");
-/// assert_eq!(rand::guid!(length_field).to_raw().build(), "rand::guid(length_field)");
+/// assert_eq!(rand::guid!(length_field).to_debug_sql(), "rand::guid(length_field)");
 /// # let length_param = Param::new("length_param");
-/// assert_eq!(rand::guid!(length_param).to_raw().build(), "rand::guid($length_param)");
+/// assert_eq!(rand::guid!(length_param).to_debug_sql(), "rand::guid($length_param)");
 /// ```
 #[macro_export]
 macro_rules! rand_guid {
@@ -523,17 +398,13 @@ pub use rand_guid as guid;
 
 /// This module contains functions for generating versioned random uuids.
 pub mod uuid {
-    use super::*;
+    use crate::Function;
 
     /// The rand::uuid::v4 function generates a random Version 4 UUID.
     ///
     /// rand::uuid::v4() -> uuid
     pub fn v4_fn() -> Function {
-        Function {
-            query_string: "rand::uuid::v4()".into(),
-            bindings: vec![],
-            errors: vec![],
-        }
+        Function::new("rand::uuid::v4")
     }
 
     /// Generates a random Version 4 UUID.
@@ -543,7 +414,7 @@ pub mod uuid {
     /// ```rust
     /// use aparecium::{*, functions::rand};
     ///
-    /// assert_eq!(rand::uuid::v4!().to_raw().build(), "rand::uuid::v4()");
+    /// assert_eq!(rand::uuid::v4!().to_debug_sql(), "rand::uuid::v4()");
     /// ```
     #[macro_export]
     macro_rules! rand_uuid_v4 {
@@ -558,11 +429,7 @@ pub mod uuid {
     ///
     /// rand::uuid::v7() -> uuid
     pub fn v7_fn() -> Function {
-        Function {
-            query_string: "rand::uuid::v7()".into(),
-            bindings: vec![],
-            errors: vec![],
-        }
+        Function::new("rand::uuid::v7")
     }
 
     /// Generates a random Version 7 UUID.
@@ -572,7 +439,7 @@ pub mod uuid {
     /// ```rust
     /// use aparecium::{*, functions::rand};
     ///
-    /// assert_eq!(rand::uuid::v7!().to_raw().build(), "rand::uuid::v7()");
+    /// assert_eq!(rand::uuid::v7!().to_debug_sql(), "rand::uuid::v7()");
     /// ```
     #[macro_export]
     macro_rules! rand_uuid_v7 {
@@ -583,13 +450,3 @@ pub mod uuid {
 
     pub use rand_uuid_v7 as v7;
 }
-
-macro_rules! create_test_for_fn_with_two_args {
-    ($function_ident: expr) => {
-        paste::paste! {}
-    };
-}
-create_test_for_fn_with_two_args!("float");
-create_test_for_fn_with_two_args!("int");
-create_test_for_fn_with_two_args!("string");
-create_test_for_fn_with_two_args!("time");

@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 // Geo functions
 // These functions can be used when working with and analysing geospatial data.
@@ -17,41 +12,28 @@
 //
 //
 
-use crate::{Buildable, Erroneous, Function, GeometryLike, Parametric};
+use crate::{Function, GeometryLike};
 
 pub(crate) fn create_geo_with_single_arg(
     geometry: impl Into<GeometryLike>,
-    fn_suffix: &str,
+    function_name: &'static str,
 ) -> Function {
-    let geometry: GeometryLike = geometry.into();
-
-    Function {
-        query_string: format!("geo::{fn_suffix}({})", geometry.build()),
-        bindings: geometry.get_bindings(),
-        errors: geometry.get_errors(),
-    }
+    Function::new(function_name).arg(geometry.into())
 }
 
 fn create_geo_fn_with_two_args(
     point1: impl Into<GeometryLike>,
     point2: impl Into<GeometryLike>,
-    fn_suffix: &str,
+    function_name: &'static str,
 ) -> Function {
-    let point1: GeometryLike = point1.into();
-    let point2: GeometryLike = point2.into();
-    let mut bindings = point1.get_bindings();
-    bindings.extend(point2.get_bindings());
-
-    Function {
-        query_string: format!("geo::{fn_suffix}({}, {})", point1.build(), point2.build()),
-        bindings,
-        errors: point1.get_errors(),
-    }
+    Function::new(function_name)
+        .arg(point1.into())
+        .arg(point2.into())
 }
 
 /// The geo::area function calculates the area of a geometry.
 pub fn area_fn(geometry: impl Into<GeometryLike>) -> Function {
-    create_geo_with_single_arg(geometry, "area")
+    create_geo_with_single_arg(geometry, "geo::area")
 }
 
 /// The geo::area function calculates the area of a geometry.
@@ -84,7 +66,7 @@ pub fn area_fn(geometry: impl Into<GeometryLike>) -> Function {
 /// );
 ///
 /// let result = geo::area!(polygon);
-/// assert_eq!(result.to_raw().build(), "geo::area({ type: 'Polygon', coordinates: [[[-111, 45], [-111, 41], [-104, 41], [-104, 45], [-111, 45]], [[[-110, 44], [-110, 42], [-105, 42], [-105, 44], [-110, 44]]]] })");
+/// assert_eq!(result.to_debug_sql(), "geo::area({ type: 'Polygon', coordinates: [[[-111, 45], [-111, 41], [-104, 41], [-104, 45], [-111, 45]], [[-110, 44], [-110, 42], [-105, 42], [-105, 44], [-110, 44]]] })");
 ///
 /// # let geometry_field = Field::new("geometry_field");
 ///  geo::area!(geometry_field);
@@ -102,7 +84,7 @@ pub use geo_area as area;
 
 /// The geo::bearing function calculates the bearing between two geolocation points.
 pub fn bearing_fn(point1: impl Into<GeometryLike>, point2: impl Into<GeometryLike>) -> Function {
-    create_geo_fn_with_two_args(point1, point2, "bearing")
+    create_geo_fn_with_two_args(point1, point2, "geo::bearing")
 }
 
 /// The geo::bearing function calculates the bearing between two geolocation points.
@@ -126,7 +108,7 @@ pub fn bearing_fn(point1: impl Into<GeometryLike>, point2: impl Into<GeometryLik
 ///     y: 116.34,
 /// };
 /// let result = geo::bearing!(point1, point2);
-/// assert_eq!(result.to_raw().build(), "geo::bearing((40.02, 116.34), (40.02, 116.34))");
+/// assert_eq!(result.to_debug_sql(), "geo::bearing((40.02, 116.34), (40.02, 116.34))");
 /// # let point1_field = Field::new("point1_field");
 /// # let point2_field = Field::new("point2_field");
 /// geo::bearing!(point1_field, point2_field);
@@ -145,7 +127,7 @@ pub use geo_bearing as bearing;
 
 /// The geo::centroid function calculates the centroid between two geolocation points.
 pub fn centroid_fn(geometry: impl Into<GeometryLike>) -> Function {
-    create_geo_with_single_arg(geometry, "centroid")
+    create_geo_with_single_arg(geometry, "geo::centroid")
 }
 
 /// The geo::centroid function calculates the centroid between two geolocation points.
@@ -174,7 +156,7 @@ pub fn centroid_fn(geometry: impl Into<GeometryLike>) -> Function {
 ///    ]],
 /// );
 /// let result = geo::centroid!(polygon);
-/// assert_eq!(result.to_raw().build(), "geo::centroid({ type: 'Polygon', coordinates: [[[-111, 45], [-111, 41], [-104, 41], [-104, 45], [-111, 45]], [[[-110, 44], [-110, 42], [-105, 42], [-105, 44], [-110, 44]]]] })");
+/// assert_eq!(result.to_debug_sql(), "geo::centroid({ type: 'Polygon', coordinates: [[[-111, 45], [-111, 41], [-104, 41], [-104, 45], [-111, 45]], [[-110, 44], [-110, 42], [-105, 42], [-105, 44], [-110, 44]]] })");
 /// # let geometry_field = Field::new("geometry_field");
 /// geo::centroid!(geometry_field);
 /// # let geometry_param = Param::new("geometry_param");
@@ -192,7 +174,7 @@ pub use geo_centroid as centroid;
 /// The geo::distance function calculates the haversine distance, in metres, between two geolocation
 /// points.
 pub fn distance_fn(point1: impl Into<GeometryLike>, point2: impl Into<GeometryLike>) -> Function {
-    create_geo_fn_with_two_args(point1, point2, "distance")
+    create_geo_fn_with_two_args(point1, point2, "geo::distance")
 }
 
 /// The geo::distance function calculates the haversine distance, in metres, between two geolocation
@@ -217,7 +199,7 @@ pub fn distance_fn(point1: impl Into<GeometryLike>, point2: impl Into<GeometryLi
 ///   y: 116.34,
 /// };
 /// let result = geo::distance!(point1, point2);
-/// assert_eq!(result.to_raw().build(), "geo::distance((40.02, 116.34), (40.02, 116.34))");
+/// assert_eq!(result.to_debug_sql(), "geo::distance((40.02, 116.34), (40.02, 116.34))");
 /// # let point1_field = Field::new("point1_field");
 /// # let point2_field = Field::new("point2_field");
 /// geo::distance!(point1_field, point2_field);
@@ -235,20 +217,14 @@ pub use geo_distance as distance;
 
 /// This module contains functions for working with geohashes.
 pub mod hash {
-    use crate::{Buildable, Erroneous, Function, GeometryLike, NumberLike, Parametric, StrandLike};
+    use crate::{Function, GeometryLike, NumberLike, StrandLike};
 
     /// represents a geohash
     pub type GeoHash = StrandLike;
 
     /// The geo::hash::decode function converts a geohash into a geolocation point.
     pub fn decode_fn(geohash: impl Into<GeoHash>) -> Function {
-        let string: GeoHash = geohash.into();
-
-        Function {
-            query_string: format!("geo::hash::decode({})", string.build()),
-            bindings: string.get_bindings(),
-            errors: string.get_errors(),
-        }
+        Function::new("geo::hash::decode").arg(geohash.into())
     }
 
     /// The geo::hash::decode function converts a geohash into a geolocation point.
@@ -263,7 +239,7 @@ pub mod hash {
     /// use aparecium::{*, functions::geo};
     /// let geohash = "u4pruydqqvj";
     /// let result = geo::hash::decode!(geohash);
-    /// assert_eq!(result.to_raw().build(), "geo::hash::decode('u4pruydqqvj')");
+    /// assert_eq!(result.to_debug_sql(), "geo::hash::decode('u4pruydqqvj')");
     /// # let geohash_field = Field::new("geohash_field");
     /// geo::hash::decode!(geohash_field);
     /// # let geohash_param = Param::new("geohash_param");
@@ -282,29 +258,10 @@ pub mod hash {
         geometry: impl Into<GeometryLike>,
         accuracy: Option<impl Into<NumberLike>>,
     ) -> Function {
-        let geometry: GeometryLike = geometry.into();
-
-        let mut bindings = geometry.get_bindings();
-        let mut errors = geometry.get_errors();
-
-        let str = if let Some(accuracy) = accuracy {
-            let accuracy: NumberLike = accuracy.into();
-            bindings.extend(accuracy.get_bindings());
-            errors.extend(accuracy.get_errors());
-
-            format!(
-                "geo::hash::encode({}, {})",
-                geometry.build(),
-                accuracy.build()
-            )
-        } else {
-            format!("geo::hash::encode({})", geometry.build())
-        };
-
-        Function {
-            query_string: str,
-            bindings,
-            errors,
+        let function = Function::new("geo::hash::encode").arg(geometry.into());
+        match accuracy {
+            Some(accuracy) => function.arg(accuracy.into()),
+            None => function,
         }
     }
 
@@ -324,7 +281,7 @@ pub mod hash {
     ///   y: 116.34,
     /// };
     /// let result = geo::hash::encode!(point);
-    /// assert_eq!(result.to_raw().build(), "geo::hash::encode((40.02, 116.34))");
+    /// assert_eq!(result.to_debug_sql(), "geo::hash::encode((40.02, 116.34))");
     /// # let point_field = Field::new("point_field");
     /// geo::hash::encode!(point_field);
     /// # let point_param = Param::new("point_param");
