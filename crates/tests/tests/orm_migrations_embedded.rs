@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 use aparecium::migrations::{
     self, DatabaseConnection, EmbeddedMigrationsTwoWay, FileMetadataStatic, Migration,
     MigrationError, Mode, UpdateStrategy, embed_migrations,

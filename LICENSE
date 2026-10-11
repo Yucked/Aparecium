@@ -1,0 +1,12 @@
+Aparecium — upstream attribution
+
+Aparecium builds on surreal_orm, originally created by Oyelowo Oyedayo.
+Upstream project: https://github.com/Oyelowo/surreal_orm
+
+Copyright (c) 2023 Oyelowo Oyedayo
+Copyright (c) 2024 Oyelowo Oyedayo
+
+This file consolidates the attribution and copyright notices previously
+included in source-file headers. It acknowledges the original work on which
+Aparecium is based; it does not grant a new license or change any existing
+rights or licensing terms applicable to that work.

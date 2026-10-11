@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 use aparecium::{All, Buildable, E, Operatable, SchemaGetter, ToRaw, index, this, value, where_};
 use aparecium_tests::{Student, student};

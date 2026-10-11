@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 use std::{fmt::Display, fs, path::PathBuf};
 
 use crate::migrations::{Checksum, MigrationError, MigrationResult};

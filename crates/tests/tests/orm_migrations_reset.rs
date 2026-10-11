@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 use aparecium::migrations::{
     FastForwardDelta, Init, Migration, MigrationFilename, MockPrompter, Mode, Reset,

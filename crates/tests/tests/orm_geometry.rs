@@ -1,10 +1,5 @@
 #![allow(clippy::type_complexity)]
 
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 use geo::LineString;
 use geo::MultiLineString;

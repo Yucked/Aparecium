@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 //! SurrealDB comes with a large number of in-built functions for checking, manipulating, and
 //! working with many different types of data. These functions are grouped into a number of

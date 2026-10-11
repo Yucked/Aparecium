@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 use clap::{Args, ValueEnum};
 use std::fmt::Display;
 use typed_builder::TypedBuilder;

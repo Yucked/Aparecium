@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use aparecium::{

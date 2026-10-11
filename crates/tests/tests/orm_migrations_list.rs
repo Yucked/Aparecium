@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 use aparecium::migrations::{FastForwardDelta, Mode, Status};
 use aparecium_tests::migrator_support::{AssertionArg, TestConfig, current_function};

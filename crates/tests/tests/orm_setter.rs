@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 use aparecium::{Buildable, Field, SchemaGetter, SetterAssignable, ToRaw};
 use aparecium_tests::Organization;

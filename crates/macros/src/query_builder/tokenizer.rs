@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 use crate::helpers::get_crate_name;
 use crate::statement_parser::query_chain::{GeneratedCode, QueriesChainParser};

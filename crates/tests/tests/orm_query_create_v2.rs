@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 // TODO: Validate in Node and Edge if id, skip_serializing_if = "Option::is_none" must be
 // set and if relate, skip_serializing
 use aparecium::statements::order;
