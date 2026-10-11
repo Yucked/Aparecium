@@ -26,6 +26,8 @@ aparecium-macros = { path = "crates/macros" }
 surrealdb = { version = "3.3.3", default-features = false }
 # SurrealDB's internal parser (no SemVer guarantee); keep the same requirement as `surrealdb`.
 surrealdb-syn = "3.3.3"
+# The SDK's value types, named by the macros when emitting `Kind`s; same requirement as `surrealdb`.
+surrealdb-types = "3.3.3"
 
 syn = { version = "3.0.7", features = ["full", "extra-traits", "fold", "visit", "visit-mut"] }
 quote = "1.0.47"
@@ -36,7 +38,6 @@ nom = "8.0.0"
 convert_case = "0.12.0"
 strum = "0.28.0"
 strum_macros = "0.28.0"
-num-traits = "0.2.19"
 regex = "1.13.1"
 itertools = "0.15.0"
 paste = "1.0.15"
@@ -58,6 +59,5 @@ geo = { version = "0.32", features = ["use-serde"] }
 inquire = "0.9.4"
 insta = "1.49.0"
 pretty_assertions = "1.4.1"
-static_assertions = "1.1.0"
 test-case = "3.4.0"
 trybuild = "1.0.122"

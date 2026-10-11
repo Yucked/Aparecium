@@ -24,6 +24,7 @@ strum_macros = { workspace = true }
 thiserror = { workspace = true }
 paste = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
-nom = { workspace = true }
 # Compile-time SurrealQL syntax validation, contained in `src/surql.rs`.
 surrealdb-syn = { workspace = true }
+# Parsed field types are converted to the SDK's `Kind` and emitted as tokens.
+surrealdb-types = { workspace = true }
