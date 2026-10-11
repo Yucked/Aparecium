@@ -1,54 +1,158 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 use crate::{
-    Aliasable, ArrayLike, Binding, BindingsList, Buildable, Conditional, Erroneous, ErrorList,
-    GeometryLike, NumberLike, Ordinal, Parametric, Setter, StrandLike, ValueLike,
+    Aliasable, ArrayLike, Conditional, GeometryLike, NumberLike, Ordinal, Render, Setter, Sql,
+    StrandLike, ValueLike, render::sql,
 };
-use std::fmt::Display;
-use surrealdb::sql;
+
+/// A SurrealQL binary operator.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Operator {
+    /// `=`
+    Equal,
+    /// `!=`
+    NotEqual,
+    /// `==`
+    Exact,
+    /// `?=`
+    AnyEqual,
+    /// `*=`
+    AllEqual,
+    /// `~`
+    Like,
+    /// `!~`
+    NotLike,
+    /// `?~`
+    AnyLike,
+    /// `*~`
+    AllLike,
+    /// `<`
+    LessThan,
+    /// `<=`
+    LessThanOrEqual,
+    /// `>`
+    MoreThan,
+    /// `>=`
+    MoreThanOrEqual,
+    /// `+`
+    Add,
+    /// `-`
+    Sub,
+    /// `*`
+    Mul,
+    /// `/`
+    Div,
+    /// `**`
+    Pow,
+    /// `&&`
+    TruthyAnd,
+    /// `||`
+    TruthyOr,
+    /// `AND`
+    And,
+    /// `OR`
+    Or,
+    /// `IS`
+    Is,
+    /// `IS NOT`
+    IsNot,
+    /// `CONTAINS`
+    Contain,
+    /// `CONTAINSNOT`
+    NotContain,
+    /// `CONTAINSALL`
+    ContainAll,
+    /// `CONTAINSANY`
+    ContainAny,
+    /// `CONTAINSNONE`
+    ContainNone,
+    /// `INSIDE`
+    Inside,
+    /// `NOTINSIDE`
+    NotInside,
+    /// `ALLINSIDE`
+    AllInside,
+    /// `ANYINSIDE`
+    AnyInside,
+    /// `NONEINSIDE`
+    NoneInside,
+    /// `OUTSIDE`
+    Outside,
+    /// `INTERSECTS`
+    Intersects,
+    /// `@@`
+    Matches,
+    /// `+=`
+    Inc,
+    /// `-=`
+    Dec,
+}
+
+impl Operator {
+    /// The operator's SurrealQL token.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Equal => "=",
+            Self::NotEqual => "!=",
+            Self::Exact => "==",
+            Self::AnyEqual => "?=",
+            Self::AllEqual => "*=",
+            Self::Like => "~",
+            Self::NotLike => "!~",
+            Self::AnyLike => "?~",
+            Self::AllLike => "*~",
+            Self::LessThan => "<",
+            Self::LessThanOrEqual => "<=",
+            Self::MoreThan => ">",
+            Self::MoreThanOrEqual => ">=",
+            Self::Add => "+",
+            Self::Sub => "-",
+            Self::Mul => "*",
+            Self::Div => "/",
+            Self::Pow => "**",
+            Self::TruthyAnd => "&&",
+            Self::TruthyOr => "||",
+            Self::And => "AND",
+            Self::Or => "OR",
+            Self::Is => "IS",
+            Self::IsNot => "IS NOT",
+            Self::Contain => "CONTAINS",
+            Self::NotContain => "CONTAINSNOT",
+            Self::ContainAll => "CONTAINSALL",
+            Self::ContainAny => "CONTAINSANY",
+            Self::ContainNone => "CONTAINSNONE",
+            Self::Inside => "INSIDE",
+            Self::NotInside => "NOTINSIDE",
+            Self::AllInside => "ALLINSIDE",
+            Self::AnyInside => "ANYINSIDE",
+            Self::NoneInside => "NONEINSIDE",
+            Self::Outside => "OUTSIDE",
+            Self::Intersects => "INTERSECTS",
+            Self::Matches => "@@",
+            Self::Inc => "+=",
+            Self::Dec => "-=",
+        }
+    }
+}
+
+impl Render for Operator {
+    fn render(&self, sql: &mut Sql) {
+        sql.push_str(self.as_str());
+    }
+}
 
 /// Defines the operations that can be performed on a field
-#[derive(Debug, Clone)]
-pub struct Operation {
-    /// The query string
-    pub query_string: String,
-    /// The bindings used in the query
-    pub bindings: BindingsList,
-    /// The errors that occurred while building the query
-    pub errors: ErrorList,
-}
+#[derive(Debug, Clone, PartialEq)]
+pub struct Operation(Sql);
 
-impl Display for Operation {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.build())
+impl Operation {
+    pub(crate) fn new(sql: Sql) -> Self {
+        Self(sql)
     }
 }
 
-impl Buildable for Operation {
-    fn build(&self) -> String {
-        self.query_string.to_string()
-    }
-}
-
-impl Parametric for Operation {
-    fn get_bindings(&self) -> BindingsList {
-        self.bindings.to_vec()
-    }
-}
-
-impl Buildable for &Operation {
-    fn build(&self) -> String {
-        self.query_string.to_string()
-    }
-}
-
-impl Parametric for &Operation {
-    fn get_bindings(&self) -> BindingsList {
-        self.bindings.to_vec()
+impl Render for Operation {
+    fn render(&self, sql: &mut Sql) {
+        sql.push(&self.0);
     }
 }
 
@@ -57,38 +161,21 @@ impl Aliasable for Operation {}
 impl Operatable for Operation {}
 
 impl Conditional for Operation {}
-impl Conditional for &Operation {}
-
-impl Erroneous for &Operation {
-    fn get_errors(&self) -> ErrorList {
-        self.errors.to_vec()
-    }
-}
-
-impl Erroneous for Operation {
-    fn get_errors(&self) -> ErrorList {
-        self.errors.to_vec()
-    }
-}
 
 impl From<Setter> for Operation {
     fn from(value: Setter) -> Self {
-        Self {
-            query_string: value.build(),
-            bindings: value.get_bindings(),
-            errors: value.get_errors(),
-        }
+        Self(value.to_sql())
     }
 }
 
 /// Defines the operations that can be performed on a field or param or some other types
 /// it is implemented for.
-pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
+pub trait Operatable: Sized + Render {
     /// `=`. Return a new `operation` that checks whether the field is equal to the specified value
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to check for equality. Could be `sql::Value`, `Field` or `Param`
+    /// * `value` - The value to check for equality. Could be a value, `Field` or `Param`
     ///
     /// # Example
     ///
@@ -96,30 +183,30 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     /// # use aparecium::*;
     /// # let age = Field::new("age");
     /// let query = age.equal(25);
-    /// assert_eq!(query.to_raw().build(), "age = 25");
+    /// assert_eq!(query.to_debug_sql(), "age = 25");
     ///
     /// # let age = Field::new("age");
     /// # let valid_age_field = Field::new("valid_age_field");
     /// let query = age.equal(valid_age_field);
-    /// assert_eq!(query.to_raw().build(), "age = valid_age_field");
+    /// assert_eq!(query.to_debug_sql(), "age = valid_age_field");
     ///
     /// # let age = Field::new("age");
     /// # let valid_age_param = Param::new("valid_age_param");
     /// let query = age.equal(valid_age_param);
-    /// assert_eq!(query.to_raw().build(), "age = $valid_age_param");
+    /// assert_eq!(query.to_debug_sql(), "age = $valid_age_param");
     /// ```
     fn equal<T>(&self, value: T) -> Operation
     where
         T: Into<ValueLike>,
     {
-        self.generate_query(sql::Operator::Equal, value)
+        self.operate(Operator::Equal, value)
     }
 
     /// `=`. Alias for `equal`. Return a new `operation` that checks whether the field is equal to the specified value
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to check for equality. Could be `sql::Value`, `Field` or `Param`
+    /// * `value` - The value to check for equality. Could be a value, `Field` or `Param`
     ///
     /// # Example
     ///
@@ -127,30 +214,30 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     /// # use aparecium::*;
     /// # let age = Field::new("age");
     /// let query = age.eq(25);
-    /// assert_eq!(query.to_raw().build(), "age = 25");
+    /// assert_eq!(query.to_debug_sql(), "age = 25");
     ///
     /// # let age = Field::new("age");
     /// # let valid_age_field = Field::new("valid_age_field");
     /// let query = age.eq(valid_age_field);
-    /// assert_eq!(query.to_raw().build(), "age = valid_age_field");
+    /// assert_eq!(query.to_debug_sql(), "age = valid_age_field");
     ///
     /// # let age = Field::new("age");
     /// # let valid_age_param = Param::new("valid_age_param");
     /// let query = age.eq(valid_age_param);
-    /// assert_eq!(query.to_raw().build(), "age = $valid_age_param");
+    /// assert_eq!(query.to_debug_sql(), "age = $valid_age_param");
     /// ```
     fn eq<T>(&self, value: T) -> Operation
     where
         T: Into<ValueLike>,
     {
-        self.generate_query(sql::Operator::Equal, value)
+        self.operate(Operator::Equal, value)
     }
 
     /// `!=`. Return a new `DbQuery` that checks whether the field is not equal to the specified value
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to check for inequality. Could be `sql::Value`, `Field` or `Param`
+    /// * `value` - The value to check for inequality. Could be a value, `Field` or `Param`
     ///
     /// # Example
     ///
@@ -158,30 +245,30 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     /// # use aparecium::*;
     /// # let age = Field::new("age");
     /// let query = age.not_equal(25);
-    /// assert_eq!(query.to_raw().build(), "age != 25");
+    /// assert_eq!(query.to_debug_sql(), "age != 25");
     ///
     /// # let age = Field::new("age");
     /// # let valid_age_field = Field::new("valid_age_field");
     /// let query = age.not_equal(valid_age_field);
-    /// assert_eq!(query.to_raw().build(), "age != valid_age_field");
+    /// assert_eq!(query.to_debug_sql(), "age != valid_age_field");
     ///
     /// # let age = Field::new("age");
     /// # let valid_age_param = Param::new("valid_age_param");
     /// let query = age.not_equal(valid_age_param);
-    /// assert_eq!(query.to_raw().build(), "age != $valid_age_param");
+    /// assert_eq!(query.to_debug_sql(), "age != $valid_age_param");
     /// ```
     fn not_equal<T>(&self, value: T) -> Operation
     where
         T: Into<ValueLike>,
     {
-        self.generate_query(sql::Operator::NotEqual, value)
+        self.operate(Operator::NotEqual, value)
     }
 
     /// `!=`. Alias for `not_equal`. Return a new `DbQuery` that checks whether the field is not equal to the specified value
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to check for inequality. Could be `sql::Value`, `Field` or `Param`
+    /// * `value` - The value to check for inequality. Could be a value, `Field` or `Param`
     ///
     /// # Example
     ///
@@ -189,30 +276,30 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     /// # use aparecium::*;
     /// # let age = Field::new("age");
     /// let query = age.neq(25);
-    /// assert_eq!(query.to_raw().build(), "age != 25");
+    /// assert_eq!(query.to_debug_sql(), "age != 25");
     ///
     /// # let age = Field::new("age");
     /// # let valid_age_field = Field::new("valid_age_field");
     /// let query = age.neq(valid_age_field);
-    /// assert_eq!(query.to_raw().build(), "age != valid_age_field");
+    /// assert_eq!(query.to_debug_sql(), "age != valid_age_field");
     ///
     /// # let age = Field::new("age");
     /// # let valid_age_param = Param::new("valid_age_param");
     /// let query = age.neq(valid_age_param);
-    /// assert_eq!(query.to_raw().build(), "age != $valid_age_param");
+    /// assert_eq!(query.to_debug_sql(), "age != $valid_age_param");
     /// ```
     fn neq<T>(&self, value: T) -> Operation
     where
         T: Into<ValueLike>,
     {
-        self.generate_query(sql::Operator::NotEqual, value)
+        self.operate(Operator::NotEqual, value)
     }
 
     /// Constructs a query that checks whether the value of the column is exactly equal to the given value.
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to compare against. Could be `sql::Value`, `Field` or `Param`
+    /// * `value` - The value to compare against. Could be a value, `Field` or `Param`
     ///
     /// # Example
     ///
@@ -220,31 +307,31 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     /// # use aparecium::*;
     /// # let age = Field::new("age");
     /// let query = age.exactly_equal(25);
-    /// assert_eq!(query.to_raw().build(), "age == 25");
+    /// assert_eq!(query.to_debug_sql(), "age == 25");
     ///
     /// # let age = Field::new("age");
     /// # let valid_age_field = Field::new("valid_age_field");
     /// let query = age.exactly_equal(valid_age_field);
-    /// assert_eq!(query.to_raw().build(), "age == valid_age_field");
+    /// assert_eq!(query.to_debug_sql(), "age == valid_age_field");
     ///
     /// # let age = Field::new("age");
     /// # let valid_age_param = Param::new("valid_age_param");
     /// let query = age.exactly_equal(valid_age_param);
-    /// assert_eq!(query.to_raw().build(), "age == $valid_age_param");
+    /// assert_eq!(query.to_debug_sql(), "age == $valid_age_param");
     /// ```
     fn exactly_equal<T>(&self, value: T) -> Operation
     where
         T: Into<ValueLike>,
         Self: Sized,
     {
-        self.generate_query(sql::Operator::Exact, value)
+        self.operate(Operator::Exact, value)
     }
 
     /// Check whether any value in a arraa\y is equal to another value.
     ///
     /// # Arguments
     ///
-    /// * `values` - An array of values to be checked for equality with the column. Could be `sql::Value`, `Field` or `Param`.
+    /// * `values` - An array of values to be checked for equality with the column. Could be a value, `Field` or `Param`.
     ///
     /// # Example
     ///
@@ -252,30 +339,30 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     /// # use aparecium::*;
     /// # let friends = Field::new("friends");
     /// let query = friends.any_equal("Alice");
-    /// assert_eq!(query.to_raw().build(), "friends ?= 'Alice'");
+    /// assert_eq!(query.to_debug_sql(), "friends ?= 'Alice'");
     ///
     /// # let friends = Field::new("friends");
     /// # let valid_friends_field = Field::new("valid_friends_field");
     /// let query = friends.any_equal(valid_friends_field);
-    /// assert_eq!(query.to_raw().build(), "friends ?= valid_friends_field");
+    /// assert_eq!(query.to_debug_sql(), "friends ?= valid_friends_field");
     ///
     /// # let friends = Field::new("friends");
     /// # let valid_friends_param = Param::new("valid_friends_param");
     /// let query = friends.any_equal(valid_friends_param);
-    /// assert_eq!(query.to_raw().build(), "friends ?= $valid_friends_param");
+    /// assert_eq!(query.to_debug_sql(), "friends ?= $valid_friends_param");
     /// ```
     fn any_equal<T>(&self, value: T) -> Operation
     where
         T: Into<ValueLike>,
     {
-        self.generate_query(sql::Operator::AnyEqual, value)
+        self.operate(Operator::AnyEqual, value)
     }
 
     /// `*=` Check whether all values in an array is equals to another value.
     ///
     /// # Arguments
     ///
-    /// * `values` - An array of values to be checked for equality with the column. Could be `sql::Value`, `Field` or `Param`.
+    /// * `values` - An array of values to be checked for equality with the column. Could be a value, `Field` or `Param`.
     ///
     /// # Example
     ///
@@ -288,14 +375,14 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     where
         T: Into<ValueLike>,
     {
-        self.generate_query(sql::Operator::AllEqual, value)
+        self.operate(Operator::AllEqual, value)
     }
 
     /// `~` Compare two values for equality using fuzzy matching.
     ///
     /// # Arguments
     ///
-    /// * `pattern` - The pattern to match against. Could be `sql::Value`, `Field` or `Param`.
+    /// * `pattern` - The pattern to match against. Could be a value, `Field` or `Param`.
     ///
     /// # Example
     ///
@@ -303,20 +390,20 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     /// # use aparecium::*;
     /// # let name = Field::new("name");
     /// let query = name.like("A");
-    /// assert_eq!(query.to_raw().build(), "name ~ 'A'");
+    /// assert_eq!(query.to_debug_sql(), "name ~ 'A'");
     /// ```
     fn like<T>(&self, value: T) -> Operation
     where
         T: Into<ValueLike>,
     {
-        self.generate_query(sql::Operator::Like, value.into())
+        self.operate(Operator::Like, value.into())
     }
 
     /// `!~` Compare two values for inequality using fuzzy matching.
     ///
     /// # Arguments
     ///
-    /// * `pattern` - The pattern to match against. Could be `sql::Value`, `Field` or `Param`.
+    /// * `pattern` - The pattern to match against. Could be a value, `Field` or `Param`.
     ///
     /// # Example
     ///
@@ -324,20 +411,20 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     /// # use aparecium::*;
     /// # let name = Field::new("name");
     /// let query = name.not_like("A");
-    /// assert_eq!(query.to_raw().build(), "name !~ 'A'");
+    /// assert_eq!(query.to_debug_sql(), "name !~ 'A'");
     /// ```
     fn not_like<T>(&self, value: T) -> Operation
     where
         T: Into<ValueLike>,
     {
-        self.generate_query(sql::Operator::NotLike, value)
+        self.operate(Operator::NotLike, value)
     }
 
     /// `?~` Check whether any value in a set is equal to a value using fuzzy matching
     ///
     /// # Arguments
     ///
-    /// * `pattern` - The pattern to match against. Could be `sql::Value`, `Field` or `Param`.
+    /// * `pattern` - The pattern to match against. Could be a value, `Field` or `Param`.
     ///
     /// # Example
     ///
@@ -350,14 +437,14 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     where
         T: Into<ValueLike>,
     {
-        self.generate_query(sql::Operator::AnyLike, value)
+        self.operate(Operator::AnyLike, value)
     }
 
     /// `*~` Check whether all values in a set are equal to a value using fuzzy matching.
     ///
     /// # Arguments
     ///
-    /// * `pattern` - The pattern to match against. Could be `sql::Value`, `Field` or `Param`.
+    /// * `pattern` - The pattern to match against. Could be a value, `Field` or `Param`.
     ///
     /// # Example
     ///
@@ -370,14 +457,14 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     where
         T: Into<ValueLike>,
     {
-        self.generate_query(sql::Operator::AllLike, value)
+        self.operate(Operator::AllLike, value)
     }
 
     /// `<` Check whether the value of the field is less than the given value.
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to compare against the field. Could be `sql::Value`, `Field` or `Param`.
+    /// * `value` - The value to compare against the field. Could be a value, `Field` or `Param`.
     ///
     /// # Example
     ///
@@ -391,14 +478,14 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
         T: Into<Ordinal>,
     {
         let value: Ordinal = value.into();
-        self.generate_query(sql::Operator::LessThan, value)
+        self.operate(Operator::LessThan, value)
     }
 
     /// `<`. Alias for `less_than`. Check whether the value of the field is less than the given value.
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to compare against the field. Could be `sql::Value`, `Field` or `Param`.
+    /// * `value` - The value to compare against the field. Could be a value, `Field` or `Param`.
     ///
     /// # Example
     ///
@@ -412,14 +499,14 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
         T: Into<Ordinal>,
     {
         let value: Ordinal = value.into();
-        self.generate_query(sql::Operator::LessThan, value)
+        self.operate(Operator::LessThan, value)
     }
 
     /// `<=` Check whether the value of the field is less than or equal to the given value.
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to compare against the field. Could be `sql::Value`, `Field` or `Param`.
+    /// * `value` - The value to compare against the field. Could be a value, `Field` or `Param`.
     ///
     /// # Example
     ///
@@ -433,14 +520,14 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
         T: Into<Ordinal>,
     {
         let value: Ordinal = value.into();
-        self.generate_query(sql::Operator::LessThanOrEqual, value)
+        self.operate(Operator::LessThanOrEqual, value)
     }
 
     /// `<=`. Alias for `less_than_or_equal`. Check whether the value of the field is less than or equal to the given value.
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to compare against the field. Could be `sql::Value`, `Field` or `Param`.
+    /// * `value` - The value to compare against the field. Could be a value, `Field` or `Param`.
     ///
     /// # Example
     ///
@@ -454,14 +541,14 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
         T: Into<Ordinal>,
     {
         let value: Ordinal = value.into();
-        self.generate_query(sql::Operator::LessThanOrEqual, value)
+        self.operate(Operator::LessThanOrEqual, value)
     }
 
     /// `>` Check whether the value of the field is greater than the given value.
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to compare against the field. Could be `sql::Number`, `sql::Geometry`, `sql::Datetime`, `sql::Duration`, `Field` or `Param`.
+    /// * `value` - The value to compare against the field. Could be a number, geometry, datetime or duration, a `Field` or a `Param`.
     ///
     /// # Example
     ///
@@ -475,14 +562,14 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
         T: Into<Ordinal>,
     {
         let value: Ordinal = value.into();
-        self.generate_query(sql::Operator::MoreThan, value)
+        self.operate(Operator::MoreThan, value)
     }
 
     /// `>`. Alias for `greater_than`. Check whether the value of the field is greater than the given value.
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to compare against the field. Could be `sql::Number`, `sql::Geometry`, `sql::Datetime`, `sql::Duration`, `Field` or `Param`.
+    /// * `value` - The value to compare against the field. Could be a number, geometry, datetime or duration, a `Field` or a `Param`.
     ///
     /// # Example
     ///
@@ -496,14 +583,14 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
         T: Into<Ordinal>,
     {
         let value: Ordinal = value.into();
-        self.generate_query(sql::Operator::MoreThan, value)
+        self.operate(Operator::MoreThan, value)
     }
 
     /// `>=` Check whether the value of the field is greater than or equal to the given value.
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to compare against the field. Could be `sql::Number`, `sql::Geometry`, `sql::Datetime`, `sql::Duration`, `Field` or `Param`.
+    /// * `value` - The value to compare against the field. Could be a number, geometry, datetime or duration, a `Field` or a `Param`.
     ///
     /// # Example
     ///
@@ -517,14 +604,14 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
         T: Into<Ordinal>,
     {
         let value: Ordinal = value.into();
-        self.generate_query(sql::Operator::MoreThanOrEqual, value)
+        self.operate(Operator::MoreThanOrEqual, value)
     }
 
     /// `>=` Alias for `greater_than_or_equal`. Check whether the value of the field is greater than or equal to the given value.
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to compare against the field. Could be `sql::Number`, `sql::Geometry`, `sql::Datetime`, `sql::Duration`, `Field` or `Param`.
+    /// * `value` - The value to compare against the field. Could be a number, geometry, datetime or duration, a `Field` or a `Param`.
     ///
     /// # Example
     ///
@@ -538,14 +625,14 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
         T: Into<Ordinal>,
     {
         let value: Ordinal = value.into();
-        self.generate_query(sql::Operator::MoreThanOrEqual, value)
+        self.operate(Operator::MoreThanOrEqual, value)
     }
 
     /// `+` Adds a value to the current query.
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to be added to the current query. Could be `sql::Value`, `Field` or `Param
+    /// * `value` - The value to be added to the current query. Could be `types::Value`, `Field` or `Param
     ///
     /// # Example
     ///
@@ -558,14 +645,14 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     where
         T: Into<ValueLike>,
     {
-        self.generate_query(sql::Operator::Add, value)
+        self.operate(Operator::Add, value)
     }
 
     /// `+` Alias for `add`. Adds a value to the current query.
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to be added to the current query. Could be `sql::Value`, `Field` or `Param
+    /// * `value` - The value to be added to the current query. Could be `types::Value`, `Field` or `Param
     ///
     /// # Example
     /// ```rust
@@ -577,14 +664,14 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     where
         T: Into<ValueLike>,
     {
-        self.generate_query(sql::Operator::Add, value)
+        self.operate(Operator::Add, value)
     }
 
     /// `-` Subtracts a value to the current query.
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to be subtract to the current query. Could be `sql::Value`, `Field` or `Param.
+    /// * `value` - The value to be subtract to the current query. Could be a value, `Field` or `Param`.
     ///
     /// # Example
     ///
@@ -597,14 +684,14 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     where
         T: Into<ValueLike>,
     {
-        self.generate_query(sql::Operator::Sub, value)
+        self.operate(Operator::Sub, value)
     }
 
     /// `-`. Alias for `subtract`. Subtracts a value to the current query.
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to be subtract to the current query. Could be `sql::Value`, `Field` or `Param.
+    /// * `value` - The value to be subtract to the current query. Could be a value, `Field` or `Param`.
     ///
     /// # Example
     ///
@@ -617,14 +704,14 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     where
         T: Into<ValueLike>,
     {
-        self.generate_query(sql::Operator::Sub, value)
+        self.operate(Operator::Sub, value)
     }
 
     /// `*` Multiply a value to the current query.
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to be multiply to the current query. Could be `sql::Value`, `Field` or `Param.
+    /// * `value` - The value to be multiply to the current query. Could be a value, `Field` or `Param`.
     ///
     /// # Example
     ///
@@ -637,14 +724,14 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     where
         T: Into<ValueLike>,
     {
-        self.generate_query(sql::Operator::Mul, value)
+        self.operate(Operator::Mul, value)
     }
 
     /// `*` Alias for `multiply`. Multiply a value to the current query.
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to be multiply to the current query. Could be `sql::Value`, `Field` or `Param.
+    /// * `value` - The value to be multiply to the current query. Could be a value, `Field` or `Param`.
     ///
     /// # Example
     /// ```rust
@@ -656,14 +743,14 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     where
         T: Into<ValueLike>,
     {
-        self.generate_query(sql::Operator::Mul, value)
+        self.operate(Operator::Mul, value)
     }
 
     /// `/` Divide a value to the current query.
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to be divide to the current query. Could be `sql::Value`, `Field` or `Param.
+    /// * `value` - The value to be divide to the current query. Could be a value, `Field` or `Param`.
     ///
     /// # Example
     ///
@@ -676,14 +763,14 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     where
         T: Into<ValueLike>,
     {
-        self.generate_query(sql::Operator::Div, value)
+        self.operate(Operator::Div, value)
     }
 
     /// `/` Alias for `divide`. Divide a value to the current query.
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to be divide to the current query. Could be `sql::Value`, `Field` or `Param.
+    /// * `value` - The value to be divide to the current query. Could be a value, `Field` or `Param`.
     ///
     /// # Example
     /// ```rust
@@ -695,14 +782,14 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     where
         T: Into<ValueLike>,
     {
-        self.generate_query(sql::Operator::Div, value)
+        self.operate(Operator::Div, value)
     }
 
     /// `**` Raise the current query to the power of the given value.
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to be raised to the power of the current query. Could be `sql::Value`, `Field` or `Param.
+    /// * `value` - The value to be raised to the power of the current query. Could be a value, `Field` or `Param`.
     ///
     /// # Example
     ///
@@ -715,14 +802,14 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     where
         T: Into<NumberLike>,
     {
-        self.generate_query(sql::Operator::Pow, value.into())
+        self.operate(Operator::Pow, value.into())
     }
 
     /// `**` Alias for `power`. Raise the current query to the power of the given value.
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to be raised to the power of the current query. Could be `sql::Value`, `Field` or `Param.
+    /// * `value` - The value to be raised to the power of the current query. Could be a value, `Field` or `Param`.
     ///
     /// # Example
     ///
@@ -735,14 +822,14 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     where
         T: Into<NumberLike>,
     {
-        self.generate_query(sql::Operator::Pow, value.into())
+        self.operate(Operator::Pow, value.into())
     }
 
     /// `&&` Checks whether two values are truthy.
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to compared with the current query. Could be `sql::Value`, `Field` or `Param.
+    /// * `value` - The value to compared with the current query. Could be a value, `Field` or `Param`.
     ///
     /// # Example
     ///
@@ -755,14 +842,14 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     where
         T: Into<ValueLike>,
     {
-        self.generate_query("&&", value)
+        self.operate(Operator::TruthyAnd, value)
     }
 
     /// `||` Checks whether either of two values are truthy.
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to compared with the current query. Could be `sql::Value`, `Field` or `Param.
+    /// * `value` - The value to compared with the current query. Could be a value, `Field` or `Param`.
     ///
     /// # Example
     ///
@@ -775,14 +862,14 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     where
         T: Into<ValueLike>,
     {
-        self.generate_query("||", value)
+        self.operate(Operator::TruthyOr, value)
     }
 
     /// `AND` Checks whether two values are truthy.
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to compared with the current query. Could be `sql::Value`, `Field` or `Param.
+    /// * `value` - The value to compared with the current query. Could be a value, `Field` or `Param`.
     ///
     /// # Example
     ///
@@ -795,14 +882,14 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     where
         T: Into<ValueLike>,
     {
-        self.generate_query("AND", value)
+        self.operate(Operator::And, value)
     }
 
     /// `OR` Checks whether either of two values are truthy.
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to compared with the current query. Could be `sql::Value`, `Field` or `Param.
+    /// * `value` - The value to compared with the current query. Could be a value, `Field` or `Param`.
     ///
     /// # Example
     ///
@@ -815,15 +902,14 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     where
         T: Into<ValueLike>,
     {
-        let value: ValueLike = value.into();
-        self.generate_query("OR", value)
+        self.operate(Operator::Or, value)
     }
 
     /// `IS` or `=` Check whether two values are equal.
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to compared with the current query. Could be `sql::Value`, `Field` or `Param.
+    /// * `value` - The value to compared with the current query. Could be a value, `Field` or `Param`.
     ///
     /// # Example
     ///
@@ -836,15 +922,14 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     where
         T: Into<ValueLike>,
     {
-        let value: ValueLike = value.into();
-        self.generate_query("IS", value)
+        self.operate(Operator::Is, value)
     }
 
     /// `IS NOT` or `!=` Check whether two values are not equal.
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to compared with the current query. Could be `sql::Value`, `Field` or `Param.
+    /// * `value` - The value to compared with the current query. Could be a value, `Field` or `Param`.
     ///
     /// # Example
     ///
@@ -857,15 +942,14 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     where
         T: Into<ValueLike>,
     {
-        let value: ValueLike = value.into();
-        self.generate_query("IS NOT", value)
+        self.operate(Operator::IsNot, value)
     }
 
     /// `CONTAINS` or `∋` Check whether a value contains another value.
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to compared with the current query. Could be `sql::Value`, `Field` or `Param.
+    /// * `value` - The value to compared with the current query. Could be a value, `Field` or `Param`.
     ///
     /// # Example
     ///
@@ -882,14 +966,14 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
         T: Into<ValueLike>,
     {
         let value: ValueLike = value.into();
-        self.generate_query(sql::Operator::Contain, value)
+        self.operate(Operator::Contain, value)
     }
 
     /// `CONTAINSNOT` or `∌` Check whether a value does not contain another value.
     ///
     /// # Arguments
     ///
-    /// * `value` - The value to compared with the current query. Could be any `sql::Value`, `Field` or `Param.
+    /// * `value` - The value to compared with the current query. Could be any value, `Field` or `Param`.
     ///
     /// # Example
     ///
@@ -902,7 +986,7 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     where
         T: Into<ValueLike>,
     {
-        self.generate_query(sql::Operator::NotContain, value)
+        self.operate(Operator::NotContain, value)
     }
 
     /// `CONTAINSALL` or `⊇` Check whether a value contains all of multiple values.
@@ -923,7 +1007,7 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
         T: Into<ArrayLike>,
     {
         let value = value.into();
-        self.generate_query(sql::Operator::ContainAll, value)
+        self.operate(Operator::ContainAll, value)
     }
 
     /// `CONTAINSANY` or `⊃` Check whether a value contains any of multiple values.
@@ -944,7 +1028,7 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
         T: Into<ArrayLike>,
     {
         let value = value.into();
-        self.generate_query(sql::Operator::ContainAny, value)
+        self.operate(Operator::ContainAny, value)
     }
 
     /// `CONTAINSNONE` or `⊅` Check whether a value does not contain none of multiple values.
@@ -965,7 +1049,7 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
         T: Into<ArrayLike>,
     {
         let value = value.into();
-        self.generate_query(sql::Operator::ContainNone, value)
+        self.operate(Operator::ContainNone, value)
     }
 
     /// `INSIDE` or `∈` or `IN` Check whether a value is contained within another value.
@@ -985,7 +1069,7 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     where
         T: Into<ValueLike>,
     {
-        self.generate_query(sql::Operator::Inside, value)
+        self.operate(Operator::Inside, value)
     }
 
     /// `IN` or `∈` or `INSIDE` Check whether a value is contained within another value.
@@ -1005,7 +1089,7 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     where
         T: Into<ValueLike>,
     {
-        self.generate_query(sql::Operator::Inside, value)
+        self.operate(Operator::Inside, value)
     }
 
     /// `NOTINSIDE` or `∉` or `NOT IN` Check whether a value is not contained within another value.
@@ -1018,10 +1102,10 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     ///
     /// ```rust
     /// # use aparecium::*;
-    /// # use surrealdb::sql;
+    /// use aparecium::types::Geometry;
     /// use geo::polygon;
     /// let point = Field::new("point");
-    /// let polygon = sql::Geometry::from(polygon!(
+    /// let polygon = Geometry::Polygon(polygon!(
     ///             exterior: [
     ///                 (x: -111., y: 45.),
     ///                 (x: -111., y: 41.),
@@ -1043,7 +1127,7 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     where
         T: Into<ValueLike>,
     {
-        self.generate_query(sql::Operator::NotInside, value)
+        self.operate(Operator::NotInside, value)
     }
 
     /// `ALLINSIDE` or `⊆` Check whether all of multiple values are contained within another value.
@@ -1064,7 +1148,7 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
         T: Into<ArrayLike>,
     {
         let value = value.into();
-        self.generate_query(sql::Operator::AllInside, value)
+        self.operate(Operator::AllInside, value)
     }
 
     /// `ANYINSIDE` or `⊂` Check whether any of multiple values are contained within another value.
@@ -1085,7 +1169,7 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
         T: Into<ArrayLike>,
     {
         let value = value.into();
-        self.generate_query(sql::Operator::AnyInside, value)
+        self.operate(Operator::AnyInside, value)
     }
 
     /// `NONEINSIDE` or `⊄` Check whether none of multiple values are contained within another value.
@@ -1106,7 +1190,7 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
         T: Into<ArrayLike>,
     {
         let value = value.into();
-        self.generate_query(sql::Operator::NoneInside, value)
+        self.operate(Operator::NoneInside, value)
     }
 
     /// `OUTSIDE` Check whether a geometry value is outside another geometry value.
@@ -1140,7 +1224,7 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
         T: Into<GeometryLike>,
     {
         let value: GeometryLike = value.into();
-        self.generate_query(sql::Operator::Outside, value)
+        self.operate(Operator::Outside, value)
     }
 
     /// `INTERSECTS` Check whether a geometry value intersects annother geometry value.
@@ -1174,7 +1258,7 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
         T: Into<GeometryLike>,
     {
         let value: GeometryLike = value.into();
-        self.generate_query(sql::Operator::Intersects, value)
+        self.operate(Operator::Intersects, value)
     }
 
     /// `@@` Checks whether the terms are found in a full-text indexed field
@@ -1191,13 +1275,13 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     ///
     /// # let content = Field::new("content");
     /// let query = content.matches("hello world");
-    /// assert_eq!(query.to_raw().build(), "content @@ 'hello world'");
+    /// assert_eq!(query.to_debug_sql(), "content @@ 'hello world'");
     /// ```
     fn matches<T>(&self, terms: T) -> Operation
     where
         T: Into<StrandLike>,
     {
-        self.generate_query(sql::Operator::Matches(None), terms.into())
+        self.operate(Operator::Matches, terms.into())
     }
 
     /// `@[ref]@` Same as `matches` but using the matches operator with a reference checks whether the terms are found,
@@ -1205,8 +1289,8 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     ///
     /// # Arguments
     ///
-    /// * `reference` - Optional. The specific reference or dictionary against which to perform the full-text search.
-    ///     can also be a `Field` or `Param`.
+    /// * `reference` - The match reference number, used by `search::highlight` and `search::score`.
+    ///     It is part of the operator, so it is written as a literal.
     /// * `terms` - The terms to search for in the full-text indexed field.
     ///     can also be a `Field` or `Param`.
     ///
@@ -1218,19 +1302,19 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     /// # let content = Field::new("content");
     ///
     /// let query = content.matches_with_ref(1, "hello world");
-    /// assert_eq!(query.to_raw().build(), "content @1@ 'hello world'");
+    /// assert_eq!(query.to_debug_sql(), "content @1@ 'hello world'");
     /// ```
     fn matches_with_ref<T>(&self, reference: impl Into<NumberLike>, terms: T) -> Operation
     where
         T: Into<StrandLike>,
     {
         let reference: NumberLike = reference.into();
-        let mut operation = self.generate_query(format!("@{}@", reference.build()), terms.into());
-
-        operation.bindings.extend(reference.get_bindings());
-        operation.errors.extend(reference.get_errors());
-
-        operation
+        let terms: StrandLike = terms.into();
+        let mut sql = Sql::new();
+        self.render_operand(&mut sql);
+        sql.push_str(" @").push_inlined(&reference);
+        sql.push_str("@ ").push(&terms);
+        Operation(sql)
     }
 
     /// Check whether the value of the field is between the given lower and upper bounds.
@@ -1252,25 +1336,12 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     where
         T: Into<Ordinal>,
     {
-        let lower_bound: ValueLike = lower_bound.into().into();
-        let upper_bound: ValueLike = upper_bound.into().into();
-        let condition = format!(
-            "{} < {} < {}",
-            lower_bound.build(),
-            self.build(),
-            upper_bound.build()
-        );
-
-        let lower_updated_params =
-            self.__update_bindings(lower_bound.get_bindings().pop().expect("Must be one"));
-        let upper_updated_params =
-            self.__update_bindings(upper_bound.get_bindings().pop().expect("Must be one"));
-        let updated_params = [lower_updated_params, upper_updated_params].concat();
-        Operation {
-            query_string: condition,
-            bindings: updated_params,
-            errors: vec![],
-        }
+        let lower_bound: Ordinal = lower_bound.into();
+        let upper_bound: Ordinal = upper_bound.into();
+        let mut sql = sql!(lower_bound, " < ");
+        self.render_operand(&mut sql);
+        sql.push_str(" < ").push(&upper_bound);
+        Operation(sql)
     }
 
     /// Check whether the value of the field is between the given lower and upper bounds.
@@ -1292,62 +1363,25 @@ pub trait Operatable: Sized + Parametric + Buildable + Erroneous {
     where
         T: Into<Ordinal>,
     {
-        let lower_bound: ValueLike = lower_bound.into().into();
-        let upper_bound: ValueLike = upper_bound.into().into();
-        let condition = format!(
-            "{} <= {} <= {}",
-            lower_bound.build(),
-            self.build(),
-            upper_bound.build()
-        );
-
-        let lower_updated_params =
-            self.__update_bindings(lower_bound.get_bindings().pop().expect("Must be one"));
-        let upper_updated_params =
-            self.__update_bindings(upper_bound.get_bindings().pop().expect("Must be one"));
-        let updated_params = [lower_updated_params, upper_updated_params].concat();
-        Operation {
-            query_string: condition,
-            bindings: updated_params,
-            errors: vec![],
-        }
+        let lower_bound: Ordinal = lower_bound.into();
+        let upper_bound: Ordinal = upper_bound.into();
+        let mut sql = sql!(lower_bound, " <= ");
+        self.render_operand(&mut sql);
+        sql.push_str(" <= ").push(&upper_bound);
+        Operation(sql)
     }
 
-    /// Update the bindings of the current operation
-    fn ____________update_many_bindings<'bi>(
-        &self,
-        bindings: impl Into<&'bi [Binding]>,
-    ) -> Operation {
-        let bindings: &'bi [Binding] = bindings.into();
-        let updated_params = [&self.get_bindings().as_slice(), bindings].concat();
-        Operation {
-            query_string: self.build(),
-            bindings: updated_params,
-            errors: vec![],
-        }
+    /// Writes the node as the left operand. A `LET` statement stands for its parameter here.
+    fn render_operand(&self, sql: &mut Sql) {
+        self.render(sql);
     }
 
-    /// Update the bindings of the current operation
-    fn __update_bindings(&self, binding: Binding) -> Vec<Binding> {
-        [self.get_bindings().as_slice(), &[binding]].concat()
-    }
-
-    /// generates operation query string
-    fn generate_query<T>(&self, operator: impl std::fmt::Display, value: T) -> Operation
-    where
-        T: Into<ValueLike>,
-    {
+    /// `self <operator> value`.
+    fn operate(&self, operator: Operator, value: impl Into<ValueLike>) -> Operation {
         let value: ValueLike = value.into();
-        let condition = format!("{} {} {}", self.build(), operator, &value.build());
-        let updated_bindings = [
-            self.get_bindings().as_slice(),
-            value.get_bindings().as_slice(),
-        ]
-        .concat();
-        Operation {
-            query_string: condition,
-            bindings: updated_bindings,
-            errors: vec![],
-        }
+        let mut sql = Sql::new();
+        self.render_operand(&mut sql);
+        sql.push_str(" ").push(&operator).push_str(" ").push(&value);
+        Operation(sql)
     }
 }

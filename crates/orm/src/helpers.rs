@@ -1,8 +1,8 @@
-use surrealdb::sql;
+use surrealdb::types::{SurrealValue, Value};
 
-/// A macro to create a surrealdb::sql::Value from a value
-pub fn val(val: impl Into<sql::Value>) -> sql::Value {
-    val.into()
+/// Converts a Rust value into a SurrealDB value.
+pub fn val(val: impl SurrealValue) -> Value {
+    val.into_value()
 }
 
 /// A macro to create a vector of heterogeous/diverse surrealdb value
@@ -10,7 +10,7 @@ pub fn val(val: impl Into<sql::Value>) -> sql::Value {
 macro_rules! array {
     ($( $val:expr ),*) => {{
         vec![
-            $( surrealdb::sql::Value::from($val) ),*
+            $( $crate::types::SurrealValue::into_value($val) ),*
         ]
     }};
 }

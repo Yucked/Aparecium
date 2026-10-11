@@ -1,30 +1,11 @@
-use crate::LinkMany;
-use crate::LinkOne;
-use crate::LinkSelf;
-use crate::Node;
-use crate::Object;
-// pub use crate::assert_fields;
-pub use num_traits::{Float, Num, PrimInt as Int};
-// pub use static_assertions::assert_fields;
-pub use static_assertions::assert_impl_all;
-pub use static_assertions::assert_impl_any;
-// pub use static_assertions::assert_impl_one;
-pub use static_assertions::assert_trait_sub_all;
-pub use static_assertions::assert_trait_super_all;
-// pub use static_assertions::assert_type_eq_all;
-use std::collections::BTreeSet;
-use std::collections::HashSet;
+//! Compile-time checks emitted by the model macros: each `assert_*` function only compiles when
+//! its type argument satisfies the corresponding marker trait.
 
-// macro_rules! assert_fields {
-//     ($ty:ty: $($field:ident),+) => {
-//         {
-//             let _ = |_: $ty| {};
-//             $(
-//                 let _ = |val: $ty| { let _ = val.$field; };
-//             )+
-//         }
-//     };
-// }
+use std::collections::{BTreeSet, HashSet};
+
+use surrealdb::types::{self, SurrealValue};
+
+use crate::{LinkMany, LinkOne, LinkSelf, Node, Object, RecordId};
 
 /// Checks that struct has all the fields specified
 #[macro_export]
@@ -32,11 +13,11 @@ macro_rules! assert_fields {
     ($ty:ty: $($field:ident),+) => {
         {
             let _ = |_: $ty| {};
-                let _ = |val: $ty| {
-          $(
-              let _ = val.$field;
-           )+
-        };
+            let _ = |val: $ty| {
+                $(
+                    let _ = val.$field;
+                )+
+            };
         }
     };
 }
@@ -45,12 +26,10 @@ pub use assert_fields;
 #[macro_export]
 /// Checks that two types are equal
 macro_rules! assert_type_eq_all {
-    ($a:ty, $b:ty) => {
-        #[allow(clippy::diverging_sub_expression)]
-        let _a: $a = todo!();
-        #[allow(unreachable_code)]
-        let _b: $b = _a;
-    };
+    ($a:ty, $b:ty) => {{
+        // A closure, unlike a nested fn, may name the enclosing item's generic parameters.
+        let _ = |value: $a| -> $b { value };
+    }};
 }
 
 pub use assert_type_eq_all;
@@ -66,458 +45,215 @@ macro_rules! assert_impl_one {
 
 pub use assert_impl_one;
 
-/// Validate that type is a number at compile time
-///
-/// # Example
-/// ```
-/// # use aparecium::validators::assert_type_is_number;
-/// assert_type_is_number::<i8>();
-/// assert_type_is_number::<i16>();
-/// assert_type_is_number::<i32>();
-/// assert_type_is_number::<i64>();
-/// assert_type_is_number::<i128>();
-/// assert_type_is_number::<isize>();
-/// assert_type_is_number::<u8>();
-/// assert_type_is_number::<u16>();
-/// assert_type_is_number::<u32>();
-/// assert_type_is_number::<u64>();
-/// assert_type_is_number::<u128>();
-/// assert_type_is_number::<usize>();
-/// assert_type_is_number::<f32>();
-/// assert_type_is_number::<f64>();
-/// ```
-pub fn assert_type_is_number<T: Num>() {}
+/// Declares a marker trait, its implementors and its `assert_type_is_*`/`assert_value_is_*`
+/// checks.
+macro_rules! kind_check {
+    (
+        $(#[$attr:meta])*
+        $trait_name:ident, $message:literal, $type_fn:ident, $value_fn:ident
+    ) => {
+        $(#[$attr])*
+        #[diagnostic::on_unimplemented(
+            message = $message,
+            label = "the Rust type does not match the declared database type",
+            note = "change the field's Rust type or its `#[orm(ty = ...)]`"
+        )]
+        pub trait $trait_name {}
 
-/// Validate that value is a number at compile time
-/// # Example
-/// ```
-/// use aparecium::validators::assert_value_is_number;
-/// assert_value_is_number(1);
-/// assert_value_is_number(1u8);
-/// assert_value_is_number(1u16);
-/// assert_value_is_number(1u32);
-/// assert_value_is_number(1u64);
-/// assert_value_is_number(1u128);
-/// assert_value_is_number(1usize);
-/// assert_value_is_number(1.0);
-/// ```
-pub fn assert_value_is_number<T: Num>(_value: T) {}
+        #[doc = concat!("Compiles only when `T` implements [`", stringify!($trait_name), "`].")]
+        pub fn $type_fn<T: $trait_name + ?Sized>() {}
 
-/// Validate that type is a primitive integer at compile time
-///
-/// # Example
-/// ```
-/// # use aparecium::validators::assert_type_is_int;
-/// assert_type_is_int::<i8>();
-/// assert_type_is_int::<i16>();
-/// assert_type_is_int::<i32>();
-/// assert_type_is_int::<i64>();
-/// assert_type_is_int::<i128>();
-/// assert_type_is_int::<isize>();
-/// ```
-pub fn assert_type_is_int<T: Int>() {}
-
-/// Validate that value is an integer at compile time
-///
-/// # Example
-/// ```
-/// # use aparecium::validators::assert_value_is_int;
-/// assert_value_is_int(1);
-/// assert_value_is_int(1u8);
-/// assert_value_is_int(1u16);
-/// assert_value_is_int(1u32);
-/// ```
-pub fn assert_value_is_int<T: Int>(_value: T) {}
-
-/// Validate that type is a primitive float at compile time
-///
-/// # Example
-/// ```
-/// # use aparecium::validators::assert_type_is_float;
-///
-/// assert_type_is_float::<f32>();
-/// assert_type_is_float::<f64>();
-/// ```
-pub fn assert_type_is_float<T: Float>() {}
-
-// Reusing float static check for now
-/// Validate that type is a primitive decimal at compile time
-pub use assert_type_is_float as assert_type_is_decimal;
-
-/// Validate that value is a float at compile time
-/// # Example
-/// ```
-/// use aparecium::validators::assert_value_is_float;
-///
-/// assert_value_is_float(1.0);
-/// assert_value_is_float(1.0f32);
-/// assert_value_is_float(1.0f64);
-/// ```
-pub fn assert_value_is_float<T: Float>(_value: T) {}
-
-/// Validate that type is iterable at compile time
-pub fn assert_type_is_iterable<T: IntoIterator>() {
-    let _ = <T as IntoIterator>::into_iter;
+        #[doc = concat!("Compiles only when the value's type implements [`", stringify!($trait_name), "`].")]
+        pub fn $value_fn<T: $trait_name>(_value: T) {}
+    };
 }
 
-/// Validate that type is a string at compile time
-pub trait IsString {}
-
-// impl IsString for String {}
-// impl IsString for &String {}
-// impl IsString for &str {}
-impl<T> IsString for T where T: Into<String> {}
-
-/// Validate that type is a string at compile time
-pub fn assert_type_is_string<T: IsString>() {
-    // This function doesn't need to do anything; it's just here to enforce the type constraint.
+macro_rules! impl_marker {
+    ($trait_name:ident: $($ty:ty),* $(,)?) => {
+        $(impl $trait_name for $ty {})*
+    };
 }
 
-/// Validate that value is convertible to a string at compile time
-pub fn assert_type_is_stringable<T: ToString>() {
-    // This function doesn't need to do anything; it's just here to enforce the type constraint.
-}
+kind_check!(
+    /// Types holding a SurrealDB `number`.
+    IsNumber, "`{Self}` cannot hold a SurrealDB `number`",assert_type_is_number, assert_value_is_number
+);
+impl_marker!(IsNumber: i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize, f32, f64,
+    types::Number, types::Decimal);
 
-/// Validate that value is a string at compile time
-pub fn assert_value_is_string<T: IsString>(_value: T) {}
+kind_check!(
+    /// Types holding a SurrealDB `int`.
+    IsInt, "`{Self}` cannot hold a SurrealDB `int`",assert_type_is_int, assert_value_is_int
+);
+impl_marker!(IsInt: i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize);
 
-/// This function can only be called with two arrays of the same length.
-pub fn assert_same_length_arrays<T, const N: usize>(_array1: [T; N], _array2: [T; N]) {
-    println!("Both arrays have the same length of {}", N);
-}
+/// Integer types, for bounds on generic `int` fields.
+pub use IsInt as Int;
 
-/// Validate that type is a set at compile time
-pub trait IsSet {}
+kind_check!(
+    /// Types holding a SurrealDB `float`.
+    IsFloat, "`{Self}` cannot hold a SurrealDB `float`",assert_type_is_float, assert_value_is_float
+);
+impl_marker!(IsFloat: f32, f64);
 
+kind_check!(
+    /// Types holding a SurrealDB `decimal`.
+    IsDecimal, "`{Self}` cannot hold a SurrealDB `decimal`",assert_type_is_decimal, assert_value_is_decimal
+);
+impl_marker!(IsDecimal: f32, f64, types::Decimal);
+
+kind_check!(
+    /// Types holding a SurrealDB `string`.
+    IsString, "`{Self}` cannot hold a SurrealDB `string`",assert_type_is_string, assert_value_is_string
+);
+impl<T: Into<String>> IsString for T {}
+
+kind_check!(
+    /// Types holding a SurrealDB `bool`.
+    IsBool, "`{Self}` cannot hold a SurrealDB `bool`",assert_type_is_bool, assert_value_is_bool
+);
+impl_marker!(IsBool: bool, &bool);
+
+kind_check!(
+    /// Types holding a SurrealDB `duration`.
+    IsDuration, "`{Self}` cannot hold a SurrealDB `duration`",assert_type_is_duration, assert_value_is_duration
+);
+impl_marker!(IsDuration: types::Duration, std::time::Duration);
+
+kind_check!(
+    /// Types holding a SurrealDB `uuid`.
+    IsUuid, "`{Self}` cannot hold a SurrealDB `uuid`",assert_type_is_uuid, assert_value_is_uuid
+);
+impl_marker!(IsUuid: types::Uuid, uuid::Uuid);
+
+kind_check!(
+    /// Types holding a SurrealDB `datetime`.
+    IsDatetime, "`{Self}` cannot hold a SurrealDB `datetime`",assert_type_is_datetime, assert_value_is_datetime
+);
+impl_marker!(IsDatetime: types::Datetime, chrono::DateTime<chrono::Utc>);
+
+kind_check!(
+    /// Types holding a SurrealDB `bytes`.
+    IsBytes, "`{Self}` cannot hold SurrealDB `bytes`",assert_type_is_bytes, assert_value_is_bytes
+);
+impl_marker!(IsBytes: types::Bytes);
+
+kind_check!(
+    /// Types holding a SurrealDB `geometry`.
+    IsGeometry, "`{Self}` cannot hold a SurrealDB `geometry`",assert_type_is_geometry, assert_value_is_geometry
+);
+impl_marker!(IsGeometry: types::Geometry, geo::Geometry<f64>, geo::Point<f64>,
+    geo::LineString<f64>, geo::Polygon<f64>, geo::MultiPoint<f64>, geo::MultiLineString<f64>,
+    geo::MultiPolygon<f64>);
+
+kind_check!(
+    /// Types holding a SurrealDB `record`.
+    IsRecordId, "`{Self}` cannot hold a SurrealDB `record`",assert_type_is_record_id, assert_value_is_record_id
+);
+impl_marker!(IsRecordId: types::RecordId);
+impl<T> IsRecordId for RecordId<T> {}
+impl<N: Node> IsRecordId for LinkOne<N> {}
+impl<N: Node> IsRecordId for LinkSelf<N> {}
+
+kind_check!(
+    /// Types holding any SurrealDB value.
+    IsAny, "`{Self}` does not implement `SurrealValue`",assert_type_is_any, assert_value_is_any
+);
+impl<T: SurrealValue> IsAny for T {}
+
+kind_check!(
+    /// Types holding a SurrealDB `option`.
+    IsOption, "`{Self}` cannot hold a SurrealDB `option`; use `Option<T>`",assert_type_is_option, assert_value_is_option
+);
+impl<T> IsOption for Option<T> {}
+impl<T> IsOption for &Option<T> {}
+
+kind_check!(
+    /// Types holding `NULL` or another value.
+    IsNull, "`{Self}` cannot hold `NULL`",assert_type_is_null, assert_value_is_null
+);
+impl<T> IsNull for Option<T> {}
+impl<T> IsNull for crate::Nullable<T> {}
+
+kind_check!(
+    /// Types holding a SurrealDB `array`.
+    IsArray, "`{Self}` cannot hold a SurrealDB `array`",assert_type_is_array, assert_value_is_array
+);
+impl<T> IsArray for Vec<T> {}
+impl<T> IsArray for &Vec<T> {}
+impl<T, const N: usize> IsArray for [T; N] {}
+impl<T> IsArray for [T] {}
+impl<T> IsArray for &[T] {}
+impl IsArray for types::Array {}
+impl<N: Node> IsArray for LinkMany<N> {}
+
+kind_check!(
+    /// Types holding a SurrealDB `set`.
+    IsSet, "`{Self}` cannot hold a SurrealDB `set`",assert_type_is_set, assert_value_is_set
+);
 impl<T> IsSet for HashSet<T> {}
 impl<T> IsSet for &HashSet<T> {}
 impl<T> IsSet for BTreeSet<T> {}
 impl<T> IsSet for &BTreeSet<T> {}
+impl IsSet for types::Set {}
 
-/// Validate that type is a Set at compile time
-pub fn assert_type_is_set<T: IsSet>() {
-    // This function doesn't need to do anything; it's just here to enforce the type constraint.
-}
-
-/// Validate that value is a set at compile time
-pub fn assert_value_is_set<T: IsSet>(_value: T) {}
-
-/// Validate that type is a HashSet at compile time
-pub trait IsHashSet {}
-
-impl<T> IsHashSet for HashSet<T> {}
-impl<T> IsHashSet for &HashSet<T> {}
-
-/// Validate that type is a HashSet at compile time
-pub fn assert_type_is_hashset<T: IsHashSet>() {
-    // This function doesn't need to do anything; it's just here to enforce the type constraint.
-}
-
-/// Validate that value is a hashset at compile time
-pub fn assert_value_is_hashset<T: IsHashSet>(_value: T) {}
-
-/// check if a type is an Option
-pub trait IsOption {}
-
-impl<T> IsOption for Option<T> {}
-impl<T> IsOption for &Option<T> {}
-
-/// Validate that type is an Option at compile time
-pub fn assert_type_is_option<T: IsOption>() {
-    // This function doesn't need to do anything; it's just here to enforce the type constraint.
-}
-
-/// Validate that value is an option at compile time
-pub fn assert_value_is_option<T: IsOption>(_value: T) {}
-
-/// Check if a type is an array
-pub trait IsArray {}
-
-impl<T> IsArray for Vec<T> {}
-impl<T> IsArray for &Vec<T> {}
-impl<T, const N: usize> IsArray for [T; N] {}
-impl<T> IsArray for &[T] {}
-impl<T> IsArray for &mut [T] {}
-impl<T> IsArray for &mut Vec<T> {}
-impl IsArray for crate::sql::Array {}
-// impl<T> IsArray for T where T: Into<crate::sql::Array> {}
-impl<N: Node> IsArray for LinkMany<N> {}
-impl<V: Node> IsLinkMany for LinkMany<V> {}
-impl<V: Node> IsLink for LinkMany<V> {}
-
-impl<V: Node> IsLinkSelf for LinkSelf<V> {}
-impl<V: Node> IsLink for LinkSelf<V> {}
-
-impl<V: Node> IsLinkOne for LinkOne<V> {}
-impl<V: Node> IsLink for LinkOne<V> {}
-/// Validate that type is an array at compile time
-/// Array can be a Vec or a slice
-pub fn assert_type_is_array<T: IsArray>() {
-    // This function doesn't need to do anything; it's just here to enforce the type constraint.
-}
-
-/// Validate that value is an array at compile time
-pub fn assert_value_is_array<T: IsArray>(_value: T) {}
-
-/// Validate that type is a vector at compile time
-pub trait IsVec {}
-
+kind_check!(
+    /// `Vec` types.
+    IsVec, "`{Self}` is not a `Vec`",assert_type_is_vec, assert_value_is_vec
+);
 impl<T> IsVec for Vec<T> {}
 impl<T> IsVec for &Vec<T> {}
 
-/// Validate that type is an Vec at compile time
-/// Validate that type is a vector at compile time
-///
-/// # Example
-/// ```
-/// use aparecium::validators::assert_type_is_vec;
-/// assert_type_is_vec::<Vec<i8>>();
-/// assert_type_is_vec::<Vec<String>>();
-/// assert_type_is_vec::<Vec<i32>>();
-/// assert_type_is_vec::<Vec<i64>>();
-/// assert_type_is_vec::<Vec<i128>>();
-/// assert_type_is_vec::<Vec<isize>>();
-/// assert_type_is_vec::<Vec<u8>>();
-/// assert_type_is_vec::<Vec<u16>>();
-/// assert_type_is_vec::<Vec<u32>>();
-/// assert_type_is_vec::<Vec<u64>>();
-/// assert_type_is_vec::<Vec<u128>>();
-/// assert_type_is_vec::<Vec<usize>>();
-/// assert_type_is_vec::<Vec<f32>>();
-/// assert_type_is_vec::<Vec<f64>>();
-/// ```
-pub fn assert_type_is_vec<T: IsVec>() {
-    // This function doesn't need to do anything; it's just here to enforce the type constraint.
-}
+kind_check!(
+    /// `HashSet` types.
+    IsHashSet, "`{Self}` is not a `HashSet`",assert_type_is_hashset, assert_value_is_hashset
+);
+impl<T> IsHashSet for HashSet<T> {}
+impl<T> IsHashSet for &HashSet<T> {}
 
-/// Validate that value is a vector at compile time
-pub fn assert_value_is_vec<T: IsVec>(_value: T) {}
-
-/// Validate that type is a Duration at compile time
-pub trait IsDuration {}
-
-// impl IsDuration for std::time::Duration {}
-// impl IsDuration for crate::sql::Duration {}
-impl<T> IsDuration for T where T: Into<crate::sql::Duration> {}
-
-/// Validate that type is a Duration at compile time
-pub fn assert_type_is_duration<T: IsDuration>() {
-    // This function doesn't need to do anything; it's just here to enforce the type constraint.
-}
-
-/// Validate that value is a duration at compile time
-pub fn assert_value_is_duration<T: IsDuration>(_value: T) {}
-
-/// Validate that type is a Uuid at compile time
-pub trait IsUuid {}
-
-impl<T> IsUuid for T where T: Into<uuid::Uuid> {}
-
-/// Validate that type is a Uuid at compile time
-pub fn assert_type_is_uuid<T: IsUuid>() {
-    // This function doesn't need to do anything; it's just here to enforce the type constraint.
-}
-
-/// Validate that value is a Uuid at compile time
-/// # Example
-/// ```
-/// use aparecium::validators::assert_value_is_uuid;
-/// assert_value_is_uuid(uuid::Uuid::new_v4());
-/// ```
-pub fn assert_value_is_uuid<T: IsUuid>(_value: T) {}
-
-/// Validate that type is a Datetime at compile time
-pub trait IsDatetime {}
-
-impl IsDatetime for chrono::DateTime<chrono::Utc> {}
-
-/// Validate that type is a Datetime at compile time
-pub fn assert_type_is_datetime<T: IsDatetime>() {
-    // This function doesn't need to do anything; it's just here to enforce the type constraint.
-}
-
-/// Validate that value is a datetime at compile time
-/// # Example
-/// ```
-/// use aparecium::validators::assert_value_is_datetime;
-/// assert_value_is_datetime(chrono::Utc::now());
-/// ```
-pub fn assert_value_is_datetime<T: IsDatetime>(_value: T) {}
-
-/// Validate that type is a boolean at compile time
-pub trait IsBool {}
-
-impl IsBool for bool {}
-impl IsBool for &bool {}
-
-/// Validate that type is a bool at compile time
-/// # Example
-/// ```
-/// use aparecium::validators::assert_type_is_bool;
-/// assert_type_is_bool::<bool>();
-/// ```
-pub fn assert_type_is_bool<T: IsBool>() {
-    // This function doesn't need to do anything; it's just here to enforce the type constraint.
-}
-
-/// Validate that value is a bool at compile time
-pub fn assert_value_is_bool<T: IsBool>(_value: T) {}
-
-/// Validate that type is a Surrealdb Thing at compile time
-pub trait IsThing {}
-
-impl<T> IsThing for T where T: Into<crate::sql::Thing> {}
-impl<N: Node> IsThing for LinkOne<N> {}
-impl<N: Node> IsThing for LinkSelf<N> {}
-
-/// Validate that type is a Thing at compile time
-pub fn assert_type_is_thing<T: IsThing>() {
-    // This function doesn't need to do anything; it's just here to enforce the type constraint.
-}
-
-/// Validate that value is a thing at compile time
-pub fn assert_value_is_thing<T: IsThing>(_value: T) {}
-
-// Links
-/// check if a type is a link
-pub trait IsLink {}
-
-/// Validate that type is a link type at compile time
-pub fn assert_type_is_link<T: IsLink>() {
-    // This function doesn't need to do anything; it's just here to enforce the type constraint.
-}
-
-///
-/// check if a type is a link one or one-to-one relationship type
-pub trait IsLinkOne {}
-///
-/// Validate that type is a link one or one-to-one relationship type at compile time
-pub fn assert_type_is_link_one<T: IsLinkOne>() {
-    // This function doesn't need to do anything; it's just here to enforce the type constraint.
-}
-
-///
-/// check if a type is a link self or self-referential relationship type
-pub trait IsLinkSelf {}
-/// check if a type is a link self or self-referential relationship type
-pub fn assert_type_is_link_self<T: IsLinkSelf>() {
-    // This function doesn't need to do anything; it's just here to enforce the type constraint.
-}
-
-///
-/// check if a type is a link many or one-to-many relationship type
-pub trait IsLinkMany {}
-/// check if a type is a link many or one-to-many relationship type
-pub fn assert_type_is_link_many<T: IsLinkMany>() {
-    // This function doesn't need to do anything; it's just here to enforce the type constraint.
-}
-
-/// Validates that type is a surrealdb bytes at compile time
-pub trait IsBytes {}
-
-impl IsBytes for crate::sql::Bytes {}
-
-/// Validate that type is a Bytes at compile time
-pub fn assert_type_is_bytes<T: IsBytes>() {
-    // This function doesn't need to do anything; it's just here to enforce the type constraint.
-}
-
-/// Validate that value is a bytes at compile time
-/// # Example
-/// ```
-/// use aparecium::validators::assert_value_is_bytes;
-/// use aparecium::sql;
-/// assert_value_is_bytes(sql::Bytes::from(vec![1, 2, 3]));
-/// ```
-pub fn assert_value_is_bytes<T: IsBytes>(_value: T) {}
-
-/// Validates that a type is nullable at compile time
-pub trait IsNull {}
-
-impl<T> IsNull for Option<T> {}
-
-/// Validate that type is a Null at compile time
-pub fn assert_type_is_null<T: IsNull>() {
-    // This function doesn't need to do anything; it's just here to enforce the type constraint.
-}
-
-/// Validate that value is a null at compile time
-/// # Example
-/// ```
-/// use aparecium::validators::assert_value_is_null;
-/// assert_value_is_null(None::<u8>);
-/// ```
-pub fn assert_value_is_null<T: IsNull>(_value: T) {}
-
-/// Validate that type is a Geometry at compile time
-pub trait IsGeometry {}
-
-// impl IsGeometry for crate::sql::Geometry {}
-// impl IsGeometry for &crate::sql::Geometry {}
-impl<T: Into<crate::sql::Geometry>> IsGeometry for T {}
-
-/// Validate that type is a Geometry at compile time
-/// # Example
-/// ```
-/// use aparecium::validators::assert_type_is_geometry;
-/// use aparecium::sql;
-/// assert_type_is_geometry::<sql::Geometry>();
-/// ```
-pub fn assert_type_is_geometry<T: IsGeometry>() {
-    // This function doesn't need to do anything; it's just here to enforce the type constraint.
-}
-
-/// Validate that value is a geometry at compile time
-pub fn assert_value_is_geometry<T: IsGeometry>(_value: T) {}
-
-/// Validate that type is Any surrealdb field type at compile time
-pub trait IsAny {}
-
-impl<T> IsAny for T where T: crate::serde::Serialize {}
-
-/// Validate that type is a Any at compile time
-/// # Example
-/// ```
-/// use aparecium::validators::assert_type_is_any;
-/// use aparecium::sql;
-/// assert_type_is_any::<sql::Value>();
-/// ```
-pub fn assert_type_is_any<T: IsAny>() {
-    // This function doesn't need to do anything; it's just here to enforce the type constraint.
-}
-
-/// Validate that value is a any at compile time
-pub fn assert_value_is_any<T: IsAny>(_value: T) {}
-
-/// Validate that type is a surrealdb orm Object at compile time
-pub trait IsObject {}
-
+kind_check!(
+    /// Embedded objects declared with `#[aparecium::model(object)]`.
+    IsObject, "`{Self}` is not an embedded object; declare it with `#[aparecium::model(object)]`",assert_type_is_object, assert_value_is_object
+);
 impl<T: Object> IsObject for T {}
 
-/// Validate that type is an embedded surreal orm Object at compile time
-/// # Example
-/// ```rust,ignore
-/// use aparecium::validators::assert_type_is_object;
-/// assert_type_is_object::<AnEmbeddedObject>();
-/// ```
-pub fn assert_type_is_object<T: IsObject>() {
-    // This function doesn't need to do anything; it's just here to enforce the type constraint.
-}
+kind_check!(
+    /// Nodes declared with `#[aparecium::model(node)]`.
+    IsNode, "`{Self}` is not a node; declare it with `#[aparecium::model(node)]`",assert_type_is_node, assert_value_is_node
+);
+impl<T: Node> IsNode for T {}
 
-/// Validate that type is a surrealdb Node at compile time
-pub trait IsNode {}
+kind_check!(
+    /// Record links of any kind.
+    IsLink, "`{Self}` is not a record link",assert_type_is_link, assert_value_is_link
+);
+impl<N: Node> IsLink for LinkOne<N> {}
+impl<N: Node> IsLink for LinkSelf<N> {}
+impl<N: Node> IsLink for LinkMany<N> {}
 
-impl<T: crate::Node> IsNode for T {}
+kind_check!(
+    /// One-to-one record links.
+    IsLinkOne, "`{Self}` is not a `LinkOne`",assert_type_is_link_one, assert_value_is_link_one
+);
+impl<N: Node> IsLinkOne for LinkOne<N> {}
 
-/// Validate that type is a Node at compile time
-/// # Example
-/// ```rust,ignore
-/// use aparecium::validators::assert_type_is_node;
-/// assert_type_is_node::<ANode>();
-/// ```
-pub fn assert_type_is_node<T: IsNode>() {
-    // This function doesn't need to do anything; it's just here to enforce the type constraint.
-}
+kind_check!(
+    /// Self-referential record links.
+    IsLinkSelf, "`{Self}` is not a `LinkSelf`",assert_type_is_link_self, assert_value_is_link_self
+);
+impl<N: Node> IsLinkSelf for LinkSelf<N> {}
+
+kind_check!(
+    /// One-to-many record links.
+    IsLinkMany, "`{Self}` is not a `LinkMany`",assert_type_is_link_many, assert_value_is_link_many
+);
+impl<N: Node> IsLinkMany for LinkMany<N> {}
+
+/// Validate that type is iterable at compile time
+pub fn assert_type_is_iterable<T: IntoIterator>() {}
+
+/// Compiles only when both arrays have the same length.
+pub fn assert_same_length_arrays<T, const N: usize>(_array1: [T; N], _array2: [T; N]) {}
 
 /// Checks that all idents are unique.
 #[macro_export]
@@ -529,7 +265,8 @@ macro_rules! check_unique_idents {
     ($head:ident, $($tail:ident),+ $(,)?) => {
         // Generate a unique constant for $head
         $crate::internal_tools::paste! {
-        #[allow(non_upper_case_globals)]
+            // The name keeps the field's own case: upper-casing it would make `a` and `A` collide.
+            #[allow(non_upper_case_globals)]
             const [<UNIQUE_ $head>]: () = ();
         }
 

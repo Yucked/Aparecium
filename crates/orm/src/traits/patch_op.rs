@@ -1,66 +1,38 @@
-use std::fmt::Display;
+use std::ops::Deref;
 
-use serde::Serialize;
-use surrealdb::sql;
+use surrealdb::types::{SurrealValue, Value};
 
-use crate::{Binding, BindingsList, Buildable, Erroneous, ErrorList, Field, Parametric};
+use crate::{Field, Render, Sql};
 
-#[derive(Clone, Debug)]
-enum OpType {
-    /// Adds values along the path using JSON patch operation
-    Add,
-    /// Removes values along the path using JSON patch operation
-    Remove,
-    /// Replaces values along the path using JSON patch operation
-    Replace,
-    /// Moves values along the path using JSON patch operation
-    Change,
-}
-impl Display for OpType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let op = match self {
-            OpType::Add => "add",
-            OpType::Remove => "remove",
-            OpType::Replace => "replace",
-            OpType::Change => "change",
-        };
-        write!(f, "{}", op)
+const INVALID_PATH: &str = "The path you have provided is invalid. Make sure that there are no clauses or conditions included. Valid path include e.g name, name(E).first, name(E).first(E).second, etc.";
+
+/// A JSON patch operation, e.g. `{ op: 'add', path: '/name', value: 'Alice' }`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PatchOp(Sql);
+
+impl PatchOp {
+    fn new(path: &Field, op: &str, value: Option<Value>) -> Self {
+        let mut sql = Sql::new();
+        sql.push_str("{ op: '").push_str(op).push_str("', path: ");
+        match path.json_pointer() {
+            Some(pointer) => {
+                sql.push_value(Value::String(pointer));
+            }
+            None => {
+                sql.push_error(INVALID_PATH).push_value(Value::None);
+            }
+        }
+        if let Some(value) = value {
+            sql.push_str(", value: ").push_value(value);
+        }
+        sql.push_str(" }");
+        Self(sql)
     }
 }
 
-/// Contains metadata of initialized patch operations.
-#[derive(Clone, Debug)]
-pub struct PatchOpInit {
-    path: String,
-    op: OpType,
-    value: Option<String>,
-    bindings: BindingsList,
-    errors: ErrorList,
-}
-
-/// Contains metadata for patch operations.
-pub struct PatchOp(PatchOpInit);
-
-impl std::ops::Deref for PatchOp {
-    type Target = PatchOpInit;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl Buildable for PatchOp {
-    fn build(&self) -> String {
-        let mut patch = vec![];
-        let path = self.path.to_string();
-        let op = self.op.to_string();
-        let value = self.value.clone();
-        let value = match value {
-            Some(value) => format!(", value: {}", value),
-            None => "".to_string(),
-        };
-        patch.push(format!("{{ op: '{}', path: {}{} }}", op, path, value));
-        patch.join(", ")
+impl Render for PatchOp {
+    fn render(&self, sql: &mut Sql) {
+        sql.push(&self.0);
     }
 }
 
@@ -70,22 +42,10 @@ impl From<PatchOp> for Vec<PatchOp> {
     }
 }
 
-impl Parametric for PatchOp {
-    fn get_bindings(&self) -> BindingsList {
-        self.0.bindings.to_vec()
-    }
-}
-
-impl Erroneous for PatchOp {
-    fn get_errors(&self) -> ErrorList {
-        self.0.errors.to_vec()
-    }
-}
-
 /// Patchable trait
-pub trait Patchable<T: Serialize>
+pub trait Patchable<T: SurrealValue>
 where
-    Self: std::ops::Deref<Target = Field>,
+    Self: Deref<Target = Field>,
 {
     /// Json Add patch operation
     /// The field acts as the path to the field to be patched. It automatically
@@ -101,7 +61,7 @@ where
     /// name.patch_add("Oyelowo");
     /// ```
     fn patch_add(&self, value: impl Into<T>) -> PatchOp {
-        patch_path(self.deref(), OpType::Add, value)
+        PatchOp::new(self.deref(), "add", Some(value.into().into_value()))
     }
 
     /// Json Remove patch operation
@@ -114,11 +74,7 @@ where
     /// name.patch_remove();
     /// ```
     fn patch_remove(&self) -> PatchOp {
-        let patch = patch(self.deref());
-        PatchOp(PatchOpInit {
-            op: OpType::Remove,
-            ..patch
-        })
+        PatchOp::new(self.deref(), "remove", None)
     }
 
     /// Json Replace patch operation
@@ -134,7 +90,7 @@ where
     /// name.patch_replace("Oyelowo");
     /// ```
     fn patch_replace(&self, value: impl Into<T>) -> PatchOp {
-        patch_path(self.deref(), OpType::Replace, value)
+        PatchOp::new(self.deref(), "replace", Some(value.into().into_value()))
     }
 
     /// Json Change patch operation
@@ -151,82 +107,15 @@ where
     /// name.patch_change("@@ -1,4 +1,4 @@\n te\n-s\n+x\n t\n");
     /// ```
     fn patch_change(&self, regex_match_and_replace_string: &str) -> PatchOp {
-        let binding = Binding::new(regex_match_and_replace_string);
-        let patch = patch(self.deref());
-
-        PatchOp(PatchOpInit {
-            op: OpType::Change,
-            value: Some(binding.get_param_dollarised()),
-            bindings: patch.bindings.into_iter().chain(vec![binding]).collect(),
-            ..patch
-        })
+        PatchOp::new(
+            self.deref(),
+            "change",
+            Some(Value::String(regex_match_and_replace_string.to_owned())),
+        )
     }
 
     /// Derefs to field
     fn to_field(&self) -> Field {
         self.deref().clone()
-    }
-}
-
-fn patch_path<T: Serialize>(field: &Field, operation_type: OpType, value: impl Into<T>) -> PatchOp {
-    let (binding, errors) = derive_binding_and_errors_from_value(&value.into());
-    let patch = patch(field);
-
-    PatchOp(PatchOpInit {
-        op: operation_type,
-        value: Some(binding.get_param_dollarised()),
-        bindings: patch.bindings.into_iter().chain(vec![binding]).collect(),
-        errors,
-        ..patch
-    })
-}
-
-pub(crate) fn derive_binding_and_errors_from_value<T: Serialize>(
-    value: &T,
-) -> (Binding, Vec<String>) {
-    let sql_value = sql::to_value(value);
-
-    let (value, errors) = match sql_value {
-        Ok(sql_value) => (sql_value, vec![]),
-        Err(e) => (
-            sql::Value::Null,
-            vec![format!("Error: Unable to serialise value. \n{}", e)],
-        ),
-    };
-
-    let binding = Binding::new(value);
-    (binding, errors)
-}
-
-// Patch helper
-fn patch(path: impl Into<Field>) -> PatchOpInit {
-    let path: Field = path.into();
-    let path = path.build();
-    let path = path.split('.').collect::<Vec<&str>>();
-    // Check if any of the item in the array contains invalid identifier
-    // i.e not start with aplhabet, contains only alphanumeric and underscore
-    // if any of the item is invalid, return error
-    // Must be e.g name, name.first, name.first.second, so that we can easily replace `.` with `/`
-    let bad_path = path.iter().filter(|item| {
-        item.starts_with(|c: char| !c.is_alphabetic() && c != '_')
-            || item
-                .chars()
-                .any(|c: char| !(c.is_alphanumeric() || c == '_'))
-    });
-
-    let mut errors = vec![];
-    if bad_path.count() > 0 {
-        errors.push("The path you have provided is invalid. Make sure that there are no clauses or conditions included. Valid path include e.g name, name(E).first, name(E).first(E).second, etc.".to_string());
-    }
-
-    let path = format!("/{}", path.join("/"));
-    let path_binding = Binding::new(sql::Value::from(path));
-
-    PatchOpInit {
-        path: path_binding.get_param_dollarised(),
-        op: OpType::Add,
-        value: None,
-        bindings: vec![path_binding],
-        errors,
     }
 }

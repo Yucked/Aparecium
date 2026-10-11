@@ -1,0 +1,266 @@
+
+use std::collections::{BTreeMap, HashMap};
+
+use surrealdb::types::{self, SurrealValue};
+
+use crate::{
+    Edge, Field, Function, Model, Node, Operation, Param, RecordId, Render, Sql, ValueLike,
+    statements::{
+        CreateStatement, DeleteStatement, IfElseStatement, InsertStatement, LetStatement,
+        RelateStatement, SelectStatement, Subquery, UpdateStatement,
+    },
+};
+
+/// Database index name
+pub type IndexName = Field;
+
+/// Represents the surrealdb NULL value
+#[derive(Debug, Clone, Copy)]
+pub struct NULL;
+
+impl Render for NULL {
+    fn render(&self, sql: &mut Sql) {
+        sql.push_str("NULL");
+    }
+}
+
+/// Represents the surrealdb NONE value
+#[derive(Debug, Clone, Copy)]
+pub struct NONE;
+
+impl Render for NONE {
+    fn render(&self, sql: &mut Sql) {
+        sql.push_str("NONE");
+    }
+}
+
+/// Defines an expression type restricted to one kind of value: the listed Rust types bind as
+/// values, and fields, parameters, operations, functions and subqueries stand for a value of
+/// that kind.
+macro_rules! typed_expression {
+    ($(#[$attr:meta])* $name:ident: $($value:ty),* $(,)?) => {
+        $(#[$attr])*
+        #[derive(Debug, Clone, PartialEq)]
+        pub struct $name(ValueLike);
+
+        impl Render for $name {
+            fn render(&self, sql: &mut Sql) {
+                self.0.render(sql);
+            }
+        }
+
+        impl From<$name> for ValueLike {
+            fn from(value: $name) -> Self {
+                value.0
+            }
+        }
+
+        $(
+            impl From<$value> for $name {
+                fn from(value: $value) -> Self {
+                    Self(ValueLike::value(value))
+                }
+            }
+        )*
+
+        typed_expression!(@expressions $name: Field, &Field, Param, &Param, LetStatement, &LetStatement,
+            Operation, Function, Subquery, SelectStatement, IfElseStatement);
+
+        impl<T: Node> From<CreateStatement<T>> for $name {
+            fn from(statement: CreateStatement<T>) -> Self {
+                Self(statement.into())
+            }
+        }
+
+        impl<T: Model> From<UpdateStatement<T>> for $name {
+            fn from(statement: UpdateStatement<T>) -> Self {
+                Self(statement.into())
+            }
+        }
+
+        impl<T: Model> From<DeleteStatement<T>> for $name {
+            fn from(statement: DeleteStatement<T>) -> Self {
+                Self(statement.into())
+            }
+        }
+
+        impl<T: Edge> From<RelateStatement<T>> for $name {
+            fn from(statement: RelateStatement<T>) -> Self {
+                Self(statement.into())
+            }
+        }
+
+        impl<T: Node> From<InsertStatement<T>> for $name {
+            fn from(statement: InsertStatement<T>) -> Self {
+                Self(statement.into())
+            }
+        }
+    };
+    (@expressions $name:ident: $($source:ty),*) => {
+        $(
+            impl From<$source> for $name {
+                fn from(value: $source) -> Self {
+                    Self(value.into())
+                }
+            }
+        )*
+    };
+}
+
+typed_expression!(
+    /// A number, or an expression standing for one.
+    NumberLike: i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64, types::Number,
+        types::Decimal
+);
+
+typed_expression!(
+    /// A string, or an expression standing for one.
+    StrandLike: String, &str
+);
+
+typed_expression!(
+    /// A geometry, or an expression standing for one.
+    GeometryLike: types::Geometry, geo::Point<f64>, geo::LineString<f64>, geo::Polygon<f64>,
+        geo::MultiPoint<f64>, geo::MultiLineString<f64>, geo::MultiPolygon<f64>
+);
+
+typed_expression!(
+    /// A record id, or an expression standing for one.
+    RecordIdLike: types::RecordId
+);
+
+typed_expression!(
+    /// A duration, or an expression standing for one.
+    DurationLike: types::Duration, std::time::Duration
+);
+
+typed_expression!(
+    /// A datetime, or an expression standing for one.
+    DatetimeLike: types::Datetime, chrono::DateTime<chrono::Utc>
+);
+
+typed_expression!(
+    /// A table value, or an expression standing for one.
+    TableLike: types::Table
+);
+
+typed_expression!(
+    /// An object, or an expression standing for one.
+    ObjectLike: types::Object
+);
+
+typed_expression!(
+    /// A boolean, or an expression standing for one.
+    BoolLike: bool
+);
+
+typed_expression!(
+    /// An array, or an expression standing for one.
+    ArrayLike: types::Array
+);
+
+impl From<geo::Geometry<f64>> for GeometryLike {
+    fn from(value: geo::Geometry<f64>) -> Self {
+        Self(ValueLike::value(types::Geometry::from(value)))
+    }
+}
+
+impl<T: Model> From<RecordId<T>> for RecordIdLike {
+    fn from(value: RecordId<T>) -> Self {
+        Self(ValueLike::value(value))
+    }
+}
+
+impl<T: Model> From<&RecordId<T>> for RecordIdLike {
+    fn from(value: &RecordId<T>) -> Self {
+        Self(ValueLike::value(value.clone()))
+    }
+}
+
+impl<V: SurrealValue> From<BTreeMap<String, V>> for ObjectLike {
+    fn from(value: BTreeMap<String, V>) -> Self {
+        Self(ValueLike::value(value))
+    }
+}
+
+impl<V: SurrealValue> From<HashMap<String, V>> for ObjectLike {
+    fn from(value: HashMap<String, V>) -> Self {
+        Self(ValueLike::value(value))
+    }
+}
+
+impl<T: SurrealValue> From<Vec<T>> for ArrayLike {
+    fn from(value: Vec<T>) -> Self {
+        Self(ValueLike::value(value))
+    }
+}
+
+impl<const N: usize, T: SurrealValue> From<[T; N]> for ArrayLike {
+    fn from(value: [T; N]) -> Self {
+        Self(ValueLike::value(Vec::from(value)))
+    }
+}
+
+impl<const N: usize, T: SurrealValue + Clone> From<&[T; N]> for ArrayLike {
+    fn from(value: &[T; N]) -> Self {
+        Self(ValueLike::value(value.to_vec()))
+    }
+}
+
+/// An array literal whose elements are expressions, e.g. `[1, age, $limit]`.
+impl From<Vec<ValueLike>> for ArrayLike {
+    fn from(values: Vec<ValueLike>) -> Self {
+        let mut sql = Sql::new();
+        sql.push_str("[").push_joined(&values, ", ").push_str("]");
+        Self(ValueLike::new(sql))
+    }
+}
+
+/// Represents the surrealdb Set value, or field, param which can all be used
+pub type SetLike = ArrayLike;
+
+/// A comma-separated list of function arguments.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ArgsList(Vec<ValueLike>);
+
+impl Render for ArgsList {
+    fn render(&self, sql: &mut Sql) {
+        sql.push_joined(&self.0, ", ");
+    }
+}
+
+impl<T: SurrealValue> From<Vec<T>> for ArgsList {
+    fn from(values: Vec<T>) -> Self {
+        Self(values.into_iter().map(ValueLike::value).collect())
+    }
+}
+
+impl<const N: usize, T: SurrealValue + Clone> From<&[T; N]> for ArgsList {
+    fn from(values: &[T; N]) -> Self {
+        values.to_vec().into()
+    }
+}
+
+impl From<Vec<ValueLike>> for ArgsList {
+    fn from(values: Vec<ValueLike>) -> Self {
+        Self(values)
+    }
+}
+
+impl From<Field> for ArgsList {
+    fn from(value: Field) -> Self {
+        Self(vec![value.into()])
+    }
+}
+
+impl From<&Field> for ArgsList {
+    fn from(value: &Field) -> Self {
+        Self(vec![value.into()])
+    }
+}
+
+impl From<Param> for ArgsList {
+    fn from(value: Param) -> Self {
+        Self(vec![value.into()])
+    }
+}

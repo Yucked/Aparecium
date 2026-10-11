@@ -1,72 +1,51 @@
-#![allow(missing_docs)]
-
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
-
-use std::fmt::Display;
 
 use thiserror::Error;
 
-/// The length of length of the returned list of items from the database
-#[derive(Debug, Clone, Copy)]
-pub struct ExpectedLength(u8);
-
-impl Display for ExpectedLength {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl From<u8> for ExpectedLength {
-    fn from(value: u8) -> Self {
-        Self(value)
-    }
-}
-
-type IdString = String;
-type TableString = String;
-
-/// The error type for the SurrealOrm
-#[allow(missing_docs)]
+/// Errors returned by Aparecium.
 #[derive(Error, Debug)]
-pub enum SurrealOrmError {
-    #[error("There is an issue with one of your inputs while building the query. {0}")]
+#[non_exhaustive]
+pub enum Error {
+    /// The query could not be built from its inputs.
+    #[error("invalid query: {0}")]
     QueryBuilder(String),
 
-    #[error("Expected at most {0}, but more returned")]
-    TooManyItemsReturned(ExpectedLength),
+    /// More records were returned than the operation allows.
+    #[error("expected at most {expected} record(s), but more were returned")]
+    TooManyItemsReturned {
+        /// The maximum number of records the operation accepts.
+        expected: usize,
+    },
 
-    #[error("Problem runnning query. Check that there is no issue with your query. {0}")]
-    QueryRun(#[source] surrealdb::Error),
+    /// The database rejected or failed to run the query.
+    #[error("query failed: {0}")]
+    Query(#[source] surrealdb::Error),
 
+    /// A value returned by the database did not convert into the requested type.
+    #[error("unexpected value from the database: {0}")]
+    Conversion(#[source] surrealdb::Error),
+
+    /// Fields requested for fetching are not record links.
     #[error(
-        "Unable to parse data returned from the database. Check that all fields are complete and the types are able to deserialize surrealdb data types properly. {0}"
-    )]
-    Deserialization(#[source] surrealdb::Error),
-
-    #[error(
-        "Invalid id. Problem deserializing string to surrealdb::sql::Thing. Check that the id is in the format 'table:id'. {0}"
-    )]
-    InvalidId(#[source] surrealdb::Error),
-
-    #[error(
-        "The id - {0} provided does not belong to the table {1}. Please ensure that the id provided is for the table you are trying to fetch from."
-    )]
-    IdBelongsToAnotherTable(IdString, TableString),
-
-    #[error(
-        "The following fields could not be fetched as they are not linked to a foreign table: {0}. Please ensure that all fields provided are of types 'link_self', 'link_one' or 'link_many' to allow fetching of linked values from other tables."
+        "these fields are not record links and cannot be fetched: {0}; only `link_self`, `link_one` and `link_many` fields can be"
     )]
     FieldsUnfetchableNotARecordLink(String),
 
-    #[error("No record returned from {0}. Check that all fields in this table are selected.")]
+    /// No record was returned where one was required.
+    #[error("no record returned from {0}")]
     RecordNotFound(String),
 
-    #[error("Invalid subquery. {0}")]
-    InvalidSubquery(String),
+    /// A migration failed.
+    #[cfg(feature = "migrations")]
+    #[error(transparent)]
+    Migration(Box<crate::migrations::MigrationError>),
 }
 
-pub type SurrealOrmResult<T> = std::result::Result<T, SurrealOrmError>;
+#[cfg(feature = "migrations")]
+impl From<crate::migrations::MigrationError> for Error {
+    fn from(error: crate::migrations::MigrationError) -> Self {
+        Self::Migration(Box::new(error))
+    }
+}
+
+/// The result type returned by Aparecium.
+pub type Result<T, E = Error> = std::result::Result<T, E>;

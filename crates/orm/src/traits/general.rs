@@ -1,59 +1,43 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
-use crate::Field;
-
-use super::{Erroneous, Parametric};
-
-/// A trait for building a query string
-#[diagnostic::on_unimplemented(
-    message = "`{Self}` is not a query fragment",
-    label = "cannot be rendered into SurrealQL",
-    note = "use an Aparecium statement, field, parameter or value here"
-)]
-pub trait Buildable {
-    /// Build a query string
-    fn build(&self) -> String;
-
-    /// Make query string param consistent. Useful in testing.
-    fn fine_tune_params(&self) -> String {
-        let mut count = 0;
-        let re = regex::Regex::new(r"_param_[[:xdigit:]]+").unwrap();
-        re.replace_all(&self.build(), |_caps: &regex::Captures<'_>| {
-            count += 1;
-            format!("_param_{:08}", count)
-        })
-        .to_string()
-    }
-}
+use crate::{Field, Render, Sql};
 
 /// Denoted by `.*`. Used for accessing all nested fields and arrays and links
 pub trait AllGetter {
-    /// Appends `.*` to the current string. Get all nested fields and arrays and links
+    /// Appends `.*` to the current path. Get all nested fields and arrays and links
     fn all(&self) -> Field;
 }
 
-impl<B> AllGetter for B
-where
-    B: Buildable + Parametric,
-{
+impl<B: Render> AllGetter for B {
     fn all(&self) -> Field {
-        let asteriked = format!("{}.*", self.build());
-        Field::new(asteriked.clone()).with_bindings(self.get_bindings())
+        Field::from_expr(self).all()
     }
 }
 
 /// Used for statements
-pub trait Queryable: Parametric + Buildable + Erroneous {}
+pub trait Queryable: Render {}
+
+impl<T: Queryable + ?Sized> Queryable for &T {}
 
 /// Used for filters
-pub trait Conditional: Parametric + Buildable + Erroneous {
-    /// Get query string of the filter
-    fn get_condition_query_string(&self) -> String {
-        self.build()
+pub trait Conditional: Render {
+    /// Writes the node as a condition. A `LET` statement stands for its parameter here.
+    fn render_condition(&self, sql: &mut Sql) {
+        self.render(sql);
+    }
+
+    /// Whether the condition is already a single parenthesized group.
+    fn is_grouped(&self) -> bool {
+        false
+    }
+}
+
+impl<T: Conditional + ?Sized> Conditional for &T {
+    fn render_condition(&self, sql: &mut Sql) {
+        (**self).render_condition(sql);
+    }
+
+    fn is_grouped(&self) -> bool {
+        (**self).is_grouped()
     }
 }
 

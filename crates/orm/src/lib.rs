@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 // Shared lints live in the workspace manifest; only the public crate requires docs.
 #![warn(missing_docs)]
 #![recursion_limit = "256"]
@@ -18,43 +13,35 @@ mod data_model;
 pub mod functions;
 mod helpers;
 mod operators_macros;
+mod query;
+mod render;
 /// This module contains the different types of statements that can be used to query the
 /// database.
 pub mod statements;
 mod traits;
-mod types;
 /// For compile time validations
 pub mod validators;
 
 pub use data_model::*;
 pub use errors::*;
 pub use helpers::*;
+pub use query::*;
+pub use render::{GENERATED_PARAM_PREFIX, Query, Render, Sql};
 pub use statements::select::CanOrder;
 pub use statements::utils::*;
 pub use traits::*;
-pub use types::*;
 
-pub use serde;
-pub use surrealdb::sql;
+/// SurrealDB's value types (`Value`, `RecordId`, `Datetime`, `Kind`, …) and the `SurrealValue`
+/// conversion trait models derive.
+pub use surrealdb::types;
+pub use surrealdb::types::Table;
 
 /// Embedded and file-based schema migrations, generated from model definitions.
 #[cfg(feature = "migrations")]
 pub mod migrations;
 
-#[doc = include_str!("docs/edge_description.md")]
-#[doc = include_str!("docs/edge_struct_attributes.md")]
-#[doc = include_str!("docs/edge_field_attributes.md")]
-pub use aparecium_macros::Edge;
-
-#[doc = include_str!("docs/node_description.md")]
-#[doc = include_str!("docs/node_struct_attributes.md")]
-#[doc = include_str!("docs/node_field_attributes.md")]
-pub use aparecium_macros::Node;
-
-#[doc = include_str!("docs/object_description.md")]
-#[doc = include_str!("docs/object_struct_attributes.md")]
-#[doc = include_str!("docs/object_field_attributes.md")]
-pub use aparecium_macros::Object;
+#[doc = include_str!("docs/model.md")]
+pub use aparecium_macros::model;
 
 pub use aparecium_macros::{
     Pickable, TableResources, block, chain, define_function, for_, pick, query, query_raw,
@@ -65,4 +52,10 @@ pub use aparecium_macros::{
 pub mod internal_tools {
     pub use paste::paste;
     pub use typed_builder;
+}
+
+/// Items `#[model]` expands to; not part of the public API.
+#[doc(hidden)]
+pub mod __private {
+    pub use aparecium_macros::ModelCodegen;
 }

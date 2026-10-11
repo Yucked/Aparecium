@@ -1,10 +1,5 @@
-use super::{Buildable, Parametric};
-use crate::{
-    AllGetter, Field, Model, Projections, Queryable, ReturnType, SurrealOrmError, SurrealOrmResult,
-    ValueLike,
-};
-use serde::{Serialize, de::DeserializeOwned};
-use surrealdb::{Connection, Surreal};
+use crate::{Error, Field, Model, Projections, Queryable, Render, Result, ReturnType};
+use surrealdb::{Connection, Surreal, types::SurrealValue};
 
 // Create, Update, Relate, Delete
 // [ RETURN [ NONE | BEFORE | AFTER | DIFF | @projections ... ]
@@ -26,26 +21,13 @@ where
     fn run(
         &self,
         db: Surreal<impl surrealdb::Connection>,
-    ) -> impl Future<Output = SurrealOrmResult<surrealdb::Response>> + Send
+    ) -> impl Future<Output = Result<surrealdb::Response>> + Send
     where
         Self: Sync,
     {
         async move {
-            let query_builder_error = self.get_errors();
-
-            if !query_builder_error.is_empty() {
-                return Err(SurrealOrmError::QueryBuilder(
-                    query_builder_error.join(". \n"),
-                ));
-            }
-
-            let query = self.build();
-            let query = db.query(query);
-            let query = self.get_bindings().iter().fold(query, |acc, val| {
-                acc.bind((val.get_param(), val.get_value()))
-            });
-
-            Ok(query.await.map_err(SurrealOrmError::QueryRun)?)
+            let (sql, vars) = self.to_query()?.into_parts();
+            db.query(sql).bind(vars).await.map_err(Error::Query)
         }
     }
 
@@ -53,17 +35,15 @@ where
     fn get_data<T>(
         &self,
         db: Surreal<impl surrealdb::Connection>,
-    ) -> impl Future<Output = SurrealOrmResult<Option<T>>> + Send
+    ) -> impl Future<Output = Result<Option<T>>> + Send
     where
         Self: Sync,
-        T: Sized + Serialize + DeserializeOwned,
+        T: SurrealValue,
     {
         async move {
             let mut response = self.run(db).await?;
 
-            Ok(response
-                .take::<Option<T>>(0)
-                .map_err(SurrealOrmError::Deserialization)?)
+            response.take::<Option<T>>(0).map_err(Error::Conversion)
         }
     }
 }
@@ -73,23 +53,23 @@ impl<Q> Runnable for Q where Q: Queryable {}
 /// A trait that represents a statement that can be run against the database and return a single
 pub trait ReturnableStandard<T>
 where
-    Self: Parametric + Buildable + Sized + Send + Sync + Runnable,
-    T: Serialize + DeserializeOwned + Model,
+    Self: Sized + Send + Sync + Runnable,
+    T: Model,
 {
     // /// Runs the statement against the database and returns the first result before the change.
-    // async fn return_first_before(self, db: Surreal<Db>) -> SurrealOrmResult<Option<T>> {
+    // async fn return_first_before(self, db: Surreal<Db>) -> Result<Option<T>> {
     //     let query = self.set_return_type(ReturnType::Before);
     //     query.return_first(db).await
     // }
     //
     // /// Runs the statement against the database and returns the first result after the change.
-    // async fn return_first_after(self, db: Surreal<Db>) -> SurrealOrmResult<Option<T>> {
+    // async fn return_first_after(self, db: Surreal<Db>) -> Result<Option<T>> {
     //     let query = self.set_return_type(ReturnType::After);
     //     query.return_first(db).await
     // }
     //
     // /// Runs the statement against the database and returns the first result of the change.
-    // async fn return_first_diff(self, db: Surreal<Db>) -> SurrealOrmResult<Option<T>> {
+    // async fn return_first_diff(self, db: Surreal<Db>) -> Result<Option<T>> {
     //     let query = self.set_return_type(ReturnType::Diff);
     //     query.return_first(db).await
     // }
@@ -100,9 +80,9 @@ where
         self,
         db: Surreal<impl Connection>,
         projections: impl Send + Into<Projections>,
-    ) -> impl Future<Output = SurrealOrmResult<Option<P>>> + Send
+    ) -> impl Future<Output = Result<Option<P>>> + Send
     where
-        P: Serialize + DeserializeOwned,
+        P: SurrealValue,
     {
         async move {
             let mut query = self;
@@ -120,9 +100,9 @@ where
         self,
         db: Surreal<impl Connection>,
         projections: impl Send + Into<Projections>,
-    ) -> impl Future<Output = SurrealOrmResult<Option<P>>> + Send
+    ) -> impl Future<Output = Result<Option<P>>> + Send
     where
-        P: Serialize + DeserializeOwned,
+        P: SurrealValue,
     {
         async move {
             let mut query = self;
@@ -140,9 +120,9 @@ where
         self,
         db: Surreal<impl Connection>,
         projections: impl Send + Into<Projections>,
-    ) -> impl Future<Output = SurrealOrmResult<Vec<P>>> + Send
+    ) -> impl Future<Output = Result<Vec<P>>> + Send
     where
-        P: Serialize + DeserializeOwned,
+        P: SurrealValue,
     {
         async move {
             let mut query = self;
@@ -155,41 +135,34 @@ where
     }
 
     #[doc(hidden)]
-    fn validate_fields_to_fetch(linked_fields_to_fetch: &[Field]) -> SurrealOrmResult<Vec<String>> {
-        let result = linked_fields_to_fetch
+    fn validate_fields_to_fetch(linked_fields_to_fetch: &[Field]) -> Result<()> {
+        // Compared as rendered paths: a caller's `Field::new("author")` and the generated
+        // schema field for `author` are built from different parts.
+        let linked_fields = T::get_linked_fields()
             .iter()
-            .map(|n| {
-                let n: ValueLike = n.into();
-                n.build()
-            })
-            .filter(|n| !T::get_linked_fields().iter().any(|m| m.build() == *n))
-            // .map(|&n| {
-            //     let n: ValueLike = n.into();
-            //     n.build()
-            // })
+            .map(Render::to_debug_sql)
+            .collect::<Vec<_>>();
+        let unfetchable = linked_fields_to_fetch
+            .iter()
+            .map(Render::to_debug_sql)
+            .filter(|field| !linked_fields.contains(field))
             .collect::<Vec<_>>();
 
-        if !result.is_empty() {
-            return Err(SurrealOrmError::FieldsUnfetchableNotARecordLink(
-                result.join(", "),
+        if !unfetchable.is_empty() {
+            return Err(Error::FieldsUnfetchableNotARecordLink(
+                unfetchable.join(", "),
             ));
         }
-        Ok(result)
+        Ok(())
     }
 
     /// Sets the return type to projections and fetches all records links.
     /// Defaults values to null for referenced records that do not exist.
-    fn load_links(
-        self,
-        linked_fields_to_fetch: Vec<impl Into<ValueLike>>,
-    ) -> SurrealOrmResult<Self> {
+    fn load_links(self, linked_fields_to_fetch: Vec<impl Into<Field>>) -> Result<Self> {
         let linked_fields_to_fetch = linked_fields_to_fetch
             .into_iter()
-            .map(|field| {
-                let value_like: ValueLike = field.into();
-                Field::new(value_like.build()).with_bindings(value_like.get_bindings())
-            })
-            .collect::<Vec<_>>();
+            .map(Into::into)
+            .collect::<Vec<Field>>();
         Self::validate_fields_to_fetch(&linked_fields_to_fetch)?;
 
         let projections = ReturnType::Projections(
@@ -217,7 +190,7 @@ where
     }
 
     /// load links values and filter out null references.
-    // fn load_links_non_null(self, linked_fields_to_fetch: Vec<Field>) -> SurrealOrmResult<Self> {
+    // fn load_links_non_null(self, linked_fields_to_fetch: Vec<Field>) -> Result<Self> {
     //     Self::validate_fields_to_fetch(&linked_fields_to_fetch)?;
     //     let projections = ReturnType::Projections(
     //         vec![Field::new("*")]
@@ -243,7 +216,7 @@ where
     /// For link_one, link_self, it returns null if the link is null or the reference
     /// does not exist. For link_many, it returns None for items that are null or the reference
     /// do not exist.
-    fn load_all_links(self) -> SurrealOrmResult<Self> {
+    fn load_all_links(self) -> Result<Self> {
         self.load_links(T::get_linked_fields())
     }
 
@@ -251,31 +224,31 @@ where
     // /// For link_one, link_self, it returns null if the link is null or the reference
     // /// does not exist. For link_many, it returns filters out links that are null or that
     // /// point to reference that does not yet exist
-    // fn load_all_links_non_null(self) -> SurrealOrmResult<Self> {
+    // fn load_all_links_non_null(self) -> Result<Self> {
     //     self.load_links_non_null(T::get_linked_fields())
     // }
 
     /// Sets the return type to projections and fetches the all record links values
     /// for link_many fields including the null record links.
-    fn load_link_manys(self) -> SurrealOrmResult<Self> {
+    fn load_link_manys(self) -> Result<Self> {
         self.load_links(T::get_link_many_fields())
     }
 
     // /// Sets the return type to projections and fetches the all record links values
     // /// for link_many fields excluding the null record links.
-    // fn load_link_manys_non_null(self) -> SurrealOrmResult<Self> {
+    // fn load_link_manys_non_null(self) -> Result<Self> {
     //     self.load_links_non_null(T::get_link_many_fields())
     // }
 
     /// Sets the return type to projections and fetches the all record links values
     /// for link_one fields. Defaults to null if the reference does not exist.
-    fn load_link_ones(self) -> SurrealOrmResult<Self> {
+    fn load_link_ones(self) -> Result<Self> {
         self.load_links(T::get_link_one_fields())
     }
 
     /// Sets the return type to projections and fetches the all record links values
     /// for link_self fields. Defaults to null if the reference does not exist.
-    fn load_link_selfs(self) -> SurrealOrmResult<Self> {
+    fn load_link_selfs(self) -> Result<Self> {
         self.load_links(T::get_link_self_fields())
     }
 
@@ -283,7 +256,7 @@ where
     fn return_one(
         &self,
         db: Surreal<impl Connection>,
-    ) -> impl Future<Output = SurrealOrmResult<Option<T>>> + Send {
+    ) -> impl Future<Output = Result<Option<T>>> + Send {
         async move {
             let response = self.run(db).await?;
             get_one::<T>(response)
@@ -292,35 +265,13 @@ where
 
     /// Runs the statement against the database and returns the one result.
     /// Returns an error if the result is not exactly one.
-    /// It does best effort to make sure all fields are selected
-    /// even if you select subset, it fills up the rest to make
-    /// sure you get the full record and can be properly deserialized.
     fn get_one(
         self,
         db: Surreal<impl Connection>,
-    ) -> impl Future<Output = SurrealOrmResult<T>> + Send {
+    ) -> impl Future<Output = Result<T>> + Send {
         async move {
             let response = self.run(db).await?;
-            let returned_type = self.get_return_type();
-            let all = vec![ValueLike::from(Field::new("*"))];
-            let selected_fields = match returned_type {
-                ReturnType::Projections(projections) => all
-                    .into_iter()
-                    .chain(
-                        projections
-                            .iter()
-                            .filter(|p| p.build() != "*")
-                            .cloned()
-                            .collect::<Vec<_>>(),
-                    )
-                    .collect::<Vec<_>>(),
-                _ => all,
-            };
-
-            let query = self.set_return_type(ReturnType::Projections(Projections(selected_fields)));
-
-            get_one::<T>(response)
-                .map(|r| r.ok_or_else(|| SurrealOrmError::RecordNotFound(query.build())))?
+            get_one::<T>(response)?.ok_or_else(|| Error::RecordNotFound(self.to_debug_sql()))
         }
     }
 
@@ -328,7 +279,7 @@ where
     fn return_many(
         &self,
         db: Surreal<impl Connection>,
-    ) -> impl Future<Output = SurrealOrmResult<Vec<T>>> + Send {
+    ) -> impl Future<Output = Result<Vec<T>>> + Send {
         async move {
             let response = self.run(db).await?;
             get_many::<T>(response)
@@ -339,7 +290,7 @@ where
     fn return_none(
         &self,
         db: Surreal<impl Connection>,
-    ) -> impl Future<Output = SurrealOrmResult<()>> + Send {
+    ) -> impl Future<Output = Result<()>> + Send {
         async move {
             self.run(db).await?;
             Ok(())
@@ -350,7 +301,7 @@ where
     fn return_first(
         &self,
         db: Surreal<impl Connection>,
-    ) -> impl Future<Output = SurrealOrmResult<Option<T>>> + Send {
+    ) -> impl Future<Output = Result<Option<T>>> + Send {
         async move {
             let response = self.run(db).await?;
             get_first::<T>(response)
@@ -361,7 +312,7 @@ where
     fn return_many_before(
         self,
         db: Surreal<impl Connection>,
-    ) -> impl Future<Output = SurrealOrmResult<Vec<T>>> + Send {
+    ) -> impl Future<Output = Result<Vec<T>>> + Send {
         async move {
             let query = self.set_return_type(ReturnType::Before);
             query.return_many(db).await
@@ -378,18 +329,18 @@ where
 /// A trait that represents a statement that can be run against the database
 pub trait ReturnableDefault<T>
 where
-    Self: Parametric + Buildable + Runnable,
-    T: Serialize + DeserializeOwned,
+    Self: Runnable,
+    T: SurrealValue,
 {
     /// Runs the statement against the database and returns the one result with custom specified
     /// return type.
     fn return_one_explicit<V>(
         &self,
         db: Surreal<impl Connection>,
-    ) -> impl Future<Output = SurrealOrmResult<Option<V>>> + Send
+    ) -> impl Future<Output = Result<Option<V>>> + Send
     where
         Self: Sync,
-        V: Serialize + DeserializeOwned,
+        V: SurrealValue,
     {
         async move {
             let response = self.run(db).await?;
@@ -402,10 +353,10 @@ where
     fn return_many_explicit<V>(
         &self,
         db: Surreal<impl Connection>,
-    ) -> impl Future<Output = SurrealOrmResult<Vec<V>>> + Send
+    ) -> impl Future<Output = Result<Vec<V>>> + Send
     where
         Self: Sync,
-        V: Serialize + DeserializeOwned,
+        V: SurrealValue,
     {
         async move {
             let response = self.run(db).await?;
@@ -416,15 +367,12 @@ where
 
 /// A trait that represents a statement that can be run against the database. Specifically for
 /// selct statements.
-pub trait ReturnableSelect: Runnable
-where
-    Self: Parametric + Buildable,
-{
+pub trait ReturnableSelect: Runnable {
     /// Runs the statement against the database and returns no result.
     fn return_none(
         &self,
         db: Surreal<impl Connection>,
-    ) -> impl Future<Output = SurrealOrmResult<()>> + Send
+    ) -> impl Future<Output = Result<()>> + Send
     where
         Self: Sync,
     {
@@ -438,10 +386,10 @@ where
     fn return_first<T>(
         &self,
         db: Surreal<impl Connection>,
-    ) -> impl Future<Output = SurrealOrmResult<Option<T>>> + Send
+    ) -> impl Future<Output = Result<Option<T>>> + Send
     where
         Self: Sync,
-        T: Serialize + DeserializeOwned,
+        T: SurrealValue,
     {
         async move {
             let response = self.run(db).await?;
@@ -453,10 +401,10 @@ where
     fn return_one<T>(
         &self,
         db: Surreal<impl surrealdb::Connection>,
-    ) -> impl Future<Output = SurrealOrmResult<Option<T>>> + Send
+    ) -> impl Future<Output = Result<Option<T>>> + Send
     where
         Self: Sync,
-        T: Serialize + DeserializeOwned,
+        T: SurrealValue,
     {
         async move {
             let response = self.run(db).await?;
@@ -471,7 +419,7 @@ where
     ) -> impl Future<Output = T> + Send
     where
         Self: Sync,
-        T: Serialize + DeserializeOwned,
+        T: SurrealValue,
     {
         async move {
             let response = self.run(db).await.unwrap();
@@ -483,10 +431,10 @@ where
     fn return_many<T>(
         &self,
         db: Surreal<impl Connection>,
-    ) -> impl Future<Output = SurrealOrmResult<Vec<T>>> + Send
+    ) -> impl Future<Output = Result<Vec<T>>> + Send
     where
         Self: Sync,
-        T: Serialize + DeserializeOwned,
+        T: SurrealValue,
     {
         async move {
             let response = self.run(db).await?;
@@ -495,37 +443,37 @@ where
     }
 }
 
-fn get_one<T>(mut response: surrealdb::Response) -> SurrealOrmResult<Option<T>>
+fn get_one<T>(mut response: surrealdb::Response) -> Result<Option<T>>
 where
-    T: Serialize + DeserializeOwned,
+    T: SurrealValue,
 {
     let mut value = response
         .take::<Vec<T>>(0)
-        .map_err(SurrealOrmError::Deserialization)?;
+        .map_err(Error::Conversion)?;
     if value.len() > 1 {
-        return Err(SurrealOrmError::TooManyItemsReturned(1.into()));
+        return Err(Error::TooManyItemsReturned { expected: 1 });
     }
     Ok(value.pop())
 }
 
-fn get_many<T>(mut response: surrealdb::Response) -> SurrealOrmResult<Vec<T>>
+fn get_many<T>(mut response: surrealdb::Response) -> Result<Vec<T>>
 where
-    T: Serialize + DeserializeOwned,
+    T: SurrealValue,
 {
     let value = response
         .take::<Vec<T>>(0)
-        .map_err(SurrealOrmError::Deserialization)?;
+        .map_err(Error::Conversion)?;
 
     Ok(value)
 }
 
-fn get_first<T>(mut response: surrealdb::Response) -> SurrealOrmResult<Option<T>>
+fn get_first<T>(mut response: surrealdb::Response) -> Result<Option<T>>
 where
-    T: Serialize + DeserializeOwned,
+    T: SurrealValue,
 {
     let mut value = response
         .take::<Vec<T>>(0)
-        .map_err(SurrealOrmError::Deserialization)?;
+        .map_err(Error::Conversion)?;
 
     let value = if !value.is_empty() {
         Some(value.swap_remove(0))
@@ -536,13 +484,13 @@ where
     Ok(value)
 }
 
-fn get_last<T>(mut response: surrealdb::Response) -> SurrealOrmResult<Option<T>>
+fn get_last<T>(mut response: surrealdb::Response) -> Result<Option<T>>
 where
-    T: Serialize + DeserializeOwned,
+    T: SurrealValue,
 {
     let mut value = response
         .take::<Vec<T>>(0)
-        .map_err(SurrealOrmError::Deserialization)?;
+        .map_err(Error::Conversion)?;
 
     let value = if !value.is_empty() { value.pop() } else { None };
 
