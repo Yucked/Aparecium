@@ -1,17 +1,12 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 use crate::migrations::{
     table_events::ComparisonEvents, table_fields::ComparisonFields,
     table_indexes::ComparisonIndexes, *,
 };
 use crate::{DbResources, Table};
-use serde::{Deserialize, Serialize};
+use surrealdb::types::SurrealValue;
 
-#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[derive(SurrealValue, Debug, Clone, Default)]
 pub struct TableResourcesData {
     events: Events,
     indexes: Indexes,

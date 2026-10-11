@@ -1,10 +1,5 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
-use crate::{Field, SurrealOrmError, Table};
+use crate::{Field, Render, Table};
 use thiserror::Error;
 
 use crate::migrations::MigrationFilename;
@@ -119,7 +114,9 @@ pub enum MigrationError {
     #[error(
         "The field - {new_name} - on table - {table} - has an invalid old name - '{old_name}'. \
         It must have already been renamed previously or never existed before or wrongly spelt. \
-         Also, make sure you are using the correct case for the field name. It should be one of these: {renamables}"
+         Also, make sure you are using the correct case for the field name. It should be one of these: {renamables}",
+        new_name = .new_name.to_debug_sql(),
+        old_name = .old_name.to_debug_sql()
     )]
     InvalidOldFieldName {
         new_name: Box<Field>,
@@ -131,7 +128,8 @@ pub enum MigrationError {
     #[error(
         "The field - {field_expected} - on table - {table} - does not exist. \
         It must have already been renamed previously or never existed before or wrongly spelt. \
-         Also, make sure you are using the correct case for the field name. It should be one of these: {valid_fields}"
+         Also, make sure you are using the correct case for the field name. It should be one of these: {valid_fields}",
+        field_expected = .field_expected.to_debug_sql()
     )]
     FieldNameDoesNotExist {
         field_expected: Box<Field>,
@@ -141,7 +139,8 @@ pub enum MigrationError {
 
     #[error(
         "You are trying to rename the field - {field} - on table - {table} - to the same old field name - {field}. \
-        This is likely not intentional. Use a different name for the new field"
+        This is likely not intentional. Use a different name for the new field",
+        field = .field.to_debug_sql()
     )]
     RenamingToSameOldFieldDisallowed { field: Field, table: Table },
 
@@ -160,7 +159,8 @@ pub enum MigrationError {
 
     #[error(
         "You are trying to use the same old field name - {field} - for new field name - {field}. \
-        This is likely not intentional. Use a different name for the new field"
+        This is likely not intentional. Use a different name for the new field",
+        field = .field.to_debug_sql()
     )]
     FieldNameReused { field: Field, table: Table },
 
@@ -209,7 +209,7 @@ There are {one_way_filecount} up only files and {two_way_filecount} up and down 
     InvalidUpsVsDownsMigrationFileCount(String),
 
     #[error(transparent)]
-    ProblemWithQuery(#[from] SurrealOrmError),
+    ProblemWithQuery(#[from] crate::Error),
 
     #[error(transparent)]
     InvalidRegex(#[from] regex::Error),

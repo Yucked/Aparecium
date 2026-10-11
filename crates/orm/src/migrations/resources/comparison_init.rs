@@ -1,11 +1,6 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 use crate::DbResources;
-use serde::{Deserialize, Serialize};
+use surrealdb::types::SurrealValue;
 
 use crate::migrations::*;
 
@@ -85,7 +80,7 @@ impl<'a> ComparisonsInit<'a> {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[derive(SurrealValue, Clone, Debug, Default)]
 pub struct DbInfo {
     pub analyzers: Analyzers,
     pub functions: Functions,

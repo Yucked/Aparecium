@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 use std::{fmt::Display, ops::Deref};
 
@@ -15,7 +10,7 @@ use crate::{
     *,
 };
 use itertools::intersperse;
-use serde::{Deserialize, Serialize};
+use surrealdb::types::SurrealValue;
 
 use crate::migrations::*;
 
@@ -35,7 +30,7 @@ impl Display for QueryType {
             QueryType::Define(def) => def.to_string(),
             QueryType::Remove(rem) => rem.to_string(),
             QueryType::Update(upd) => upd.to_string(),
-            QueryType::DeleteAll(del) => del.build(),
+            QueryType::DeleteAll(del) => del.to_string(),
             QueryType::NewLine => "\n".to_string(),
             QueryType::Comment(comment) => format!("-- {comment}"),
         };
@@ -107,7 +102,7 @@ impl Queries {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[derive(SurrealValue, Debug, Clone, Default)]
 pub struct UpdateStatementRaw(String);
 
 impl Deref for UpdateStatementRaw {
@@ -174,7 +169,7 @@ impl From<String> for RemoveStatementRaw {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Default, Eq, PartialEq)]
+#[derive(SurrealValue, Debug, Clone, Default, Eq, PartialEq)]
 pub struct DefineStatementRaw(String);
 
 impl From<DefineStatementRaw> for Raw {

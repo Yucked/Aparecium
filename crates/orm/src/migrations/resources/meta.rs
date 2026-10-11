@@ -1,13 +1,8 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 use crate::migrations::*;
 use std::collections::BTreeMap;
 
-use serde::{Deserialize, Serialize};
+use surrealdb::types::SurrealValue;
 
 pub trait DbResourcesMeta<T>
 where
@@ -48,7 +43,7 @@ where
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[derive(SurrealValue, Clone, Debug, Default)]
 struct Info(BTreeMap<String, DefineStatementRaw>);
 
 use std::collections::BTreeSet;
@@ -96,7 +91,7 @@ impl Informational for Info {
 macro_rules! define_object_info {
     ($($ident: ident),*) => {
         $(
-            #[derive(Serialize, Deserialize, Clone, Debug, Default)]
+            #[derive(SurrealValue, Clone, Debug, Default)]
             pub struct $ident(Info);
 
             // impl Deref for $ident {

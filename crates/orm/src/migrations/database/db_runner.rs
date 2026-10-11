@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 use std::{collections::BTreeSet, path::PathBuf};
 
 use crate::{statements::*, *};
@@ -181,7 +176,7 @@ impl MigrationRunner {
             }
         };
 
-        if queries_to_run.build().trim().is_empty() {
+        if queries_to_run.as_str().trim().is_empty() {
             log::info!("No migrations to rollback");
         } else {
             begin_transaction()
@@ -198,7 +193,7 @@ impl MigrationRunner {
 
     async fn get_latest_migration(
         db: Surreal<impl Connection>,
-    ) -> SurrealOrmResult<Option<Migration>> {
+    ) -> crate::Result<Option<Migration>> {
         select(All)
             .from(Migration::table())
             .order_by(Migration::schema().timestamp.desc())
@@ -210,7 +205,7 @@ impl MigrationRunner {
     pub async fn get_pending_migrations(
         all_migrations: Vec<impl Into<MigrationFile>>,
         db: Surreal<impl Connection>,
-    ) -> SurrealOrmResult<Vec<PendingMigrationFile>> {
+    ) -> crate::Result<Vec<PendingMigrationFile>> {
         let latest_migration = Self::get_latest_migration(db.clone()).await?;
 
         let mut pending_migrations = all_migrations
@@ -331,7 +326,7 @@ impl MigrationRunner {
         let rollbacked_migration_deletion_queries = migrations_from_db
             .iter()
             // We are deleting by upname because that's how theyre are stored
-            .map(|m| Migration::delete_raw(&m.id).build())
+            .map(|m| Migration::delete_raw(&m.id).to_string())
             .collect::<Vec<_>>()
             .join("\n");
 
@@ -396,7 +391,7 @@ impl MigrationRunner {
         // Create queries to mark migrations as applied
         let mark_queries_registered_queries_str = mark_queries_registered_queries
             .iter()
-            .map(|q| q.build())
+            .map(Raw::as_str)
             .collect::<Vec<_>>()
             .join("\n");
 

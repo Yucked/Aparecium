@@ -1,12 +1,7 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::{Field, Table};
+use crate::{Field, Render, Table};
 
 use crate::migrations::*;
 
@@ -56,7 +51,7 @@ impl FullDbInfo {
     pub fn get_field_def(&self, table: Table, field_name: Field) -> Option<DefineStatementRaw> {
         self.table_resources
             .get(&table)
-            .and_then(|t| t.fields().get_definition(&field_name).cloned())
+            .and_then(|t| t.fields().get_definition(field_name.to_debug_sql()).cloned())
     }
 
     pub fn get_table_indexes(&self, table: &Table) -> Option<Indexes> {

@@ -1,12 +1,7 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 use std::{fmt::Display, ops::Deref};
 
 use crate::migrations::*;
-use crate::{Buildable, DbResources, Field, FieldChangeMeta, FieldMetadata, Table};
+use crate::{DbResources, Field, FieldChangeMeta, FieldMetadata, Render, Table};
 
 pub enum DeltaTypeField {
     NoChange,
@@ -69,11 +64,11 @@ impl<R: DbResources> TryFrom<FieldChangeDetectionMeta<'_, R>> for DeltaTypeField
                 });
             }
             (None, Some(r_meta)) => {
-                let old_name = r_meta.old_name.clone().unwrap();
+                let old_name = r_meta.old_name.clone().unwrap().to_debug_sql();
                 if right_defs.get_definition(&old_name).is_some() {
                     return Err(MigrationError::CannotRenameFromOldFieldInUSeInTable {
-                        new_field: field_name.to_string(),
-                        old_field: old_name.to_string(),
+                        new_field: field_name.to_debug_sql(),
+                        old_field: old_name,
                         table,
                         renamables: left_defs.get_names().join(", "),
                     });
@@ -90,8 +85,9 @@ impl<R: DbResources> TryFrom<FieldChangeDetectionMeta<'_, R>> for DeltaTypeField
             }
             // No explicit rename attribute used on the field e.g old_name = "OldFieldName"
             (None, None) => {
-                let left_def = left_defs.get_definition(field_name.build()).cloned();
-                let right_def = right_defs.get_definition(field_name.build()).cloned();
+                let field_name = field_name.to_debug_sql();
+                let left_def = left_defs.get_definition(&field_name).cloned();
+                let right_def = right_defs.get_definition(&field_name).cloned();
 
                 match (left_def, right_def) {
                     (None, Some(r)) => DeltaTypeField::Create { right: r },
@@ -134,12 +130,16 @@ impl Display for SingleFieldChangeType {
             SingleFieldChangeType::Delete(change) => write!(
                 f,
                 "Delete old field '{}' and create a new one '{}' on table '{}'",
-                change.old_name, change.new_name, change.table
+                change.old_name.to_debug_sql(),
+                change.new_name.to_debug_sql(),
+                change.table
             ),
             SingleFieldChangeType::Rename(change) => write!(
                 f,
                 "Rename old field '{}' to new field '{}' on table '{}'",
-                change.old_name, change.new_name, change.table
+                change.old_name.to_debug_sql(),
+                change.new_name.to_debug_sql(),
+                change.table
             ),
         }
     }

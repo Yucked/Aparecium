@@ -1,16 +1,11 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 use std::{fmt::Display, fs::File, io::BufReader, path::PathBuf};
 
-use serde::{Deserialize, Serialize};
 use sha2::{self, Digest, Sha256};
+use surrealdb::types::SurrealValue;
 
 use crate::migrations::*;
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(SurrealValue, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Checksum(String);
 
 impl From<String> for Checksum {

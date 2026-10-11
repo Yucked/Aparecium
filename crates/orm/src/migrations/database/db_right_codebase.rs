@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 use std::ops::Deref;
 
@@ -32,10 +27,10 @@ impl RightDatabase {
         code_resources: &impl DbResources,
         migration_type: MigrationFlag,
     ) -> MigrationResult<()> {
-        let migration_meta_table_def = Migration::define_table().to_raw();
+        let migration_meta_table_def = Raw::inline(&Migration::define_table());
         let migration_meta_table_fields_def = Migration::define_fields(migration_type)
             .iter()
-            .map(|f| f.to_raw().build())
+            .map(Raw::as_str)
             .collect::<Vec<_>>()
             .join("\n");
         let queries = Self::get_codebase_schema_queries(code_resources);
@@ -65,7 +60,7 @@ impl RightDatabase {
             .unwrap_or(&vec![])
             .clone()
             .into_iter()
-            .find(|f| f.name.to_string() == field_name.to_string() && f.old_name.is_some())
+            .find(|f| f.name.to_debug_sql() == field_name.to_debug_sql() && f.old_name.is_some())
     }
 
     pub fn find_field_has_old_name(
@@ -83,15 +78,14 @@ impl RightDatabase {
                 field_meta
                     .old_name
                     .clone()
-                    .is_some_and(|o| !o.to_string().is_empty())
+                    .is_some_and(|o| !o.is_empty())
             })
             .find(|f| match &by {
-                By::NewName(new_name) => f.name.build() == *new_name.build(),
+                By::NewName(new_name) => f.name.to_debug_sql() == new_name.to_debug_sql(),
                 By::OldName(old_name) => f
                     .old_name
-                    .clone()
-                    .filter(|n| n.build() == *old_name.build())
-                    .is_some(),
+                    .as_ref()
+                    .is_some_and(|n| n.to_debug_sql() == old_name.to_debug_sql()),
             })
     }
 
@@ -106,7 +100,7 @@ impl RightDatabase {
             db_resources.tables(),
         ]
         .iter()
-        .flat_map(|res_raw| res_raw.iter().map(|r| r.to_raw().build()))
+        .flat_map(|res_raw| res_raw.iter().map(Raw::as_str))
         .collect::<Vec<_>>()
         .join(";\n");
 

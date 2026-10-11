@@ -1,29 +1,23 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 use std::fmt::Display;
 
 use crate::{
-    All, Field, FieldType, Operatable, Raw, ReturnableSelect, Table, ToRaw,
+    All, Field, Operatable, Raw, Render, ReturnableSelect, Table,
     statements::{
         DefineTableStatement, RemoveTableStatement, begin_transaction, define_field, define_table,
         order, remove_table, select,
     },
 };
-use serde::{Deserialize, Serialize};
-use surrealdb::{Surreal, engine::any::Any, sql::Thing};
+use surrealdb::{
+    Surreal,
+    engine::any::Any,
+    types::{Kind, RecordId, SurrealValue, ToSql},
+};
 
 use crate::migrations::*;
 
-// #[derive(Node, Serialize, Deserialize, Clone, Debug)]
-#[derive(Serialize, Deserialize, Clone, Debug)]
-// #[serde(rename_all = "camelCase")]
-// #[orm(table = "migration", schemafull)]
+#[derive(SurrealValue, Clone, Debug)]
 pub struct Migration {
-    // pub id: SurrealId<Self, String>,
-    pub id: Thing,
+    pub id: RecordId,
     pub name: String,
     pub timestamp: Timestamp,
     pub checksum_up: Checksum,
@@ -52,7 +46,7 @@ impl PartialEq for Migration {
 
 impl Eq for Migration {}
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(SurrealValue, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Timestamp(u64);
 
 impl Display for Timestamp {
@@ -89,11 +83,8 @@ pub struct MigrationSchema {
 }
 
 impl Migration {
-    pub fn create_id(filename: &MigrationFilename) -> Thing {
-        Thing {
-            tb: Migration::table().to_string(),
-            id: filename.to_string().into(),
-        }
+    pub fn create_id(filename: &MigrationFilename) -> RecordId {
+        RecordId::new(Migration::table(), filename.to_string())
     }
 
     pub fn create_reinitialize_table_raw_tx(
@@ -110,9 +101,10 @@ impl Migration {
             tx = tx.query(def);
         }
 
-        tx.query(Self::create_raw(filename, checksum_up, checksum_down))
-            .commit_transaction()
-            .to_raw()
+        let tx = tx
+            .query(Self::create_raw(filename, checksum_up, checksum_down))
+            .commit_transaction();
+        Raw::inline(&tx)
     }
 
     pub fn create_raw(
@@ -128,23 +120,28 @@ impl Migration {
             checksum_down: checksum_down_field,
         } = Self::schema();
 
-        let record_id = Self::create_id(filename);
-        let name = filename.to_string();
-        let timestamp = filename.timestamp().into_inner();
-        let checksum_up = checksum_up.to_string();
+        // Values are written with the SDK's SurrealQL formatting, which quotes and escapes them
+        // (the file name and checksums were spliced into `'…'` unescaped).
+        let record_id = Self::create_id(filename).to_sql();
+        let name = filename.to_string().to_sql();
+        let timestamp = filename.timestamp().into_inner().to_sql();
+        let checksum_up = checksum_up.to_string().to_sql();
         let checksum_down = checksum_down
-            .map(|c| c.to_string())
-            .unwrap_or("null".into());
+            .map_or_else(|| "null".to_owned(), |c| c.to_string())
+            .to_sql();
+        let name_field = name_field.to_debug_sql();
+        let timestamp_field = timestamp_field.to_debug_sql();
+        let checksum_up_field = checksum_up_field.to_debug_sql();
+        let checksum_down_field = checksum_down_field.to_debug_sql();
 
         Raw::new(format!(
-            "CREATE {record_id} SET {name_field}='{name}', {timestamp_field}={timestamp}, \
-        {checksum_up_field}='{checksum_up}', {checksum_down_field}='{checksum_down}';"
+            "CREATE {record_id} SET {name_field} = {name}, {timestamp_field} = {timestamp}, \
+        {checksum_up_field} = {checksum_up}, {checksum_down_field} = {checksum_down};"
         ))
     }
 
-    pub fn delete_raw(migration_id: &Thing) -> Raw {
-        // let record_id = Self::create_id(filename);
-        Raw::new(format!("DELETE {migration_id};"))
+    pub fn delete_raw(migration_id: &RecordId) -> Raw {
+        Raw::new(format!("DELETE {};", migration_id.to_sql()))
     }
 
     pub fn schema() -> MigrationSchema {
@@ -170,7 +167,7 @@ impl Migration {
     }
 
     pub fn delete_all() -> Raw {
-        Raw::new(format!("DELETE {};", Self::table()))
+        Raw::new(format!("DELETE {};", Self::table().to_debug_sql()))
     }
 
     pub fn define_fields(migration_type: MigrationFlag) -> Vec<Raw> {
@@ -181,32 +178,18 @@ impl Migration {
             checksum_up,
             checksum_down,
         } = Migration::schema();
-        let id = define_field(id)
-            .type_(FieldType::Record(vec![Self::table()]))
-            .on_table(Self::table())
-            .to_raw();
+        let define = |field: Field, kind: Kind| {
+            Raw::inline(&define_field(field).type_(kind).on_table(Self::table()))
+        };
 
-        let name = define_field(name)
-            .type_(FieldType::String)
-            .on_table(Self::table())
-            .to_raw();
-
-        let timestamp = define_field(timestamp)
-            .type_(FieldType::Int)
-            .on_table(Migration::table())
-            .to_raw();
-
-        let checksum_up = define_field(checksum_up)
-            .type_(FieldType::String)
-            .on_table(Migration::table())
-            .to_raw();
+        let id = define(id, Kind::Record(vec![Self::table()]));
+        let name = define(name, Kind::String);
+        let timestamp = define(timestamp, Kind::Int);
+        let checksum_up = define(checksum_up, Kind::String);
 
         let mut fields = vec![id, name, timestamp, checksum_up];
 
-        let checksum_down = define_field(checksum_down)
-            .type_(FieldType::String)
-            .on_table(Migration::table())
-            .to_raw();
+        let checksum_down = define(checksum_down, Kind::String);
 
         if migration_type.is_twoway() {
             fields.push(checksum_down);
