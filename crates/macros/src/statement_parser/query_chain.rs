@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 use proc_macro2::Ident;
 use quote::{format_ident, quote};
@@ -80,6 +75,7 @@ impl QueriesChainParser {
             let LetStatementParser { ident, expr, .. } = var_statement;
             Some(QueryLine {
                 rendered: quote! (
+                    const _: () = #crate_name::Param::assert_valid(stringify!(#ident));
                     let ref #ident = #crate_name::statements::let_(stringify!(#ident)).equal_to(#expr);
                 ),
                 var_ident: quote!(#ident)

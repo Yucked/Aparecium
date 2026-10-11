@@ -11,3 +11,11 @@ pub(crate) fn validate(query: &str, span: Span) -> syn::Result<()> {
         .map(drop)
         .map_err(|err| syn::Error::new(span, err))
 }
+
+/// Parses a field type as a definition writes it, e.g. `option<array<record<user>>>`, into the
+/// SDK's `Kind`, reporting the parser's message at `span`.
+pub(crate) fn parse_kind(kind: &str, span: Span) -> syn::Result<surrealdb_types::Kind> {
+    surrealdb_syn::kind_for_definition(kind)
+        .map(Into::into)
+        .map_err(|err| syn::Error::new(span, err))
+}

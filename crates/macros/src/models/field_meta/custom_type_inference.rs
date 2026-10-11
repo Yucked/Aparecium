@@ -1,14 +1,8 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2024 Oyelowo Oyedayo
-*/
-
-use crate::field_type::FieldType;
-use crate::helpers::get_crate_name;
-use quote::{ToTokens, format_ident, quote};
+use quote::{ToTokens, quote};
+use surrealdb_types::{Kind, Table};
 use syn::{self, Expr, spanned::Spanned};
 
+use crate::helpers::get_crate_name;
 use crate::models::*;
 
 use super::{field_name_serialized::DbFieldName, *};
@@ -21,19 +15,17 @@ pub struct FieldTypeInference<'a> {
 }
 
 impl<'a> FieldTypeInference<'a> {
+    /// The stored type of a field without `ty = "…"`; an error when it cannot be inferred, so a
+    /// definition is never emitted without a type.
     pub fn infer_type(&self) -> ExtractorResult<Option<DbFieldTypeAstMeta>> {
-        let inferred = self
-            .infer_type_by_priority()
-            .map(Some)
-            .unwrap_or_else(|_| None);
-
-        inferred.ok_or_else(|| {
-            syn::Error::new(
+        match self.infer_type_by_priority()? {
+            Some(meta) => Ok(Some(meta)),
+            None => Err(syn::Error::new(
                 self.field_ty.span(),
-                "Could not infer the field type for the field",
+                "could not infer the field's database type; specify it, e.g. `#[orm(ty = \"array<string>\")]`",
             )
-            .into()
-        })
+            .into()),
+        }
     }
 
     pub fn infer_type_by_priority(&self) -> ExtractorResult<Option<DbFieldTypeAstMeta>> {
@@ -69,186 +61,157 @@ impl<'a> FieldTypeInference<'a> {
         relation_type: RelationType,
     ) -> ExtractorResult<DbFieldTypeAstMeta> {
         let crate_name = get_crate_name(false);
-        let binding = field_ty
-            // .remove_non_static_lifetime_and_reference()
-            .replace_self_with_current_struct_concrete_type(self.model_attrs)?;
+        let binding = field_ty.replace_self_with_current_struct_concrete_type(self.model_attrs)?;
         let ty = &binding.inner();
+        let assert = |assertion: proc_macro2::TokenStream| {
+            quote!(#crate_name::validators::#assertion::<#ty>();)
+        };
 
         let meta = if field_ty.raw_type_is_bool() {
-            DbFieldTypeAstMeta {
-                field_type_db_original: FieldType::Bool,
-                field_type_db_token: quote!(#crate_name::FieldType::Bool).into(),
-                static_assertion_token:
-                    quote!(#crate_name::validators::assert_type_is_bool::<#ty>();).into(),
-            }
+            DbFieldTypeAstMeta::new(Kind::Bool, assert(quote!(assert_type_is_bool)))
         } else if field_ty.raw_type_is_float() {
-            DbFieldTypeAstMeta {
-                field_type_db_original: FieldType::Float,
-                field_type_db_token: quote!(#crate_name::FieldType::Float).into(),
-                static_assertion_token:
-                    quote!(#crate_name::validators::assert_type_is_float::<#ty>();).into(),
-            }
+            DbFieldTypeAstMeta::new(Kind::Float, assert(quote!(assert_type_is_float)))
         } else if field_ty.raw_type_is_integer() {
-            DbFieldTypeAstMeta {
-                field_type_db_original: FieldType::Int,
-                field_type_db_token: quote!(#crate_name::FieldType::Int).into(),
-                static_assertion_token:
-                    quote!(#crate_name::validators::assert_type_is_int::<#ty>();).into(),
-            }
+            DbFieldTypeAstMeta::new(Kind::Int, assert(quote!(assert_type_is_int)))
         } else if field_ty.raw_type_is_string() {
-            DbFieldTypeAstMeta {
-                field_type_db_original: FieldType::String,
-                field_type_db_token: quote!(#crate_name::FieldType::String).into(),
-                static_assertion_token:
-                    quote!(#crate_name::validators::assert_type_is_string::<#ty>();).into(),
-            }
+            DbFieldTypeAstMeta::new(Kind::String, assert(quote!(assert_type_is_string)))
         } else if field_ty.raw_type_is_optional() {
-            // let get_option_item_type = field_ty.get_option_item_type();
-            let get_option_item_type = field_ty.inner_angle_bracket_type()?;
-            let item = get_option_item_type
-                .clone()
-                .as_ref()
-                .map(|ct| {
-                    let ty = ct.clone();
-                    // let item = CustomType::new(ty.into_inner());
-                    let item = ty.into_inner();
-
-                    self.based_on_type_path_token_structure(&item, relation_type)
-                })
+            let item = field_ty
+                .inner_angle_bracket_type()?
+                .map(|item| self.based_on_type_path_token_structure(&item.into_inner(), relation_type))
                 .ok_or(syn::Error::new(
                     ty.span(),
                     "Could not infer type for the optional field",
                 ))??;
 
-            let inner_type = item.field_type_db_token;
+            let item_token = item.field_type_db_token;
             let item_static_assertion = item.static_assertion_token;
+            let option_assertion = assert(quote!(assert_type_is_option));
 
             DbFieldTypeAstMeta {
-                field_type_db_original: FieldType::Option(Box::new(item.field_type_db_original)),
-                field_type_db_token:
-                    quote!(#crate_name::FieldType::Option(::std::boxed::Box::new(#inner_type)))
-                        .into(),
+                field_type_db_original: Kind::option(item.field_type_db_original),
+                field_type_db_token: quote!(#crate_name::types::Kind::option(#item_token)).into(),
                 static_assertion_token: quote!(
-                    #crate_name::validators::assert_type_is_option::<#ty>();
+                    #option_assertion
+                    #item_static_assertion
+                )
+                .into(),
+            }
+        } else if field_ty.type_ident().is_ok_and(|ident| ident == "Nullable") {
+            // `Nullable<T>` holds `NULL` or a value: `null | T`.
+            let item = field_ty
+                .inner_angle_bracket_type()?
+                .map(|item| self.based_on_type_path_token_structure(&item.into_inner(), relation_type))
+                .ok_or(syn::Error::new(
+                    ty.span(),
+                    "Could not infer type for the nullable field",
+                ))??;
+
+            let item_token = item.field_type_db_token;
+            let item_static_assertion = item.static_assertion_token;
+            let null_assertion = assert(quote!(assert_type_is_null));
+
+            DbFieldTypeAstMeta {
+                field_type_db_original: Kind::either(vec![Kind::Null, item.field_type_db_original]),
+                field_type_db_token: quote!(#crate_name::types::Kind::either(
+                    ::std::vec![#crate_name::types::Kind::Null, #item_token]
+                ))
+                .into(),
+                static_assertion_token: quote!(
+                    #null_assertion
                     #item_static_assertion
                 )
                 .into(),
             }
         } else if field_ty.is_array() {
-            // let inner_type = field_ty.get_array_inner_type();
-            let inner_type = field_ty.inner_angle_bracket_type()?;
-            let none_opt_token = || quote!(::std::option::Option::None);
-
-            let array_len_token_stream =
-                field_ty
-                    .get_array_const_length()
-                    .map_or(none_opt_token(), |expr| {
-                        if expr.to_token_stream().is_empty() {
-                            none_opt_token()
-                        } else {
-                            quote!(::std::option::Option::Some(#expr))
-                        }
-                    });
-
-            let array_len_token = field_ty.get_array_const_length();
-            let array_len_token_as_int = array_len_token.as_ref().and_then(|expr| {
-                if let Expr::Lit(lit) = expr {
-                    if let syn::Lit::Int(int) = &lit.lit {
-                        Some(int.base10_parse::<u64>().unwrap())
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
+            let array_length = field_ty
+                .get_array_const_length()
+                .filter(|length| !length.to_token_stream().is_empty());
+            let array_length_value = array_length.as_ref().and_then(|length| match length {
+                Expr::Lit(syn::ExprLit {
+                    lit: syn::Lit::Int(int),
+                    ..
+                }) => int.base10_parse::<u64>().ok(),
+                _ => None,
             });
+            // The length may be a const generic or other constant expression only known when
+            // the generated code compiles.
+            let array_length_token = match &array_length {
+                Some(length) => quote!(::std::option::Option::Some((#length) as u64)),
+                None => quote!(::std::option::Option::None),
+            };
 
-            let inner_item = inner_type
-                .map(|ct| self.based_on_type_path_token_structure(&ct, relation_type))
+            let item = field_ty
+                .inner_angle_bracket_type()?
+                .map(|item| self.based_on_type_path_token_structure(&item.into_inner(), relation_type))
                 .ok_or(syn::Error::new(
                     ty.span(),
                     "Could not infer type for the array inner type",
                 ))??;
 
-            let inner_type = inner_item.field_type_db_token;
-            let inner_static_assertion = inner_item.static_assertion_token;
+            let item_token = item.field_type_db_token;
+            let item_static_assertion = item.static_assertion_token;
+            let array_assertion = assert(quote!(assert_type_is_array));
             DbFieldTypeAstMeta {
-                field_type_db_original: FieldType::Array(Box::new(inner_item.field_type_db_original), array_len_token_as_int),
-                field_type_db_token: quote!(#crate_name::FieldType::Array(::std::boxed::Box::new(#inner_type), #array_len_token_stream)).into(),
+                field_type_db_original: Kind::Array(
+                    Box::new(item.field_type_db_original),
+                    array_length_value,
+                ),
+                field_type_db_token: quote!(#crate_name::types::Kind::Array(
+                    ::std::boxed::Box::new(#item_token),
+                    #array_length_token
+                ))
+                .into(),
                 static_assertion_token: quote!(
-                            #crate_name::validators::assert_type_is_array::<#ty>();
-                            #inner_static_assertion
-                ).into(),
+                    #array_assertion
+                    #item_static_assertion
+                )
+                .into(),
             }
         } else if field_ty.raw_type_is_set() {
-            // let inner_type = field_ty.get_set_inner_type();
-            let inner_type = field_ty.inner_angle_bracket_type()?;
-
-            let inner_item = inner_type
-                .map(|ct| self.based_on_type_path_token_structure(&ct, relation_type))
+            let item = field_ty
+                .inner_angle_bracket_type()?
+                .map(|item| self.based_on_type_path_token_structure(&item.into_inner(), relation_type))
                 .ok_or(syn::Error::new(
                     ty.span(),
                     "Could not infer type for the set inner type",
                 ))??;
-            let inner_type = inner_item.field_type_db_token;
-            let inner_static_assertion = inner_item.static_assertion_token;
+            let item_token = item.field_type_db_token;
+            let item_static_assertion = item.static_assertion_token;
+            let set_assertion = assert(quote!(assert_type_is_set));
 
             DbFieldTypeAstMeta {
-                field_type_db_original: FieldType::Set(Box::new(inner_item.field_type_db_original), None),
-                field_type_db_token: quote!(#crate_name::FieldType::Set(::std::boxed::Box::new(#inner_type), ::std::option::Option::None)).into(),
+                field_type_db_original: Kind::Set(Box::new(item.field_type_db_original), None),
+                field_type_db_token: quote!(#crate_name::types::Kind::Set(
+                    ::std::boxed::Box::new(#item_token),
+                    ::std::option::Option::None
+                ))
+                .into(),
                 static_assertion_token: quote!(
-                    #crate_name::validators::assert_type_is_set::<#ty>();
-                    #inner_static_assertion
-                ).into(),
+                    #set_assertion
+                    #item_static_assertion
+                )
+                .into(),
             }
         } else if field_ty.raw_type_is_object() {
-            DbFieldTypeAstMeta {
-                field_type_db_original: FieldType::Object,
-                field_type_db_token: quote!(#crate_name::FieldType::Object).into(),
-                static_assertion_token: quote!(#crate_name::validators::assert_impl_one!(#ty: ::std::convert::Into<#crate_name::sql::Object>);).into(),
-            }
+            // A map has no marker to check beyond converting to and from a value.
+            DbFieldTypeAstMeta::new(Kind::Object, assert(quote!(assert_type_is_any)))
         } else if field_ty.raw_type_is_duration() {
-            DbFieldTypeAstMeta {
-                field_type_db_original: FieldType::Duration,
-                field_type_db_token: quote!(#crate_name::FieldType::Duration).into(),
-                static_assertion_token:
-                    quote!(#crate_name::validators::assert_type_is_duration::<#ty>();).into(),
-            }
+            DbFieldTypeAstMeta::new(Kind::Duration, assert(quote!(assert_type_is_duration)))
         } else if field_ty.raw_type_is_datetime() {
-            DbFieldTypeAstMeta {
-                field_type_db_original: FieldType::Datetime,
-                field_type_db_token: quote!(#crate_name::FieldType::Datetime).into(),
-                static_assertion_token:
-                    quote!(#crate_name::validators::assert_type_is_datetime::<#ty>();).into(),
-            }
-        }
-        // else if field_ty.raw_type_is_geometry() {
-        else if let Some(geo_kind) = field_ty.raw_type_geometry_kind() {
-            // We are intentionally using debug string representation of the geometry kind
-            let geo_kind_name_from_debug_print = format!("{geo_kind:?}");
-            let geo_kind_ident = format_ident!("{geo_kind_name_from_debug_print}");
-
-            DbFieldTypeAstMeta {
-                field_type_db_original: FieldType::Geometry(vec![geo_kind]),
-                field_type_db_token: quote!(#crate_name::FieldType::Geometry(::std::vec![#crate_name::GeometryType::#geo_kind_ident])).into(),
-                static_assertion_token:
-                    quote!(#crate_name::validators::assert_type_is_geometry::<#ty>();).into(),
-            }
+            DbFieldTypeAstMeta::new(Kind::Datetime, assert(quote!(assert_type_is_datetime)))
+        } else if let Some(geometry_kinds) = field_ty.raw_type_geometry_kind() {
+            DbFieldTypeAstMeta::new(
+                Kind::Geometry(geometry_kinds),
+                assert(quote!(assert_type_is_geometry)),
+            )
         } else if let Some(foreign_type) = self.refereces_a_nested_object(&relation_type)? {
             // Guess if its a foreign Table type by comparing the type path segment with the foreign
             // rust field type ident
             let current_segment_is_likely_foreign_type =
                 field_ty.type_ident()? == foreign_type.type_ident()?;
             if current_segment_is_likely_foreign_type {
-                DbFieldTypeAstMeta {
-                    field_type_db_original: FieldType::Object,
-                    field_type_db_token: quote!(#crate_name::FieldType::Object).into(),
-                    static_assertion_token: quote!(
-                    // #crate_name::validators::assert_type_eq_all!(#ty, #foreign_type);
-                            #crate_name::validators::assert_type_is_object::<#ty>();
-                            )
-                    .into(),
-                }
+                DbFieldTypeAstMeta::new(Kind::Object, assert(quote!(assert_type_is_object)))
             } else {
                 return Err(syn::Error::new(
                     ty.span(),
@@ -307,31 +270,25 @@ impl<'a> FieldTypeInference<'a> {
     ) -> ExtractorResult<DbFieldTypeAstMeta> {
         let crate_name = get_crate_name(false);
         let model_type = model_attrs.to_data_type();
-        let table = model_attrs.table()?;
         let ty = &field_ty.inner();
 
         let meta = if db_field_name.is_id() {
-            let table_name = match table {
-                Some(t) => vec![t.to_token_stream().to_string()],
-                None => vec![],
-            };
-            DbFieldTypeAstMeta {
-                field_type_db_original: FieldType::Record(table_name),
-                field_type_db_token:
-                    quote!(#crate_name::FieldType::Record(::std::vec![Self::table()])).into(),
-                static_assertion_token:
-                    quote!(#crate_name::validators::assert_type_is_thing::<#ty>();).into(),
-            }
+            let tables = model_attrs
+                .table()?
+                .map(|table| vec![Table::new(table.to_string())])
+                .unwrap_or_default();
+            DbFieldTypeAstMeta::new(
+                Kind::Record(tables),
+                quote!(#crate_name::validators::assert_type_is_record_id::<#ty>();),
+            )
         } else if db_field_name.is_in_or_out_edge_node(&model_type) {
             // An edge might be shared by multiple In/Out nodes. So, default to any type of
             // record for edge in and out e.g Student->Plays->Football, Student->Plays->Instrument,
             // Teacher->Plays->Football
-            DbFieldTypeAstMeta {
-                field_type_db_original: FieldType::Record(vec![]),
-                field_type_db_token: quote!(#crate_name::FieldType::Record(::std::vec![])).into(),
-                static_assertion_token:
-                    quote!(#crate_name::validators::assert_type_is_link_one::<#ty>();).into(),
-            }
+            DbFieldTypeAstMeta::new(
+                Kind::Record(vec![]),
+                quote!(#crate_name::validators::assert_type_is_link_one::<#ty>();),
+            )
         } else {
             return Err(syn::Error::new(
                 ty.span(),
@@ -352,65 +309,75 @@ impl<'a> FieldTypeInference<'a> {
     ) -> ExtractorResult<Option<DbFieldTypeAstMeta>> {
         let crate_name = get_crate_name(false);
         let ty = &field_ty.inner();
+        // The linked model's table is only known once the generated code compiles, so the
+        // macro's own copy of the type leaves the record's tables empty.
+        let record_of = |model: proc_macro2::TokenStream| {
+            quote!(#crate_name::types::Kind::Record(::std::vec![
+                <#model as #crate_name::Model>::table()
+            ]))
+        };
 
         let meta = match relation_type {
-                RelationType::Relate(_ref_node) => {
-                    // Relations are readonly and are not stored on nodes, but
-                    // on edges. Just used on nodes for convenience
-                    // during deserialization
-                  return Ok(None)
-                }
+            RelationType::Relate(_ref_node) => {
+                // Relations are readonly and are not stored on nodes, but
+                // on edges. Just used on nodes for convenience
+                // during deserialization
+                return Ok(None);
+            }
 
             RelationType::LinkOne(ref_node) => {
                 let ref_node = ref_node.turbo_fishize()?;
 
                 DbFieldTypeAstMeta {
-                            field_type_db_original: FieldType::Record(vec![]),
-                            field_type_db_token: quote!(#crate_name::FieldType::Record(::std::vec![#ref_node::table()])).into(),
-                            static_assertion_token: quote!(#crate_name::validators::assert_type_eq_all!(#field_ty, #crate_name::LinkOne<#ref_node>);).into()
-                        }
-            },
+                    field_type_db_original: Kind::Record(vec![]),
+                    field_type_db_token: record_of(quote!(#ref_node)).into(),
+                    static_assertion_token: quote!(#crate_name::validators::assert_type_eq_all!(#field_ty, #crate_name::LinkOne<#ref_node>);).into(),
+                }
+            }
             RelationType::LinkSelf(self_node) => {
                 let current_struct_type = self.model_attrs.struct_no_bounds()?;
                 let self_node = self_node.turbo_fishize()?;
 
                 DbFieldTypeAstMeta {
-                            field_type_db_original: FieldType::Record(vec![]),
-                            field_type_db_token: quote!(#crate_name::FieldType::Record(::std::vec![Self::table()])).into(),
-                            static_assertion_token: quote!(
-                                    #crate_name::validators::assert_type_eq_all!(#crate_name::LinkSelf<#current_struct_type>, #crate_name::LinkSelf<#self_node>);
-                                    #crate_name::validators::assert_type_eq_all!(#field_ty, #crate_name::LinkSelf<#self_node>);
-                                ).into(),
-                        }
-            },
-            RelationType::LinkMany(ref_node) | RelationType::LinkManyInAndOutEdgeNodesInert(ref_node) => {
+                    field_type_db_original: Kind::Record(vec![]),
+                    field_type_db_token: record_of(quote!(Self)).into(),
+                    static_assertion_token: quote!(
+                        #crate_name::validators::assert_type_eq_all!(#crate_name::LinkSelf<#current_struct_type>, #crate_name::LinkSelf<#self_node>);
+                        #crate_name::validators::assert_type_eq_all!(#field_ty, #crate_name::LinkSelf<#self_node>);
+                    )
+                    .into(),
+                }
+            }
+            RelationType::LinkMany(ref_node)
+            | RelationType::LinkManyInAndOutEdgeNodesInert(ref_node) => {
                 let ref_node = ref_node.turbo_fishize()?;
+                let record = record_of(quote!(#ref_node));
 
                 DbFieldTypeAstMeta {
-                            field_type_db_original: FieldType::Array(
-                                ::std::boxed::Box::new(FieldType::Record(vec![])),
-                                ::std::option::Option::None
-                            ),
-                            field_type_db_token: quote!(#crate_name::FieldType::Array(
-                                ::std::boxed::Box::new(#crate_name::FieldType::Record(::std::vec![#ref_node::table()])),
-                                ::std::option::Option::None
-                            )).into(),
-                            static_assertion_token: quote!(
-                                #crate_name::validators::assert_type_eq_all!(#field_ty, #crate_name::LinkMany<#ref_node>);
-                        ).into(),
-                        }
-            },
-                // TODO: Consider removing the concept of list altogether to 
-                // avoid confusion/ambiguity
-        // NOTE: Nested objects and nested arrays of objects are handled in the type path token
-                RelationType::NestArray(_) | RelationType::NestObject(_) | RelationType::List(_) | RelationType::None => {
-                    return Err(syn::Error::new(
-                        ty.span(),
-                        format!("Could not infer type for the field. Specify explicitly by using e.g ty = \"array<any>\". You can choose from one of these types: {}", FieldType::variants().join(", ")),
+                    field_type_db_original: Kind::Array(Box::new(Kind::Record(vec![])), None),
+                    field_type_db_token: quote!(#crate_name::types::Kind::Array(
+                        ::std::boxed::Box::new(#record),
+                        ::std::option::Option::None
+                    ))
+                    .into(),
+                    static_assertion_token: quote!(
+                        #crate_name::validators::assert_type_eq_all!(#field_ty, #crate_name::LinkMany<#ref_node>);
                     )
-                    .into())
+                    .into(),
                 }
-            };
+            }
+            // NOTE: Nested objects and nested arrays of objects are handled in the type path token
+            RelationType::NestArray(_)
+            | RelationType::NestObject(_)
+            | RelationType::List(_)
+            | RelationType::None => {
+                return Err(syn::Error::new(
+                    ty.span(),
+                    "Could not infer type for the field. Specify it explicitly, e.g. `ty = \"array<string>\"`",
+                )
+                .into());
+            }
+        };
 
         Ok(Some(meta))
     }

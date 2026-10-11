@@ -1,16 +1,11 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
-use std::fmt::Display;
-
-use crate::field_type::FieldType;
 use crate::helpers::get_crate_name;
+use crate::kind::kind_tokens;
+use crate::surql;
 use proc_macro::TokenStream;
-use proc_macro2::{Span, TokenTree};
-use quote::{ToTokens, format_ident, quote};
+use proc_macro2::TokenTree;
+use quote::{format_ident, quote, quote_spanned};
+use surrealdb_types::Kind;
 use syn::{
     self, Ident, Token,
     parse::{Parse, ParseStream},
@@ -19,17 +14,13 @@ use syn::{
 use super::if_else::Body;
 
 #[derive(Clone, Debug)]
-struct FieldTypeParser(FieldType);
+struct FieldTypeParser(Kind);
 
 impl Parse for FieldTypeParser {
     fn parse(input: ParseStream) -> syn::Result<Self> {
+        let span = input.span();
         let type_string = parse_until_top_level_comma(input)?;
-        let err_msg = format!("Invalid field type: {}", type_string);
-        let type_ = type_string
-            .parse::<FieldType>()
-            .map_err(|_| syn::Error::new(Span::call_site(), err_msg))?;
-
-        Ok(FieldTypeParser(type_))
+        surql::parse_kind(&type_string, span).map(FieldTypeParser)
     }
 }
 
@@ -49,11 +40,6 @@ fn parse_until_top_level_comma(input: ParseStream) -> syn::Result<String> {
         } else if depth == 0 && input.peek(Token![,]) {
             break;
         } else {
-            // Consume and append any other character
-            // let lookahead = input.fork();
-            // let ch: TokenTree = lookahead.parse()?;
-            // type_string.push_str(&ch.to_string());
-            // input.advance_to(&lookahead);
             let ch = input.parse::<TokenTree>()?;
             type_string.push_str(&ch.to_string());
         }
@@ -62,54 +48,34 @@ fn parse_until_top_level_comma(input: ParseStream) -> syn::Result<String> {
     Ok(type_string)
 }
 
-impl From<FieldType> for FieldTypeParser {
-    fn from(value: FieldType) -> Self {
-        Self(value)
-    }
-}
-
 impl FieldTypeParser {
+    fn is_option(&self) -> bool {
+        // `option<T>` is `none | T`.
+        matches!(&self.0, Kind::Either(variants) if variants.contains(&Kind::None))
+    }
+
+    /// The argument type the generated call helper accepts.
     pub fn to_lib_type(&self) -> proc_macro2::TokenStream {
         let crate_name = get_crate_name(false);
-        let FieldTypeParser(type_) = self;
-        match type_ {
-            FieldType::Any => quote!(#crate_name::ValueLike),
-            FieldType::Bool => quote!(#crate_name::BoolLike),
-            FieldType::Datetime => quote!(#crate_name::DatetimeLike),
-            FieldType::String => quote!(#crate_name::StrandLike),
-            FieldType::Number => quote!(#crate_name::NumberLike),
-            FieldType::Int => quote!(#crate_name::NumberLike),
-            FieldType::Float => quote!(#crate_name::NumberLike),
-            FieldType::Decimal => quote!(#crate_name::NumberLike),
-            FieldType::Duration => quote!(#crate_name::DurationLike),
-            FieldType::Object => quote!(#crate_name::ObjectLike),
-            FieldType::Record(_) => quote!(#crate_name::ThingLike),
-            FieldType::Array(_, _) => quote!(#crate_name::ArrayLike),
-            FieldType::Geometry(_) => quote!(#crate_name::GeometryLike),
-            FieldType::Null => quote!(#crate_name::NullLike),
-            FieldType::Bytes => quote!(#crate_name::BytesLike),
-            FieldType::Uuid => quote!(#crate_name::UuidLike),
-            FieldType::Option(_) => {
-                quote!(::std::option::Option<#crate_name::ValueLike>)
-            }
-            FieldType::Union(_) => quote!(#crate_name::ValueLike),
-            FieldType::Set(_, _) => quote!(#crate_name::SetLike),
+        if self.is_option() {
+            return quote!(::std::option::Option<#crate_name::ValueLike>);
         }
-    }
-}
-
-impl Display for FieldTypeParser {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let FieldTypeParser(type_) = self;
-        write!(f, "{}", type_)
-    }
-}
-
-impl ToTokens for FieldTypeParser {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let FieldTypeParser(type_) = self;
-        let type_ = type_.to_string();
-        tokens.extend(quote::quote!(#type_));
+        match &self.0 {
+            Kind::Bool => quote!(#crate_name::BoolLike),
+            Kind::Datetime => quote!(#crate_name::DatetimeLike),
+            Kind::String => quote!(#crate_name::StrandLike),
+            Kind::Number | Kind::Int | Kind::Float | Kind::Decimal => {
+                quote!(#crate_name::NumberLike)
+            }
+            Kind::Duration => quote!(#crate_name::DurationLike),
+            Kind::Object => quote!(#crate_name::ObjectLike),
+            Kind::Record(_) => quote!(#crate_name::RecordIdLike),
+            Kind::Array(..) => quote!(#crate_name::ArrayLike),
+            Kind::Set(..) => quote!(#crate_name::SetLike),
+            Kind::Geometry(_) => quote!(#crate_name::GeometryLike),
+            Kind::Table(_) => quote!(#crate_name::TableLike),
+            _ => quote!(#crate_name::ValueLike),
+        }
     }
 }
 
@@ -165,6 +131,15 @@ impl DefineFunctionStatementParser {
         } = self;
         let crate_name = get_crate_name(false);
 
+        // Each argument is a parameter named by the caller: an invalid name, including one using
+        // the prefix reserved for bound values, fails compilation at the name.
+        let params_checked = args.iter().map(|param| {
+            let name = &param.name;
+            quote_spanned!(name.span()=>
+                const _: () = #crate_name::Param::assert_valid(stringify!(#name));
+            )
+        });
+
         let params_rendered = args.iter().map(|param| {
             let name = &param.name;
             quote!(
@@ -172,20 +147,25 @@ impl DefineFunctionStatementParser {
             )
         });
 
-        let args_used = args.iter().map(|param| {
-            let name = &param.name.to_string();
-            let type_ = &param.type_.to_string();
-            quote!(
-                #crate_name::statements::FunctionArgument {
-                     name: #name.into(),
-                     type_: #type_.parse::<#crate_name::FieldType>().expect(format!("Field-{} has an invalid type: {}", #name, #type_).as_str()).into(),
-                }
-            )
-        }).collect::<Vec<_>>();
+        let args_used = args
+            .iter()
+            .map(|param| {
+                let name = &param.name;
+                let type_ = kind_tokens(&param.type_.0, &crate_name);
+                quote!(
+                    #crate_name::statements::FunctionArgument {
+                         name: #crate_name::Param::new(stringify!(#name)),
+                         type_: #type_,
+                    }
+                )
+            })
+            .collect::<Vec<_>>();
 
         let function_stmt_name = format_ident!("{function_name}_statement");
 
         let define_function_statement: proc_macro2::TokenStream = quote!(
+            #( #params_checked )*
+
             pub fn #function_stmt_name() -> #crate_name::statements::DefineFunctionStatement{
                 #( #params_rendered )*
 
@@ -203,35 +183,31 @@ impl DefineFunctionStatementParser {
             )
         });
 
-        let bindings_and_build = args.iter().map(|param| {
+        let args_converted = args.iter().map(|param| {
             let name = &param.name;
             let type_ = &param.type_.to_lib_type();
-            quote!(
-                let #name: #type_ = #name.into();
-                __private_bindings.extend(#name.get_bindings());
-                __private_args.push(#name.build());
-            )
+            if param.type_.is_option() {
+                // An omitted optional argument is passed as `NONE`.
+                quote!(
+                    let #name: #type_ = #name.into();
+                    let #name = #name.unwrap_or_else(|| #crate_name::ValueLike::from(#crate_name::NONE));
+                )
+            } else {
+                quote!(let #name: #type_ = #name.into();)
+            }
         });
+        let arg_names = args.iter().map(|param| &param.name);
 
         let exported_function_name = format_ident!("{function_name}_fn");
         let generated_function_def = quote!(
             pub fn #exported_function_name(#( #function_params ), *) -> #crate_name::Function {
-                use #crate_name::Buildable as _;
-                use #crate_name::Parametric as _;
-                {
-                    let mut __private_bindings = vec![];
-                    let mut __private_args = vec![];
+                #( #args_converted )*
 
-                    #( #bindings_and_build )*
-
-        // TODO: Confirm if a custom function has to be prefixed with 'fn::'
-                let build = format!("fn::{}({})", stringify!(#function_name), __private_args.join(", "));
-                #crate_name::Function::new()
-                    .with_args_string(build)
-                    .with_bindings(__private_bindings)
-                }
+                #crate_name::Function::__custom(
+                    stringify!(#function_name),
+                    ::std::vec![#( #crate_name::Render::to_sql(&#arg_names) ),*],
+                )
             }
-
         );
 
         let generated_func_macro = quote!(

@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 use darling::FromDeriveInput;
 use proc_macro::TokenStream;
@@ -10,8 +5,8 @@ use quote::quote;
 use syn::{DeriveInput, LitStr, parse_macro_input};
 
 mod embed_migrations;
-mod field_type;
 mod helpers;
+mod kind;
 mod migrations;
 mod models;
 mod query;
@@ -21,7 +16,7 @@ mod surql;
 mod utilities;
 
 use migrations::table::TableMigrationSchemaDeriveAttributes;
-use models::{EdgeToken, NodeToken, ObjectToken};
+use models::ModelReceiver;
 use utilities::{PickedMeta, TableDeriveAttributesPickable};
 
 /// Expands a darling-parsed derive input, reporting attribute errors at their spans.
@@ -33,19 +28,19 @@ fn derive_with<T: FromDeriveInput + quote::ToTokens>(input: TokenStream) -> Toke
     }
 }
 
-#[proc_macro_derive(Node, attributes(orm))]
-pub fn node_derive(input: TokenStream) -> TokenStream {
-    derive_with::<NodeToken>(input)
+/// Declares a model; documented on its re-export, `aparecium::model`.
+#[proc_macro_attribute]
+pub fn model(args: TokenStream, item: TokenStream) -> TokenStream {
+    models::model_attribute(args.into(), item.into()).into()
 }
 
-#[proc_macro_derive(Edge, attributes(orm))]
-pub fn edge_derive(input: TokenStream) -> TokenStream {
-    derive_with::<EdgeToken>(input)
-}
-
-#[proc_macro_derive(Object, attributes(orm))]
-pub fn object_derive(input: TokenStream) -> TokenStream {
-    derive_with::<ObjectToken>(input)
+/// Generates a model's code; added by `#[aparecium::model]`, which passes the model kind and
+/// table as `#[orm(..)]`. `surreal` is declared too so `value = manual` models keep their
+/// `#[surreal(rename …)]` attributes.
+#[doc(hidden)]
+#[proc_macro_derive(ModelCodegen, attributes(orm, surreal))]
+pub fn model_codegen(input: TokenStream) -> TokenStream {
+    derive_with::<ModelReceiver>(input)
 }
 
 #[proc_macro_derive(TableResources, attributes(orm))]

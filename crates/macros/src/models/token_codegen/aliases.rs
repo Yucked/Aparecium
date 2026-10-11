@@ -1,9 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2024 Oyelowo Oyedayo
- */
-
 use crate::models::*;
 
 use super::Codegen;
@@ -15,14 +9,14 @@ impl Codegen<'_> {
         let casing = table_derive_attributes.casing()?;
         let field_receiver = self.field_receiver();
         let db_field_name = field_receiver.db_field_name(&casing)?;
-        let db_field_name_as_ident = db_field_name.as_ident();
+        let field_ident_normalized = field_receiver.field_ident_normalized(&casing)?;
 
         if let RelationType::Relate(_) = field_receiver.to_relation_type(table_derive_attributes) {
             self.aliases_struct_fields_types_kv
-                .push(quote!(pub #db_field_name_as_ident: #crate_name::AliasName, ).into());
+                .push(quote!(pub #field_ident_normalized: #crate_name::AliasName, ).into());
 
             self.aliases_struct_fields_names_kv
-                .push(quote!(#db_field_name_as_ident: #db_field_name.into(),).into());
+                .push(quote!(#field_ident_normalized: #crate_name::AliasName::new(#db_field_name),).into());
         }
         Ok(())
     }

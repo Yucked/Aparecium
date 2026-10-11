@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 use crate::helpers::get_crate_name;
 use proc_macro::TokenStream;
@@ -160,6 +155,7 @@ impl ForLoopMetaParser {
 
         let whole_stmts = quote!(
         {
+            const _: () = #crate_name::Param::assert_valid(stringify!(#iteration_param));
             let #iteration_param = #crate_name::Param::new(stringify!(#iteration_param));
 
             #( #to_render )*

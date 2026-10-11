@@ -1,9 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2024 Oyelowo Oyedayo
- */
-
 use crate::helpers::get_crate_name;
 use darling::{FromDeriveInput, ast::Data, util};
 use proc_macro2::TokenStream;
@@ -14,19 +8,11 @@ use super::table::TableNameIdent;
 use crate::models::*;
 
 create_ident_wrapper!(StructIdent);
-create_ident_wrapper!(StructPartialIdent);
-create_ident_wrapper!(StructPartialBuilderIdent);
+create_ident_wrapper!(StructPatchIdent);
 
 impl StructIdent {
-    pub fn partial_ident(&self) -> StructPartialIdent {
-        StructPartialIdent(format_ident!("{}Partial", self.to_string()))
-    }
-
-    pub fn partial_builder_ident(&self) -> StructPartialBuilderIdent {
-        StructPartialBuilderIdent(format_ident!(
-            "{}Builder",
-            self.partial_ident().into_inner()
-        ))
+    pub fn patch_ident(&self) -> StructPatchIdent {
+        StructPatchIdent(format_ident!("{}Patch", self.to_string()))
     }
 
     pub fn is_same_name(&self, other: impl Into<CustomType>) -> ExtractorResult<bool> {
@@ -35,21 +21,29 @@ impl StructIdent {
     }
 }
 
+/// A struct marked with `#[aparecium::model(..)]`. The attribute macro forwards its arguments as
+/// `#[orm(node | edge | object, table = ..)]`; the other `#[orm(..)]` settings are the user's.
 #[derive(Clone, Debug, FromDeriveInput)]
-#[darling(attributes(orm, serde), forward_attrs(allow, doc, cfg))]
-pub struct TableDeriveAttributes {
+#[darling(attributes(orm), forward_attrs(surreal), supports(struct_named))]
+pub struct ModelReceiver {
     pub(crate) ident: Ident,
-    // pub(crate) attrs: Vec<syn::Attribute>,
+    pub(crate) vis: syn::Visibility,
+    /// The struct's `#[surreal(…)]` attributes, read for `rename_all`.
+    pub(crate) attrs: Vec<syn::Attribute>,
     pub(crate) generics: StructGenerics,
-    /// Receives the body of the struct or enum. We don't care about
-    /// struct fields because we previously told darling we only accept structs.
     pub data: Data<util::Ignored, MyFieldReceiver>,
 
     #[darling(default)]
-    pub(crate) rename_all: Option<Rename>,
+    pub(crate) node: bool,
 
-    // #[darling(default)]
-    pub(crate) table: TableNameIdent,
+    #[darling(default)]
+    pub(crate) edge: bool,
+
+    #[darling(default)]
+    pub(crate) object: bool,
+
+    #[darling(default)]
+    pub(crate) table: Option<TableNameIdent>,
 
     #[darling(default)]
     pub(crate) relax_table: Option<bool>,
@@ -63,7 +57,6 @@ pub struct TableDeriveAttributes {
     #[darling(default)]
     pub(crate) flexible: Option<bool>,
 
-    // #[darling(default, rename = "as_")]
     pub(crate) as_: Option<AttributeAs>,
 
     pub(crate) permissions: Option<Permissions>,
@@ -72,7 +65,7 @@ pub struct TableDeriveAttributes {
     pub(crate) define: Option<AttributeDefine>,
 }
 
-impl TableDeriveAttributes {
+impl ModelReceiver {
     pub fn ident(&self) -> StructIdent {
         StructIdent(self.ident.clone())
     }
@@ -81,17 +74,46 @@ impl TableDeriveAttributes {
         &self.generics
     }
 
-    pub fn table(&self) -> ExtractorResult<&TableNameIdent> {
-        // TODO: Ask during alpha release if specifying table name explicitly
-        // should be optional since it can be inferred from the struct name
-        // as the snake case version of the struct name.
-        self.table
-            // .unwrap_or_else(|| self.ident().to_string().to_case(Case::Snake))
-            .validate_and_return(&self.ident(), &self.relax_table)
+    pub fn data_type(&self) -> ExtractorResult<DataType> {
+        match (self.node, self.edge, self.object) {
+            (true, false, false) => Ok(DataType::Node),
+            (false, true, false) => Ok(DataType::Edge),
+            (false, false, true) => Ok(DataType::Object),
+            _ => Err(syn::Error::new_spanned(
+                &self.ident,
+                "a model is exactly one of `node`, `edge` or `object`",
+            )
+            .into()),
+        }
+    }
+
+    /// The table of a node or edge; objects are stored inside other records and have none.
+    pub fn table(&self) -> ExtractorResult<Option<&TableNameIdent>> {
+        match (self.data_type()?, &self.table) {
+            (DataType::Object, None) => Ok(None),
+            (DataType::Object, Some(table)) => Err(syn::Error::new_spanned(
+                table,
+                "an embedded `object` model has no table",
+            )
+            .into()),
+            (_, Some(table)) => Ok(Some(
+                table.validate_and_return(&self.ident(), &self.relax_table)?,
+            )),
+            (_, None) => Err(syn::Error::new_spanned(
+                &self.ident,
+                "a `node` or `edge` model needs `table = \"…\"`",
+            )
+            .into()),
+        }
+    }
+
+    /// The struct's `#[surreal(rename_all = "…")]`.
+    pub fn casing(&self) -> ExtractorResult<StructLevelCasing> {
+        struct_casing(&self.attrs)
     }
 
     pub fn get_table_definition_token(&self) -> ExtractorResult<TableDefinitions> {
-        let TableDeriveAttributes {
+        let ModelReceiver {
             ref drop,
             ref flexible,
             ref schemafull,
@@ -124,41 +146,39 @@ impl TableDeriveAttributes {
             );
         }
 
-        let mut define_table: Option<TokenStream> = None;
-        let mut define_table_methods: Vec<TokenStream> = vec![];
+        let definition = match define {
+            Some(define) => define.to_token_stream(),
+            None => {
+                let mut define_table_methods: Vec<TokenStream> = vec![];
 
-        if let Some(define) = define {
-            define_table = Some(quote!(#define.to_raw()));
-        }
+                if drop.is_some() {
+                    define_table_methods.push(quote!(.drop()))
+                }
 
-        if let Some(_drop) = drop {
-            define_table_methods.push(quote!(.drop()))
-        }
+                if flexible.is_some() {
+                    define_table_methods.push(quote!(.flexible()))
+                }
 
-        if let Some(_flexible) = flexible {
-            define_table_methods.push(quote!(.flexible()))
-        }
+                if let Some(as_) = as_ {
+                    define_table_methods.push(quote!(.as_(#as_)))
+                }
 
-        if let Some(as_) = as_ {
-            define_table_methods.push(quote!(.as_(#as_)))
-        }
+                if schemafull.is_some() {
+                    define_table_methods.push(quote!(.schemafull()))
+                }
 
-        if let Some(_schemafull) = schemafull {
-            define_table_methods.push(quote!(.schemafull()))
-        }
+                if let Some(permissions) = permissions {
+                    define_table_methods.push(permissions.to_token_stream());
+                }
 
-        if let Some(permissions) = permissions {
-            define_table_methods.push(permissions.to_token_stream());
-        }
-
-        Ok(define_table
-            .unwrap_or_else(|| {
                 quote!(
-                    #crate_name::statements::define_table(Self::table())
+                    #crate_name::statements::define_table(<Self as #crate_name::Model>::table())
                     #( #define_table_methods) *
-                    .to_raw()
                 )
-            })
-            .into())
+            }
+        };
+
+        // Definitions write their values inline; `inline` keeps the builder's errors.
+        Ok(quote!(#crate_name::Raw::inline(&#definition)).into())
     }
 }

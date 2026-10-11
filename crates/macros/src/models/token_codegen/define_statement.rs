@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2024 Oyelowo Oyedayo
- */
 
 use crate::helpers::get_crate_name;
 use quote::{ToTokens, quote};
@@ -20,26 +15,32 @@ impl Codegen<'_> {
         Ok(())
     }
 
-    pub fn skip_field(&self) -> ExtractorResult<bool> {
-        let field_receiver = self.field_receiver();
-        let model_attributes = self.table_derive_attributes();
-        let relation_type = field_receiver.to_relation_type(model_attributes);
-        Ok(relation_type.is_relate_graph()
-            || field_receiver.skip_serializing
-            || field_receiver.skip)
+    /// Relations are read through graph traversals and never stored, so they have no definition.
+    pub fn skip_field(&self) -> bool {
+        self.field_receiver()
+            .to_relation_type(self.table_derive_attributes())
+            .is_relate_graph()
     }
 
     pub fn field_defintion_db(&self) -> ExtractorResult<Vec<DefineFieldStatementToken>> {
         let field_receiver = self.field_receiver();
         let model_attributes = self.table_derive_attributes();
-        if self.skip_field()? {
+        if self.skip_field() {
             return Ok(vec![]);
         }
 
         let crate_name = get_crate_name(false);
         let casing = model_attributes.casing()?;
         let db_field_name = field_receiver.db_field_name(&casing)?;
-        let field_type_in_db_token = field_receiver.field_type_db_token(model_attributes)?;
+        // Every stored field has a type: inference fails rather than leave it out.
+        let field_type_in_db_token = field_receiver
+            .field_type_db_token(model_attributes)?
+            .ok_or_else(|| {
+                syn::Error::new_spanned(
+                    &field_receiver.ty,
+                    "the field's database type is unknown; specify `#[orm(ty = \"…\")]`",
+                )
+            })?;
 
         let mut define_field_methods = vec![];
         let mut define_array_field_item_methods = vec![];
@@ -61,30 +62,29 @@ impl Codegen<'_> {
             define_field_methods.push(permissions.into_token_stream());
         }
 
-        let main_field_def = quote!(
-            #crate_name::statements::define_field(#crate_name::Field::new(#db_field_name))
-            .on_table(#crate_name::Table::from(Self::table()))
+        // Definitions write their values inline; `inline` keeps the builder's errors.
+        let raw = |definition: TokenStream| -> DefineFieldStatementToken {
+            quote!(#crate_name::Raw::inline(&#definition)).into()
+        };
+
+        all_field_defintions.push(raw(quote!(
+            #crate_name::statements::define_field(#crate_name::Field::ident(#db_field_name))
+            .on_table(<Self as #crate_name::Model>::table())
             .type_(#field_type_in_db_token)
             #( # define_field_methods) *
-            .to_raw()
-        );
-
-        all_field_defintions.push(main_field_def.into());
+        )));
 
         if !define_array_field_item_methods.is_empty() {
-            let array_field_item_str = quote!(#db_field_name.*).to_string();
-            let array_item_definition = quote!(
-                #crate_name::statements::define_field(#crate_name::Field::new(#array_field_item_str))
-                                        .on_table(#crate_name::Table::from(Self::table()))
-                                        #( # define_array_field_item_methods) *
-                                        .to_raw()
-
-            );
-            all_field_defintions.push(array_item_definition.into());
+            // `field.*` defines every element of an array field.
+            all_field_defintions.push(raw(quote!(
+                #crate_name::statements::define_field(#crate_name::Field::ident(#db_field_name).all())
+                    .on_table(<Self as #crate_name::Model>::table())
+                    #( # define_array_field_item_methods) *
+            )));
         };
 
         if let Some(define) = field_receiver.define.as_ref() {
-            all_field_defintions.push(quote!(#define.to_raw()).into());
+            all_field_defintions.push(raw(quote!(#define)));
         }
 
         Ok(all_field_defintions)
@@ -103,7 +103,7 @@ impl Codegen<'_> {
                     .value
                     .as_ref()
                     .map_or(StaticAssertionToken::default(), |v| {
-                        v.get_default_value_static_assertion(field_type.into_inner())
+                        v.get_default_value_static_assertion(field_type.inner())
                     });
                 Ok(static_assertion)
             }

@@ -1,32 +1,19 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2024 Oyelowo Oyedayo
- */
-
 use crate::models::*;
-use convert_case::{Case, Casing};
 use darling::FromField;
-use quote::format_ident;
-use std::ops::Deref;
 use syn::{Ident, Type};
 
 create_ident_wrapper!(FieldIdentNormalizedDeserialized);
-create_ident_wrapper!(DeserializedFieldName);
 
 #[derive(Clone, Debug, FromField)]
-#[darling(attributes(orm, serde), forward_attrs(allow, doc, cfg))]
+#[darling(attributes(pick), forward_attrs(surreal))]
 pub struct FieldAttribute {
     /// Get the ident of the field. For fields in tuple or newtype structs or
     /// enum bodies, this can be `None`.
     pub ident: Option<Ident>,
     /// This magic field name pulls the type from the input.
     pub ty: Type,
-    #[expect(dead_code, reason = "required by darling's `forward_attrs`; unused")]
+    /// The field's `#[surreal(…)]` attributes, read for its stored name.
     pub attrs: Vec<syn::Attribute>,
-
-    #[darling(default)]
-    pub(crate) rename: Option<Rename>,
 }
 
 impl FieldAttribute {
@@ -39,64 +26,26 @@ impl FieldAttribute {
             .into())
     }
 
+    /// The field's stored name as an identifier, raw when it is a keyword.
     pub fn field_ident_normalized_deserialized_rawable(
         &self,
         struct_casing: &StructLevelCasing,
     ) -> ExtractorResult<FieldIdentNormalizedDeserialized> {
-        Ok(self.ident_meta_deserialized(struct_casing)?.0)
-    }
-
-    fn ident_meta_deserialized(
-        &self,
-        struct_casing: &StructLevelCasing,
-    ) -> ExtractorResult<(FieldIdentNormalizedDeserialized, DeserializedFieldName)> {
         let field_ident_original = self.ident()?;
-        let field_ident_cased =
-            || Self::convert_case(field_ident_original.to_string(), struct_casing).to_string();
+        let span = field_ident_original.span();
+        let unraw = field_ident_original.to_string();
+        let unraw = unraw.trim_start_matches("r#");
+        let name = match surreal_setting(&self.attrs, "rename")? {
+            Some(rename) => rename.value(),
+            None => struct_casing.apply(unraw),
+        };
 
-        let field_ident_normalized_de =
-            &self
-                .rename
-                .as_ref()
-                .map_or_else(field_ident_cased, |renamed| {
-                    renamed
-                        .serialize
-                        .clone()
-                        .unwrap_or(field_ident_original.to_string())
-                });
-
-        let (field_ident_normalized, field_name_serialized) = if field_ident_normalized_de
-            .starts_with("r#")
-            || RustReservedKeyword::is_keyword(field_ident_normalized_de)
-        {
-            let field_ident_normalized = field_ident_normalized_de.trim_start_matches("r#");
-            (
-                syn::Ident::new_raw(field_ident_normalized, field_ident_original.span()),
-                syn::Ident::new(field_ident_normalized, field_ident_original.span()),
-            )
+        let ident = if RustReservedKeyword::is_keyword(&name) {
+            syn::Ident::new_raw(&name, span)
         } else {
-            (
-                syn::Ident::new(field_ident_normalized_de, field_ident_original.span()),
-                syn::Ident::new(field_ident_normalized_de, field_ident_original.span()),
-            )
+            syn::parse_str::<syn::Ident>(&name)
+                .map_err(|_| syn::Error::new(span, format!("`{name}` is not a Rust identifier")))?
         };
-
-        Ok((field_ident_normalized.into(), field_name_serialized.into()))
-    }
-
-    fn convert_case(ident: impl Into<String>, casing: &StructLevelCasing) -> IdentCased {
-        let ident: String = ident.into();
-        let ident = match casing.deref() {
-            CaseString::None => ident,
-            CaseString::Camel => ident.to_case(Case::Camel),
-            CaseString::Snake => ident.to_case(Case::Snake),
-            CaseString::Pascal => ident.to_case(Case::Pascal),
-            CaseString::Lower => ident.to_case(Case::Lower),
-            CaseString::Upper => ident.to_case(Case::Upper),
-            CaseString::ScreamingSnake => ident.to_case(Case::UpperSnake),
-            CaseString::Kebab => ident.to_case(Case::Kebab),
-            CaseString::ScreamingKebab => ident.to_case(Case::UpperSnake),
-        };
-        format_ident!("{ident}").into()
+        Ok(ident.into())
     }
 }

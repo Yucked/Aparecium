@@ -1,10 +1,6 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2024 Oyelowo Oyedayo
- */
 
-use crate::field_type::FieldType;
+use surrealdb_types::Kind;
+
 use crate::models::*;
 
 use super::MyFieldReceiver;
@@ -27,7 +23,7 @@ impl MyFieldReceiver {
     ) -> ExtractorResult<Option<FieldTypeDb>> {
         Ok(self
             .field_type_db_with_static_assertions(model_attributes)?
-            .map(|x| x.field_type_db_original.into()))
+            .map(|x| FieldTypeDb(x.field_type_db_original)))
     }
 
     pub fn field_type_db_with_static_assertions(
@@ -91,16 +87,13 @@ impl MyFieldReceiver {
                     quote! {}
                 };
 
-                let db_field_type_ast_meta = DbFieldTypeAstMeta {
-                    field_type_db_original: db_type.clone().into_inner(),
-                    static_assertion_token: quote! {
+                Some(DbFieldTypeAstMeta::new(
+                    db_type.inner().clone(),
+                    quote! {
                         #static_assertion_token
                         #assertions_from_db_type
-                    }
-                    .into(),
-                    field_type_db_token: db_type.into_token_stream().into(),
-                };
-                Some(db_field_type_ast_meta)
+                    },
+                ))
             }
             None => {
                 let casing = model_attributes.casing()?;
@@ -178,54 +171,26 @@ impl MyFieldReceiver {
         }
     }
 
+    fn explicit_kind(&self) -> Option<&Kind> {
+        self.field_type_db.as_ref().map(FieldTypeDb::inner)
+    }
+
     pub fn is_numeric(&self) -> bool {
-        let field_type = self
-            .field_type_db
-            .as_ref()
-            .map_or(&FieldType::Any, |t| t.inner());
-        let explicit_db_ty_is_numeric = matches!(
-            field_type,
-            FieldType::Int | FieldType::Float | FieldType::Decimal | FieldType::Number
-        );
-        explicit_db_ty_is_numeric || self.ty().is_numeric()
+        matches!(
+            self.explicit_kind(),
+            Some(Kind::Int | Kind::Float | Kind::Decimal | Kind::Number)
+        ) || self.ty().is_numeric()
     }
 
     pub fn is_array(&self) -> bool {
-        let field_type = self
-            .field_type_db
-            .as_ref()
-            .map_or(&FieldType::Any, |t| t.inner());
-        let explicit_ty_is_list = matches!(field_type, FieldType::Array(_item_ty, _));
-        explicit_ty_is_list
+        matches!(self.explicit_kind(), Some(Kind::Array(..)))
             || self.ty().is_array()
-            || self.field_type_db.as_ref().is_some_and(|t| t.is_array())
             || self.link_many.is_some()
     }
 
     pub fn is_set(&self) -> bool {
-        let field_type = self
-            .field_type_db
-            .as_ref()
-            .map_or(&FieldType::Any, |t| t.inner());
-        let explicit_ty_is_list = matches!(field_type, FieldType::Set(_item_ty, _));
-        explicit_ty_is_list
-            || self.ty().is_set()
-            || self.field_type_db.as_ref().is_some_and(|t| t.is_set())
+        matches!(self.explicit_kind(), Some(Kind::Set(..))) || self.ty().is_set()
     }
-
-    // TODO: Remove this?
-    // pub fn is_list(&self) -> bool {
-    //     let field_type = self
-    //         .field_type_db
-    //         .as_ref()
-    //         .map_or(&FieldType::Any, |t| t.inner());
-    //     let explicit_ty_is_list =
-    //         matches!(field_type, FieldType::Array(_, _) | FieldType::Set(_, _));
-    //     explicit_ty_is_list
-    //         || self.ty().is_list()
-    //         || self.field_type_db.as_ref().is_some_and(|t| t.is_list())
-    //         || self.link_many.is_some()
-    // }
 
     pub fn ty(&self) -> CustomType {
         CustomType::new(self.ty.clone())

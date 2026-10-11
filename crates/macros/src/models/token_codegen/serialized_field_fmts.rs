@@ -1,9 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2024 Oyelowo Oyedayo
- */
-
 use crate::helpers::get_crate_name;
 use quote::quote;
 
@@ -19,33 +13,32 @@ impl Codegen<'_> {
         let db_field_name = field_receiver.db_field_name(&table_derive_attrs.casing()?)?;
         let relation_type = field_receiver.to_relation_type(table_derive_attrs);
 
-        if !relation_type.is_relate_graph() {
-            self.serialized_fmt_db_field_names_instance
-                .push(quote!(#db_field_name .into()).into());
+        // Relations are read through graph traversals and never stored on the record.
+        if relation_type.is_relate_graph() {
+            return Ok(());
         }
 
-        let serialized_field_fmt = || quote!(#crate_name::Field::new(#db_field_name));
+        self.serialized_fmt_db_field_names_instance
+            .push(quote!(#db_field_name).into());
 
-        if !field_receiver.skip_serializing && !field_receiver.skip {
-            match relation_type {
-                RelationType::LinkOne(_) => {
-                    self.link_one_fields.push(serialized_field_fmt().into());
-                    self.link_one_and_self_fields
-                        .push(serialized_field_fmt().into());
-                    self.linked_fields.push(serialized_field_fmt().into());
-                }
-                RelationType::LinkSelf(_) => {
-                    self.link_self_fields.push(serialized_field_fmt().into());
-                    self.link_one_and_self_fields
-                        .push(serialized_field_fmt().into());
-                    self.linked_fields.push(serialized_field_fmt().into());
-                }
-                RelationType::LinkMany(_) => {
-                    self.link_many_fields.push(serialized_field_fmt().into());
-                    self.linked_fields.push(serialized_field_fmt().into());
-                }
-                _ => {}
+        let field = || quote!(#crate_name::Field::ident(#db_field_name));
+
+        match relation_type {
+            RelationType::LinkOne(_) => {
+                self.link_one_fields.push(field().into());
+                self.link_one_and_self_fields.push(field().into());
+                self.linked_fields.push(field().into());
             }
+            RelationType::LinkSelf(_) => {
+                self.link_self_fields.push(field().into());
+                self.link_one_and_self_fields.push(field().into());
+                self.linked_fields.push(field().into());
+            }
+            RelationType::LinkMany(_) => {
+                self.link_many_fields.push(field().into());
+                self.linked_fields.push(field().into());
+            }
+            _ => {}
         }
         Ok(())
     }

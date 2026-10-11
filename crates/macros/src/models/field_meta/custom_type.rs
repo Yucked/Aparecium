@@ -1,13 +1,8 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2024 Oyelowo Oyedayo
- */
 
 use std::{fmt::Display, ops::Deref};
 
-use crate::field_type::GeometryType;
 use darling::FromMeta;
+use surrealdb_types::GeometryKind;
 use quote::ToTokens;
 use syn::{
     self, Expr, GenericArgument, Ident, Lifetime, Path, PathArguments, Token, Type, TypeReference,
@@ -671,7 +666,8 @@ impl CustomType {
         }
     }
 
-    pub fn raw_type_geometry_kind(&self) -> Option<GeometryType> {
+    /// The geometry kinds a geometry type holds; empty for `Geometry`, which holds any.
+    pub fn raw_type_geometry_kind(&self) -> Option<Vec<GeometryKind>> {
         let ty = &self.inner();
         match ty {
             syn::Type::Path(path) => {
@@ -682,17 +678,18 @@ impl CustomType {
                     .expect("Must have at least one segment");
                 let kind = last_seg.ident.to_string().to_lowercase();
 
-                match kind.as_str() {
-                    "point" => Some(GeometryType::Point),
-                    "linestring" => Some(GeometryType::LineString),
-                    "polygon" => Some(GeometryType::Polygon),
-                    "multipoint" => Some(GeometryType::MultiPoint),
-                    "multilinestring" => Some(GeometryType::MultiLine),
-                    "multipolygon" => Some(GeometryType::MultiPolygon),
-                    "geometrycollection" => Some(GeometryType::Collection),
-                    "geometry" => Some(GeometryType::Feature),
-                    _ => None,
-                }
+                let kind = match kind.as_str() {
+                    "point" => GeometryKind::Point,
+                    "linestring" => GeometryKind::Line,
+                    "polygon" => GeometryKind::Polygon,
+                    "multipoint" => GeometryKind::MultiPoint,
+                    "multilinestring" => GeometryKind::MultiLine,
+                    "multipolygon" => GeometryKind::MultiPolygon,
+                    "geometrycollection" => GeometryKind::Collection,
+                    "geometry" => return Some(vec![]),
+                    _ => return None,
+                };
+                Some(vec![kind])
             }
             _ => None,
         }

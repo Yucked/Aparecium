@@ -1,10 +1,4 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2024 Oyelowo Oyedayo
- */
 
-pub mod attributes;
 mod db_field_types;
 mod generics;
 mod ident;
@@ -17,22 +11,20 @@ use crate::models::*;
 
 use super::{AttributeAssert, AttributeDefine, AttributeItemAssert, AttributeValue, Permissions};
 
-create_ident_wrapper!(IdentCased);
 create_ident_wrapper!(FieldIdentNormalized);
 create_ident_wrapper!(FieldNamePascalized);
 create_ident_wrapper!(FieldIdentOriginal);
 create_ident_wrapper!(OldFieldName);
 
 #[derive(Clone, Debug, FromField)]
-#[darling(attributes(orm, serde), forward_attrs(allow, doc, cfg))]
+#[darling(attributes(orm), forward_attrs(surreal))]
 pub struct MyFieldReceiver {
     /// Get the ident of the field. For fields in tuple or newtype structs or
     /// enum bodies, this can be `None`.
     pub ident: Option<Ident>,
     /// This magic field name pulls the type from the input.
     pub ty: Type,
-    // #[darling(with=path)]
-    // fn(Vec<Attribute>) -> darling::Result<T>
+    /// The field's `#[surreal(…)]` attributes, read for its stored name.
     pub attrs: Vec<syn::Attribute>,
 
     /// Explicity specify the array or set item/element rust type
@@ -42,9 +34,6 @@ pub struct MyFieldReceiver {
     /// Old name of field when renaming
     #[darling(default)]
     pub(crate) old_name: Option<OldFieldName>,
-
-    #[darling(default)]
-    pub(crate) rename: Option<Rename>,
 
     // reference singular: LinkOne<Account>
     #[darling(default)]
@@ -85,35 +74,4 @@ pub struct MyFieldReceiver {
 
     #[darling(default)]
     pub(crate) item_assert: Option<AttributeItemAssert>,
-
-    // Serde attributes
-    #[darling(default)]
-    pub(crate) skip_serializing: bool,
-
-    #[darling(default)]
-    pub(crate) default: bool,
-
-    #[darling(default)]
-    pub(crate) skip: bool,
-
-    #[darling(default)]
-    #[expect(
-        dead_code,
-        reason = "accepts serde's field attribute so it parses; unused"
-    )]
-    skip_serializing_if: ::darling::util::Ignored,
-
-    #[darling(default)]
-    #[expect(
-        dead_code,
-        reason = "accepts serde's field attribute so it parses; unused"
-    )]
-    with: ::darling::util::Ignored,
-
-    #[darling(default)]
-    #[expect(
-        dead_code,
-        reason = "accepts serde's field attribute so it parses; unused"
-    )]
-    deserialize_with: ::darling::util::Ignored,
 }

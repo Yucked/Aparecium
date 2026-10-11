@@ -1,26 +1,15 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2024 Oyelowo Oyedayo
- */
-
-use quote::quote;
-
 use crate::models::*;
 
 use super::Codegen;
 
 impl Codegen<'_> {
+    /// Records the Rust field holding the record's `id`, which `Model::record_id` returns.
     pub fn create_table_id_type_token(&mut self) -> ExtractorResult<()> {
         let field_receiver = self.field_receiver();
-        let table_derive_attrs = self.table_derive_attributes();
-        let field_ident_serialized_fmt =
-            field_receiver.db_field_name(&table_derive_attrs.casing()?)?;
-        let field_type = &field_receiver.ty();
+        let casing = self.table_derive_attributes().casing()?;
 
-        if field_ident_serialized_fmt.is_id() {
-            self.table_id_type = quote!(#field_type).into();
-            // self.static_assertions.push(quote!(#crate_name::validators::assert_type_eq_all!(#field_type, #crate_name::SurrealId<#struct_name_ident>);));
+        if field_receiver.db_field_name(&casing)?.is_id() {
+            self.record_id_field = Some(field_receiver.ident()?.into_inner());
         }
 
         Ok(())

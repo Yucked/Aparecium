@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2024 Oyelowo Oyedayo
- */
 
 use quote::quote;
 
@@ -93,30 +88,13 @@ impl Codegen<'_> {
         let struct_casing = table_derive_attrs.casing()?;
         let field_ident_normalized = field_receiver.field_ident_normalized(&struct_casing)?;
         let db_field_name = field_receiver.db_field_name(&struct_casing)?;
-        let db_field_name_with_foregin_access = format!(".{db_field_name}");
 
         let record_link_default_alias_as_method = quote!(
             pub fn #field_ident_normalized(&self, clause: impl ::std::convert::Into<#crate_name::NodeAliasClause>) -> #crate_name::Field {
                 let clause: #crate_name::NodeAliasClause = clause.into();
-                let clause: #crate_name::NodeClause = clause.into_inner();
-
-            // NOTE: Confirm this
-                let normalized_field_name_str = if self.build().is_empty(){
-                    #db_field_name
-                }else {
-                    #db_field_name_with_foregin_access
-                };
-
-                let clause: #crate_name::NodeClause = clause.into();
-                let bindings = self.get_bindings().into_iter().chain(clause.get_bindings().into_iter()).collect::<::std::vec::Vec<_>>();
-
-                let errors = self.get_errors().into_iter().chain(clause.get_errors().into_iter()).collect::<::std::vec::Vec<_>>();
-
-                let field = #crate_name::Field::new(format!("{}{}", normalized_field_name_str, clause.build()))
-                            .with_bindings(bindings)
-                            .with_errors(errors);
+                let mut field = #crate_name::Field::from(self).with_field(#db_field_name);
+                field.push_clause(clause.into_inner());
                 field
-
             }
         );
 
@@ -137,13 +115,10 @@ impl Codegen<'_> {
         let struct_casing = table_derive_attrs.casing()?;
         let field_receiver = self.field_receiver();
         let db_field_name = field_receiver.db_field_name(&struct_casing)?;
-        let db_field_name_as_ident = db_field_name.as_ident();
-        let db_field_name_with_foregin_access = format!(".{db_field_name}");
+        let field_ident_normalized = field_receiver.field_ident_normalized(&struct_casing)?;
         let link_one_turbo_fished = link_one.turbo_fishize()?;
         let VariablesModelMacro {
-            ___________graph_traversal_string,
-            __________connect_node_to_graph_traversal_string,
-            ..
+            __________connect, ..
         } = VariablesModelMacro::new();
 
         let foreign_node_schema_import =
@@ -155,18 +130,10 @@ impl Codegen<'_> {
             };
 
         let record_link_default_alias_as_method = quote!(
-            pub fn #db_field_name_as_ident(&self) -> #link_one {
-                let clause = #crate_name::Clause::from(#crate_name::Empty);
-
-                let normalized_field_name_str = if self.build().is_empty(){
-                    #db_field_name
-                } else {
-                    #db_field_name_with_foregin_access
-                };
-
-                #link_one_turbo_fished::#__________connect_node_to_graph_traversal_string(
+            pub fn #field_ident_normalized(&self) -> #link_one {
+                #link_one_turbo_fished::#__________connect(
                     self,
-                    clause.with_field(normalized_field_name_str)
+                    #crate_name::Clause::from(#crate_name::Empty).with_field(#db_field_name),
                 )
             }
         );
@@ -191,9 +158,7 @@ impl Codegen<'_> {
         let db_field_name = field_attr.db_field_name(&struct_casing)?;
         let link_many_node_type_turbo_fished = link_many_node_type.turbo_fishize()?;
         let VariablesModelMacro {
-            ___________graph_traversal_string,
-            __________connect_node_to_graph_traversal_string,
-            ..
+            __________connect, ..
         } = VariablesModelMacro::new();
 
         let foreign_node_schema_import = if current_struct_ident
@@ -207,18 +172,10 @@ impl Codegen<'_> {
 
         let link_field_method = quote!(
             pub fn #field_ident_normalized(&self, clause: impl ::std::convert::Into<#crate_name::NodeAliasClause>) -> #link_many_node_type {
-            let clause: #crate_name::NodeAliasClause = clause.into();
-            let clause: #crate_name::NodeClause = clause.into_inner();
-
-            let db_field_name = if self.build().is_empty(){
-                #db_field_name.to_string()
-            }else {
-                format!(".{}", #db_field_name)
-            };
-
-            #link_many_node_type_turbo_fished::#__________connect_node_to_graph_traversal_string(
+                let clause: #crate_name::NodeAliasClause = clause.into();
+                #link_many_node_type_turbo_fished::#__________connect(
                     self,
-                    clause.with_field(db_field_name)
+                    clause.into_inner().with_field(#db_field_name),
                 )
             }
         );
@@ -244,12 +201,9 @@ impl Codegen<'_> {
         let field_receiver = self.field_receiver();
         let field_ident_normalized = field_receiver.field_ident_normalized(&struct_casing)?;
         let db_field_name = field_receiver.db_field_name(&struct_casing)?;
-        let db_field_name_with_foregin_access = format!(".{db_field_name}");
         let embedded_object_turbo_fished = embedded_object.turbo_fishize()?;
         let VariablesModelMacro {
-            __________connect_object_to_graph_traversal_string,
-            ___________graph_traversal_string,
-            ..
+            __________connect, ..
         } = VariablesModelMacro::new();
 
         let foreign_node_schema_import = if current_struct_ident
@@ -265,19 +219,10 @@ impl Codegen<'_> {
 
         let connect_object_field_method = quote!(
             pub fn #field_ident_normalized(&self) -> #embedded_object {
-                let clause = #crate_name::Clause::from(#crate_name::Empty);
-
-                let normalized_field_name_str = if self.build().is_empty(){
-                    #db_field_name
-                }else {
-                    #db_field_name_with_foregin_access
-                };
-
-                #embedded_object_turbo_fished::#__________connect_object_to_graph_traversal_string(
+                #embedded_object_turbo_fished::#__________connect(
                     self,
-                    clause.with_field(normalized_field_name_str)
+                    #crate_name::Clause::from(#crate_name::Empty).with_field(#db_field_name),
                 )
-
             }
         );
 
@@ -299,12 +244,9 @@ impl Codegen<'_> {
         let field_receiver = self.field_receiver();
         let field_ident_normalized = field_receiver.field_ident_normalized(&struct_casing)?;
         let db_field_name = field_receiver.db_field_name(&struct_casing)?;
-        let db_field_name_with_foregin_access = format!(".{db_field_name}");
         let nest_array_turbo_fished = nested_array.turbo_fishize()?;
         let VariablesModelMacro {
-            __________connect_object_to_graph_traversal_string,
-            ___________graph_traversal_string,
-            ..
+            __________connect, ..
         } = VariablesModelMacro::new();
 
         let foreign_node_schema_import = if current_struct_ident
@@ -324,17 +266,10 @@ impl Codegen<'_> {
                 clause: impl ::std::convert::Into<#crate_name::ObjectClause>
             ) -> #nested_array {
                 let clause: #crate_name::ObjectClause = clause.into();
-                let normalized_field_name_str = if self.build().is_empty(){
-                    #db_field_name
-                }else {
-                    #db_field_name_with_foregin_access
-                };
-
-                #nest_array_turbo_fished::#__________connect_object_to_graph_traversal_string(
+                #nest_array_turbo_fished::#__________connect(
                     self,
-                    clause.with_field(normalized_field_name_str)
+                    clause.into_inner().with_field(#db_field_name),
                 )
-
             }
         );
 

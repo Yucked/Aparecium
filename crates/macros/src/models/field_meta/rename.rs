@@ -1,48 +1,36 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2024 Oyelowo Oyedayo
- */
+use syn::{Attribute, Expr, LitStr, Token};
 
-use darling::{FromMeta, util};
-
-#[derive(Debug, Clone)]
-pub struct Rename {
-    pub(crate) serialize: Option<String>,
+/// The string value of `setting` in an item's `#[surreal(…)]` attributes, e.g. `rename = "…"`.
+///
+/// Stored names come from the same attributes the SDK's `SurrealValue` derive reads, so the
+/// schema and the stored record cannot disagree. Other settings are skipped.
+pub fn surreal_setting(attrs: &[Attribute], setting: &str) -> syn::Result<Option<LitStr>> {
+    let mut value = None;
+    for attr in attrs.iter().filter(|attr| attr.path().is_ident("surreal")) {
+        attr.parse_nested_meta(|meta| {
+            if meta.path.is_ident(setting) {
+                value = Some(meta.value()?.parse::<LitStr>()?);
+            } else if meta.input.peek(Token![=]) {
+                meta.value()?.parse::<Expr>()?;
+            }
+            Ok(())
+        })?;
+    }
+    Ok(value)
 }
 
-/// This enables us to handle potentially nested values i.e
-///   #[serde(rename = "simple_name")]
-///    or
-///   #[serde(rename(serialize = "age"))]
-///  #[serde(rename(serialize = "ser_name_nested", deserialize = "deser_name_nested"))]
-/// However, We dont care about deserialized name from serde, so we just ignore that.
-impl FromMeta for Rename {
-    fn from_string(value: &str) -> ::darling::Result<Self> {
-        Ok(Self {
-            serialize: Some(value.into()),
-        })
-    }
-
-    fn from_list(items: &[darling::ast::NestedMeta]) -> ::darling::Result<Self> {
-        #[derive(FromMeta)]
-        struct FullRename {
-            serialize: Option<String>,
-
-            #[darling(default)]
-            #[expect(
-                dead_code,
-                reason = "accepts `rename(deserialize = ..)`; only the serialized name is used"
-            )]
-            deserialize: Option<util::Ignored>,
-        }
-
-        impl From<FullRename> for Rename {
-            fn from(v: FullRename) -> Self {
-                let FullRename { serialize, .. } = v;
-                Self { serialize }
+/// The bare flag `flag`, e.g. `flatten`, if an item's `#[surreal(…)]` attributes include it.
+pub fn surreal_flag(attrs: &[Attribute], flag: &str) -> syn::Result<Option<syn::Path>> {
+    let mut found = None;
+    for attr in attrs.iter().filter(|attr| attr.path().is_ident("surreal")) {
+        attr.parse_nested_meta(|meta| {
+            if meta.path.is_ident(flag) {
+                found = Some(meta.path.clone());
+            } else if meta.input.peek(Token![=]) {
+                meta.value()?.parse::<Expr>()?;
             }
-        }
-        FullRename::from_list(items).map(Rename::from)
+            Ok(())
+        })?;
     }
+    Ok(found)
 }

@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2024 Oyelowo Oyedayo
- */
 
 mod aliases;
 mod define_statement;
@@ -11,10 +6,10 @@ mod field_metadata;
 mod field_type_assertions;
 mod field_value_setter;
 mod link_methods;
+mod patch;
 mod relate;
 mod serialized_field_fmts;
 mod simple;
-mod struct_partial;
 
 use convert_case::{Case, Casing};
 use quote::format_ident;
@@ -32,7 +27,6 @@ create_ident_wrapper!(ModuleNameInternalIdent);
 create_ident_wrapper!(ModuleNameRexportedIdent);
 create_ident_wrapper!(AliasesStructNameIdent);
 create_ident_wrapper!(TestFunctionNameIdent);
-create_ident_wrapper!(NonNullUpdaterStructNameIdent);
 create_ident_wrapper!(SchemaDefIdent);
 create_ident_wrapper!(StructWithRenamedSerializedFields);
 
@@ -47,22 +41,6 @@ pub(crate) struct CommonIdents {
 
 #[derive(Default, Clone)]
 pub struct Codegen<'a> {
-    /// list of fields names that are actually serialized and not skipped as ident
-    /// used for partial udpater struct. We stick to the original field name,
-    /// to stay consistent with rust struct declaration within the code but
-    /// handle the renaming automatically for the user.
-    /// Personally, I think this is better than using the serialized field name in this specific
-    /// context.
-    /// NOTE: Currently, I am skipping id field since it's immutable and should not be updated.
-    /// And considering same for in and out fields of edge tables if surrealdb 2.0 does not support
-    /// that.
-    /// e.g pub time_written: Time,
-    ///
-    /// However, when trying to get database name for doing query-building, I typically
-    /// use he serialized field name since this is how it would appear in the database and I want
-    /// to be as close at possible to the actual database field name to avoid confusion in this
-    /// other scenario.
-    pub serialized_ident_struct_partial_init_fields: Vec<SerializedIdentStructPartialInitFields>,
     /// list of fields names that are actually serialized and not skipped as string.
     /// Usually, this is every field except the many-to-many relation fields which
     /// are not serialized because they are not directly part of the struct.
@@ -102,34 +80,9 @@ pub struct Codegen<'a> {
 
     pub field_wrapper_type_custom_implementations: Vec<FieldSetterImplTokens>,
 
-    /// Generated example: pub timeWritten: "timeWritten".into(),
-    /// This is used to build the actual instance of the model during intialization e,g out:
-    /// "out".into()
-    /// The full thing can look like and the fields should be in normalized form:
-    /// i.e time_written => timeWritten if serde camelizes
-    /// ```rust,ignore
-    /// Self {
-    ///     id: "id".into(),
-    ///     r#in: "in".into(),
-    ///     out: "out".into(),
-    ///     timeWritten: "timeWritten".into(),
-    /// }
-    /// ```
+    /// Generated example: `timeWritten: ___________path.clone().with_field("timeWritten").into(),`
+    /// Each schema field is the schema's path followed by the field's stored name.
     pub schema_struct_fields_names_kv: Vec<SchemaStructFieldsNamesKv>,
-    pub schema_struct_fields_names_kv_prefixed: Vec<SchemaStructFieldsNamesKvPrefixed>,
-
-    /// Used to build up empty string values for all schema fields
-    /// Example value: pub timeWritten: "".into(),
-    /// Used to build up e.g:
-    /// ```rust,ignore
-    /// Self {
-    ///     id: "".into(),
-    ///     r#in: "".into(),
-    ///     out: "".into(),
-    ///     timeWritten: "".into(),
-    /// }
-    /// ```
-    pub schema_struct_fields_names_kv_empty: Vec<SchemaStructFieldsNamesKvEmpty>,
 
     /// Generated example: pub writtenBooks: AliasName,
     /// This is used when you have a relate attribute signaling a graph with e.g node->edge->node
@@ -188,16 +141,6 @@ pub struct Codegen<'a> {
     /// e.g: type Book = <super::Book as Node>::Schema;
     pub imports_referenced_node_schema: HashSet<ForeignNodeSchemaImport>,
 
-    /// This generates a function that is usually called by other Nodes/Structs
-    /// self_instance.drunk_water
-    /// .push_str(format!("{}.drunk_water", xx.___________graph_traversal_string).as_str());
-    ///
-    /// so that we can do e.g
-    /// ```rust,ignore
-    /// Student.field_name
-    /// ```
-    pub connection_with_field_appended: Vec<ConnectionWithFieldAppended>,
-
     /// When a field references another model as Link, we want to generate a method for that
     /// to be able to access the foreign fields
     /// Generated Example for e.g field with best_student: <Student>
@@ -211,15 +154,15 @@ pub struct Codegen<'a> {
     pub field_metadata: Vec<FieldMetadataToken>,
     pub node_edge_metadata: NodeEdgeMetadataLookupTable<'a>,
     pub fields_relations_aliased: Vec<FieldsRelationsAliased>,
-    /// e.g pub time: aparecium::Maybe<<Time as aparecium::PartialUpdater>::StructPartial>,
-    pub struct_partial_fields: Vec<StructPartialFields>,
-    //     pub fn #field_name(mut self, value: #original_field_type) -> Self {
-    //     self.0.#field_name = value;
-    //             self
-    //     }
-    pub struct_partial_associated_functions: Vec<StructPartialMethods>,
+    /// e.g `pub time: aparecium::Patch<Time>` in `<Model>Patch`.
+    pub patch_fields: Vec<PatchField>,
+    /// e.g `time: aparecium::Patch::Keep`.
+    pub patch_defaults: Vec<PatchDefault>,
+    /// Adds the assignment of a patch field that is not `Keep`.
+    pub patch_setters: Vec<PatchSetter>,
     pub renamed_serialized_fields_kv: Vec<RenamedSerializedFields>,
-    pub table_id_type: TableIdType,
+    /// The Rust field holding the record's `id`.
+    pub record_id_field: Option<syn::Ident>,
 
     struct_attributes_data: StructAttributesData<'a>,
 }
@@ -289,6 +232,16 @@ impl<'a> Codegen<'a> {
         let mut tokens_generator = Self::new(model_attributes);
 
         for field_receiver in model_attributes.fields()? {
+            // A flattened field's contents are stored as the model's own fields, which this
+            // macro cannot see, so its schema, definitions and patch would name a field that is
+            // never stored.
+            if let Some(flatten) = surreal_flag(&field_receiver.attrs, "flatten")? {
+                return Err(syn::Error::new_spanned(
+                    flatten,
+                    "`#[surreal(flatten)]` is not supported on model fields",
+                )
+                .into());
+            }
             tokens_generator.set_field_receiver(field_receiver);
 
             tokens_generator.create_table_id_type_token()?;
@@ -302,7 +255,7 @@ impl<'a> Codegen<'a> {
             tokens_generator.create_db_fields_for_links_and_loaders()?;
             tokens_generator.create_link_methods()?;
             tokens_generator.create_relation_aliases_struct_fields_types_kv()?;
-            tokens_generator.create_struct_partial_metadata()?;
+            tokens_generator.create_patch_metadata()?;
         }
         Ok(tokens_generator)
     }

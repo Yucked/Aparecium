@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 use darling::FromMeta;
 use proc_macro2::TokenStream;
@@ -31,7 +26,7 @@ impl ToTokens for Permissions {
                 quote!(.permissions_none())
             }
             Self::FnName(permissions) => {
-                quote!(.permissions(#permissions.to_raw()))
+                quote!(.permissions(#permissions))
             }
         };
 

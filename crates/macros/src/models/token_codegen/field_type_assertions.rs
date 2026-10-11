@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2024 Oyelowo Oyedayo
- */
 
 // ---
 use super::Codegen;
@@ -16,7 +11,9 @@ impl Codegen<'_> {
         let field_type_meta =
             field_receiver.field_type_db_with_static_assertions(table_derive_attrs)?;
         self.static_assertions.extend(vec![
-            field_type_meta.unwrap_or_default().static_assertion_token,
+            field_type_meta
+                .map(|meta| meta.static_assertion_token)
+                .unwrap_or_default(),
         ]);
 
         Ok(())

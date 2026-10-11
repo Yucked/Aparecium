@@ -1,30 +1,22 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 use super::ident::{FieldAttribute, FieldIdentNormalizedDeserialized};
-use crate::models::{CaseString, ExtractorResult, Rename, StructGenerics, StructLevelCasing};
+use crate::models::{ExtractorResult, StructGenerics, StructLevelCasing, struct_casing};
 
 use darling::{FromDeriveInput, ast::Data, util};
 use proc_macro2::TokenStream;
 use quote::{ToTokens, format_ident, quote};
-use std::str::FromStr;
 use syn::{Ident, Type};
 
 #[derive(Clone, Debug, FromDeriveInput)]
-#[darling(attributes(pick, serde), forward_attrs(allow, doc, cfg))]
+#[darling(attributes(pick), forward_attrs(surreal))]
 pub struct TableDeriveAttributesPickable {
     pub(crate) ident: Ident,
-    // pub(crate) attrs: Vec<syn::Attribute>,
+    /// The struct's `#[surreal(…)]` attributes, read for `rename_all`.
+    pub(crate) attrs: Vec<syn::Attribute>,
     pub(crate) generics: StructGenerics,
     /// Receives the body of the struct or enum. We don't care about
     /// struct fields because we previously told darling we only accept structs.
     pub data: Data<util::Ignored, FieldAttribute>,
-
-    #[darling(default)]
-    pub(crate) rename_all: Option<Rename>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -35,18 +27,7 @@ pub(crate) struct PickableMetadata<'a> {
 
 impl TableDeriveAttributesPickable {
     pub fn casing(&self) -> ExtractorResult<StructLevelCasing> {
-        let struct_level_casing = self
-            .rename_all
-            .as_ref()
-            .and_then(|case| case.serialize.clone())
-            .map(|case| CaseString::from_str(case.as_str()));
-
-        let casing = match struct_level_casing {
-            Some(Ok(case)) => case,
-            Some(Err(e)) => return Err(darling::Error::custom(e.to_string()).into()),
-            None => CaseString::None,
-        };
-        Ok(casing.into())
+        struct_casing(&self.attrs)
     }
 
     pub(crate) fn get_meta(&self) -> ExtractorResult<PickableMetadata<'_>> {

@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2024 Oyelowo Oyedayo
- */
 
 use std::{
     collections::{HashMap, hash_map::Entry},
@@ -33,7 +28,13 @@ impl Codegen<'_> {
                 .push(self.create_static_assertions(relate)?);
             self.relate(relate)?;
             let connection = &relate.connection;
-            self.fields_relations_aliased.push(quote!(#crate_name::Field::new(#connection).__as__(#crate_name::AliasName::new(#db_field_name))).into());
+            self.fields_relations_aliased.push(
+                quote!(#crate_name::Aliasable::__as__(
+                    &#crate_name::Field::new(#connection),
+                    #crate_name::AliasName::new(#db_field_name),
+                ))
+                .into(),
+            );
         }
         Ok(())
     }
@@ -43,10 +44,7 @@ impl Codegen<'_> {
         let table_derive_attributes = &self.table_derive_attributes();
         let field_receiver = self.field_receiver();
         let VariablesModelMacro {
-            __________connect_node_to_graph_traversal_string,
-            __________connect_edge_to_graph_traversal_string,
-            ___________graph_traversal_string,
-            ..
+            __________connect, ..
         } = VariablesModelMacro::new();
         let field_type = &field_receiver.ty();
         let edge_type = &relate.edge_type;
@@ -105,9 +103,9 @@ impl Codegen<'_> {
                     let clause: #crate_name::NodeClause = clause.into();
                     let clause = clause.with_arrow(#arrow).with_table(#destination_node_table_str);
 
-                    #foreign_node_schema_type_alias_with_generics_turbofishized::#__________connect_node_to_graph_traversal_string(
-                                self,
-                                clause,
+                    #foreign_node_schema_type_alias_with_generics_turbofishized::#__________connect(
+                        &self.0,
+                        clause.into_inner(),
                     )
                 }
             ))
@@ -442,16 +440,7 @@ impl ToTokens for NodeEdgeMetadata<'_> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let crate_name = get_crate_name(false);
         let VariablesModelMacro {
-            __________connect_edge_to_graph_traversal_string,
-            ___________bindings,
-            ___________errors,
-            ___________graph_traversal_string,
-            ____________update_many_bindings,
-            ___________model,
-            ___________in_marker,
-            ___________out_marker,
-            _____field_names,
-            ..
+            __________connect, ..
         } = VariablesModelMacro::new();
         let value = self;
         let Self {
@@ -521,20 +510,16 @@ impl ToTokens for NodeEdgeMetadata<'_> {
                     let clause: #crate_name::EdgeClause = clause.into();
                     let clause = clause.with_arrow(#arrow).with_table(#edge_table_str);
 
-                    // i.e Edge to Node
-                     // TODO: Use type over mere ident. include potential generics
-                    #edge_inner_module_name::#edge_name_as_struct_original_ident::#__________connect_edge_to_graph_traversal_string(
+                    // i.e Node to Edge
+                    #edge_inner_module_name::#edge_name_as_struct_original_ident::#__________connect(
                         self,
-                        clause,
+                        clause.into_inner(),
                     ).into()
                 }
             }
 
             mod #edge_inner_module_name {
                 #( #imports) *
-                use #crate_name::Parametric as _;
-                use #crate_name::Buildable as _;
-                use #crate_name::Erroneous as _;
 
                 #( #foreign_node_schema) *
 
@@ -550,39 +535,15 @@ impl ToTokens for NodeEdgeMetadata<'_> {
                     }
                 }
 
-                impl #edge_type_impl_generics #crate_name::Buildable for #edge_name_as_struct_with_direction_ident #edge_type_ty_generics #edge_type_where_clause {
-                    fn build(&self) -> ::std::string::String {
-                        self.0.build()
+                impl #edge_type_impl_generics #crate_name::Render for #edge_name_as_struct_with_direction_ident #edge_type_ty_generics #edge_type_where_clause {
+                    fn render(&self, sql: &mut #crate_name::Sql) {
+                        #crate_name::Render::render(&self.0, sql);
                     }
                 }
 
-                impl #edge_type_impl_generics #crate_name::Parametric for #edge_name_as_struct_with_direction_ident #edge_type_ty_generics #edge_type_where_clause {
-                    fn get_bindings(&self) -> #crate_name::BindingsList {
-                        self.0.get_bindings()
-                    }
-                }
-
-                impl #edge_type_impl_generics #crate_name::Erroneous for #edge_name_as_struct_with_direction_ident #edge_type_ty_generics #edge_type_where_clause {
-                    fn get_errors(&self) -> Vec<::std::string::String> {
-                        self.0.get_errors()
-                    }
-                }
-
-                impl #edge_type_impl_generics #crate_name::Buildable for &#edge_name_as_struct_with_direction_ident #edge_type_ty_generics #edge_type_where_clause {
-                    fn build(&self) -> ::std::string::String {
-                        self.0.build()
-                    }
-                }
-
-                impl #edge_type_impl_generics #crate_name::Parametric for &#edge_name_as_struct_with_direction_ident  #edge_type_ty_generics #edge_type_where_clause {
-                    fn get_bindings(&self) -> #crate_name::BindingsList {
-                        self.0.get_bindings()
-                    }
-                }
-
-                impl #edge_type_impl_generics #crate_name::Erroneous for &#edge_name_as_struct_with_direction_ident #edge_type_ty_generics #edge_type_where_clause{
-                    fn get_errors(&self) -> ::std::vec::Vec<::std::string::String> {
-                        self.0.get_errors()
+                impl #edge_type_impl_generics ::std::convert::From<&#edge_name_as_struct_with_direction_ident #edge_type_ty_generics> for #crate_name::Field #edge_type_where_clause {
+                    fn from(edge: &#edge_name_as_struct_with_direction_ident #edge_type_ty_generics) -> Self {
+                        #crate_name::Field::from(&edge.0)
                     }
                 }
 
@@ -608,9 +569,9 @@ impl ToTokens for NodeEdgeMetadata<'_> {
                         let clause = clause.with_arrow(#arrow).with_table(#edge_table_str);
 
                         // i.e Edge to Edge
-                        #edge_name_as_struct_original_ident::#__________connect_edge_to_graph_traversal_string(
-                            self,
-                            clause,
+                        #edge_name_as_struct_original_ident::#__________connect(
+                            &self.0,
+                            clause.into_inner(),
                         ).into()
                     }
                 }

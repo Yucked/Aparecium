@@ -1,16 +1,9 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2024 Oyelowo Oyedayo
- */
-
-use std::ops::Deref;
 
 use crate::models::*;
 use convert_case::{Case, Casing};
 use quote::format_ident;
 
-use super::{FieldIdentNormalized, FieldNamePascalized, IdentCased, MyFieldReceiver};
+use super::{FieldIdentNormalized, FieldNamePascalized, MyFieldReceiver};
 
 impl MyFieldReceiver {
     pub fn ident(&self) -> ExtractorResult<FieldIdentOriginal> {
@@ -55,47 +48,35 @@ impl MyFieldReceiver {
         struct_casing: &StructLevelCasing,
     ) -> ExtractorResult<(FieldIdentNormalized, DbFieldName)> {
         let field_ident_original = self.ident()?;
-        let field_ident_cased =
-            || Self::convert_case(field_ident_original.to_string(), struct_casing).to_string();
+        let span = field_ident_original.span();
+        // A raw identifier is stored without its `r#`, as the SDK's derive does.
+        let unraw = field_ident_original.to_string();
+        let unraw = unraw.trim_start_matches("r#");
+        let db_field_name = match surreal_setting(&self.attrs, "rename")? {
+            Some(rename) => rename.value(),
+            None => struct_casing.apply(unraw),
+        };
 
-        let field_ident_normalized = &self
-            .rename
-            .as_ref()
-            .and_then(|rename| rename.serialize.clone())
-            .unwrap_or_else(field_ident_cased);
-
-        let (field_ident_normalized, field_name_serialized) = if field_ident_normalized
-            .starts_with("r#")
-            || RustReservedKeyword::is_keyword(field_ident_normalized)
-        {
-            let field_ident_normalized = field_ident_normalized.trim_start_matches("r#");
-            (
-                syn::Ident::new_raw(field_ident_normalized, field_ident_original.span()),
-                syn::Ident::new(field_ident_normalized, field_ident_original.span()),
-            )
+        // The schema names a field after its stored name, e.g. `firstName` under camelCase,
+        // unless that name cannot be a Rust identifier (e.g. kebab-case).
+        let schema_name = if is_identifier(&db_field_name) {
+            db_field_name.as_str()
         } else {
-            (
-                syn::Ident::new(field_ident_normalized, field_ident_original.span()),
-                syn::Ident::new(field_ident_normalized, field_ident_original.span()),
-            )
+            unraw
+        };
+        let field_ident_normalized = if RustReservedKeyword::is_keyword(schema_name) {
+            syn::Ident::new_raw(schema_name, span)
+        } else {
+            syn::Ident::new(schema_name, span)
         };
 
-        Ok((field_ident_normalized.into(), field_name_serialized.into()))
+        Ok((field_ident_normalized.into(), db_field_name.into()))
     }
+}
 
-    fn convert_case(ident: impl Into<String>, casing: &StructLevelCasing) -> IdentCased {
-        let ident: String = ident.into();
-        let ident = match casing.deref() {
-            CaseString::None => ident,
-            CaseString::Camel => ident.to_case(Case::Camel),
-            CaseString::Snake => ident.to_case(Case::Snake),
-            CaseString::Pascal => ident.to_case(Case::Pascal),
-            CaseString::Lower => ident.to_case(Case::Lower),
-            CaseString::Upper => ident.to_case(Case::Upper),
-            CaseString::ScreamingSnake => ident.to_case(Case::UpperSnake),
-            CaseString::Kebab => ident.to_case(Case::Kebab),
-            CaseString::ScreamingKebab => ident.to_case(Case::UpperSnake),
-        };
-        format_ident!("{ident}").into()
-    }
+fn is_identifier(name: &str) -> bool {
+    let mut chars = name.chars();
+    name != "_"
+        && chars.next().is_some_and(|c| c == '_' || c.is_alphabetic())
+        && chars.all(|c| c == '_' || c.is_alphanumeric())
 }

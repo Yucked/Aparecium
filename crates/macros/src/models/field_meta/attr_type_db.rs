@@ -1,193 +1,101 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2024 Oyelowo Oyedayo
- */
-
-use std::{
-    fmt::{Display, Formatter},
-    ops::Deref,
-    str::FromStr,
-};
-
-use crate::field_type::FieldType;
-use crate::helpers::get_crate_name;
 use darling::FromMeta;
 use proc_macro2::TokenStream;
-use quote::{ToTokens, quote};
+use quote::quote;
+use surrealdb_types::Kind;
 use syn::spanned::Spanned;
 
-use crate::models::*;
+use crate::{helpers::get_crate_name, kind::kind_tokens, models::*, surql};
 
 create_tokenstream_wrapper!(=> FieldTypeDbToken);
 
-impl Default for FieldTypeDbToken {
-    fn default() -> Self {
-        let crate_name = get_crate_name(false);
-        quote!(#crate_name::FieldType::Any).into()
+impl From<&Kind> for FieldTypeDbToken {
+    fn from(kind: &Kind) -> Self {
+        Self(kind_tokens(kind, &get_crate_name(false)))
     }
 }
 
+/// A field's database type, the tokens building it, and the checks that the field's Rust type
+/// can hold it.
 #[derive(Debug, Clone)]
 pub struct DbFieldTypeAstMeta {
-    pub field_type_db_original: FieldType,
+    /// The type as the macro knows it. Record tables only known at runtime (another model's
+    /// `table()`) are absent here and present in the tokens.
+    pub field_type_db_original: Kind,
     pub field_type_db_token: FieldTypeDbToken,
     pub static_assertion_token: StaticAssertionToken,
 }
 
 impl DbFieldTypeAstMeta {
-    pub fn array_item_type_path(&self) -> Option<&FieldTypeDbToken> {
-        if self.field_type_db_original.is_array() {
-            return Some(&self.field_type_db_token);
-        }
-        None
-    }
-
-    pub fn set_item_type_path(&self) -> Option<&FieldTypeDbToken> {
-        if self.field_type_db_original.is_set() {
-            return Some(&self.field_type_db_token);
-        }
-        None
-    }
-}
-
-impl Default for DbFieldTypeAstMeta {
-    fn default() -> Self {
-        let crate_name = get_crate_name(false);
+    /// A type whose tokens are exactly `kind`.
+    pub fn new(kind: Kind, static_assertion_token: TokenStream) -> Self {
         Self {
-            field_type_db_original: Default::default(),
-            field_type_db_token: quote!(#crate_name::FieldType::Any).into(),
-            static_assertion_token: Default::default(),
+            field_type_db_token: (&kind).into(),
+            field_type_db_original: kind,
+            static_assertion_token: static_assertion_token.into(),
         }
     }
 }
 
-#[derive(Debug, Clone, Default)]
-pub struct FieldTypeDb(pub FieldType);
-
-impl From<FieldType> for FieldTypeDb {
-    fn from(field_type: FieldType) -> Self {
-        Self(field_type)
-    }
-}
-
-impl ToTokens for FieldTypeDb {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.0.to_tokens(tokens);
-    }
-}
+/// A field type written in `#[orm(ty = "…")]`, parsed with SurrealDB's own parser.
+#[derive(Debug, Clone)]
+pub struct FieldTypeDb(pub Kind);
 
 impl FieldTypeDb {
-    pub fn into_inner(self) -> FieldType {
+    pub fn inner(&self) -> &Kind {
+        &self.0
+    }
+
+    pub fn into_inner(self) -> Kind {
         self.0
     }
 
-    pub fn inner(&self) -> &FieldType {
-        &self.0
-    }
-
-    pub fn array_item_type(&self) -> Option<Self> {
-        match self.0 {
-            FieldType::Array(ref ft, _) => Some(Self(ft.deref().clone())),
-            _ => None,
-        }
-    }
-
-    pub fn set_item_type(&self) -> Option<Self> {
-        match self.0 {
-            FieldType::Set(ref ft, _) => Some(Self(ft.deref().clone())),
-            _ => None,
-        }
-    }
-
-    pub fn as_db_sql_value_tokenstream(&self) -> SqlValueTokenStream {
-        self.0.to_token_stream().into()
-    }
-
+    /// Asserts that `field_type` can hold a value of this type.
     pub fn generate_static_assertion(&self, field_type: &CustomType) -> TokenStream {
         let crate_name = get_crate_name(false);
-
-        match self.0 {
-            FieldType::Any => quote!(#crate_name::validators::assert_type_is_any::<#field_type>();),
-            FieldType::Null => {
-                quote!(#crate_name::validators::assert_type_is_null::<#field_type>();)
+        let assertion = match &self.0 {
+            Kind::Any => quote!(assert_type_is_any),
+            Kind::Null => quote!(assert_type_is_null),
+            Kind::Uuid => quote!(assert_type_is_uuid),
+            Kind::Bytes => quote!(assert_type_is_bytes),
+            Kind::String => quote!(assert_type_is_string),
+            Kind::Int => quote!(assert_type_is_int),
+            Kind::Float => quote!(assert_type_is_float),
+            Kind::Bool => quote!(assert_type_is_bool),
+            Kind::Array(..) => quote!(assert_type_is_array),
+            Kind::Set(..) => quote!(assert_type_is_set),
+            Kind::Datetime => quote!(assert_type_is_datetime),
+            Kind::Decimal => quote!(assert_type_is_decimal),
+            Kind::Duration => quote!(assert_type_is_duration),
+            Kind::Number => quote!(assert_type_is_number),
+            Kind::Record(_) => quote!(assert_type_is_record_id),
+            Kind::Geometry(_) => quote!(assert_type_is_geometry),
+            // `option<T>` is `none | T`.
+            Kind::Either(variants) if variants.contains(&Kind::None) => {
+                quote!(assert_type_is_option)
             }
-            FieldType::Uuid => {
-                quote!(#crate_name::validators::assert_type_is_uuid::<#field_type>();)
-            }
-            FieldType::Bytes => {
-                quote!(#crate_name::validators::assert_type_is_bytes::<#field_type>();)
-            }
-            FieldType::Union(_) => quote!(),
-            FieldType::Option(_) => {
-                quote!(#crate_name::validators::assert_type_is_option::<#field_type>();)
-            }
-            FieldType::String => {
-                quote!(#crate_name::validators::assert_type_is_string::<#field_type>();)
-            }
-            FieldType::Int => quote!(#crate_name::validators::assert_type_is_int::<#field_type>();),
-            FieldType::Float => {
-                quote!(#crate_name::validators::assert_type_is_float::<#field_type>();)
-            }
-            FieldType::Bool => {
-                quote!(#crate_name::validators::assert_type_is_bool::<#field_type>();)
-            }
-            FieldType::Array(_, _) => {
-                quote!(#crate_name::validators::assert_type_is_array::<#field_type>();)
-            }
-            FieldType::Set(_, _) => {
-                quote!(#crate_name::validators::assert_type_is_set::<#field_type>();)
-            }
-            FieldType::Datetime => {
-                quote!(#crate_name::validators::assert_type_is_datetime::<#field_type>();)
-            }
-            FieldType::Decimal => {
-                quote!(#crate_name::validators::assert_type_is_decimal::<#field_type>();)
-            }
-            FieldType::Duration => {
-                quote!(#crate_name::validators::assert_type_is_duration::<#field_type>();)
-            }
-            FieldType::Number => {
-                quote!(#crate_name::validators::assert_type_is_number::<#field_type>();)
-            }
-            FieldType::Object => {
-                quote!(#crate_name::validators::assert_type_is_object::<#field_type>();)
-            }
-            FieldType::Record(_) => {
-                quote!(#crate_name::validators::assert_type_is_thing::<#field_type>();)
-            }
-            FieldType::Geometry(_) => {
-                quote!(#crate_name::validators::assert_type_is_geometry::<#field_type>();)
-            }
-        }
-    }
-}
-
-impl Display for FieldTypeDb {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl Deref for FieldTypeDb {
-    type Target = FieldType;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+            // Objects, unions, literals and the remaining kinds have no single Rust shape to
+            // check; the value conversion still has to succeed at runtime.
+            Kind::Object
+            | Kind::Either(_)
+            | Kind::None
+            | Kind::Regex
+            | Kind::Table(_)
+            | Kind::Function(..)
+            | Kind::Range
+            | Kind::Literal(_)
+            | Kind::File(_) => return quote!(),
+        };
+        quote!(#crate_name::validators::#assertion::<#field_type>();)
     }
 }
 
 impl FromMeta for FieldTypeDb {
     fn from_expr(expr: &syn::Expr) -> darling::Result<Self> {
         let field_type = match expr {
-            syn::Expr::Lit(expr_lit) => {
-                if let syn::Lit::Str(lit_str) = &expr_lit.lit {
-                    lit_str.value()
-                } else {
-                    return Err(darling::Error::custom("Expected a string literal for ty")
-                        .with_span(&expr.span()));
-                }
-            }
+            syn::Expr::Lit(syn::ExprLit {
+                lit: syn::Lit::Str(lit_str),
+                ..
+            }) => lit_str.value(),
             syn::Expr::Path(expr_path) => expr_path
                 .path
                 .get_ident()
@@ -195,19 +103,13 @@ impl FromMeta for FieldTypeDb {
                 .ok_or_else(|| {
                     darling::Error::custom("Expected an identifier for ty").with_span(&expr.span())
                 })?,
-            syn::Expr::Verbatim(expr_verbatim) => expr_verbatim.to_string(),
             _ => {
                 return Err(darling::Error::custom("Expected a string literal for ty")
                     .with_span(&expr.span()));
             }
         };
-        let field_type = FieldType::from_str(&field_type).map_err(|_| {
-            darling::Error::custom(format!(
-                "Invalid db_field_type: {field_type}. Must be one of these: {}",
-                FieldType::variants().join(", ")
-            ))
-            .with_span(&expr.span())
-        })?;
-        Ok(Self(field_type))
+        surql::parse_kind(&field_type, expr.span())
+            .map(Self)
+            .map_err(darling::Error::from)
     }
 }

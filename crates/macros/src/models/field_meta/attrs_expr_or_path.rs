@@ -1,14 +1,9 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2024 Oyelowo Oyedayo
- */
 
-use crate::field_type::FieldType;
 use crate::helpers::get_crate_name;
 use darling::FromMeta;
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
+use surrealdb_types::Kind;
 use syn::{Expr, Lit, Meta, MetaNameValue};
 
 use crate::models::*;
@@ -166,69 +161,40 @@ impl_from_expr_or_path!(AttributeAs);
 impl_from_expr_or_path!(AttributeDefine);
 
 impl AttributeValue {
-    pub fn get_default_value_static_assertion(
-        &self,
-        db_field_type: FieldType,
-    ) -> StaticAssertionToken {
-        let crate_name = &get_crate_name(false);
-        let value_expr = &self;
-
-        let convertible_values_to_db_type = match db_field_type {
-            FieldType::Bytes => quote!(
-                #crate_name::validators::assert_value_is_bytes(#value_expr)
-            ),
-            FieldType::Null => quote!(
-                #crate_name::validators::assert_value_is_null(#value_expr)
-            ),
-            FieldType::Union(_) => quote!(),
-            FieldType::Option(_) => quote!(
-                #crate_name::validators::assert_value_is_option(#value_expr)
-            ),
-            FieldType::Uuid => quote!(
-                #crate_name::validators::assert_value_is_uuid(#value_expr)
-            ),
-            FieldType::Duration => quote!(
-                #crate_name::validators::assert_value_is_duration(#value_expr)
-            ),
-            FieldType::String => {
-                quote!(#crate_name::validators::assert_value_is_string(#value_expr))
+    /// Asserts that the `value` expression can hold a value of the field's database type.
+    pub fn get_default_value_static_assertion(&self, db_field_type: &Kind) -> StaticAssertionToken {
+        let crate_name = get_crate_name(false);
+        let assertion = match db_field_type {
+            Kind::Bytes => quote!(assert_value_is_bytes),
+            Kind::Null => quote!(assert_value_is_null),
+            Kind::Uuid => quote!(assert_value_is_uuid),
+            Kind::Duration => quote!(assert_value_is_duration),
+            Kind::String => quote!(assert_value_is_string),
+            Kind::Int => quote!(assert_value_is_int),
+            Kind::Float => quote!(assert_value_is_float),
+            Kind::Bool => quote!(assert_value_is_bool),
+            Kind::Array(..) => quote!(assert_value_is_array),
+            Kind::Set(..) => quote!(assert_value_is_set),
+            Kind::Datetime => quote!(assert_value_is_datetime),
+            Kind::Decimal | Kind::Number => quote!(assert_value_is_number),
+            Kind::Record(_) => quote!(assert_value_is_record_id),
+            Kind::Geometry(_) => quote!(assert_value_is_geometry),
+            Kind::Any => quote!(assert_value_is_any),
+            // `option<T>` is `none | T`.
+            Kind::Either(variants) if variants.contains(&Kind::None) => {
+                quote!(assert_value_is_option)
             }
-            FieldType::Int => quote!(
-                    #crate_name::validators::assert_value_is_int(#value_expr)
-            ),
-            FieldType::Float => quote!(
-                    #crate_name::validators::assert_value_is_float(#value_expr)
-            ),
-            FieldType::Bool => quote!(
-                        #crate_name::validators::assert_value_is_bool(#value_expr)
-            ),
-            FieldType::Array(_, _) => quote!(
-                 #crate_name::validators::assert_value_is_array(#value_expr)
-            ),
-            FieldType::Set(_, _) => {
-                quote!(#crate_name::validators::assert_value_is_set(#value_expr))
-            }
-            FieldType::Datetime => quote!(
-                    #crate_name::validators::assert_value_is_datetime(#value_expr)
-            ),
-            FieldType::Decimal => quote!(
-                #crate_name::validators::assert_value_is_number(#value_expr)
-            ),
-            FieldType::Number => quote!(
-                #crate_name::validators::assert_value_is_number(#value_expr)
-            ),
-            FieldType::Object => quote!(),
-            FieldType::Record(_) => quote!(
-                #crate_name::validators::assert_value_is_thing(#value_expr)
-            ),
-            FieldType::Geometry(_) => quote!(
-                #crate_name::validators::assert_value_is_geometry(#value_expr)
-            ),
-            FieldType::Any => quote!(
-                #crate_name::validators::assert_value_is_any(#value_expr)
-            ),
+            Kind::Object
+            | Kind::Either(_)
+            | Kind::None
+            | Kind::Regex
+            | Kind::Table(_)
+            | Kind::Function(..)
+            | Kind::Range
+            | Kind::Literal(_)
+            | Kind::File(_) => return StaticAssertionToken::default(),
         };
 
-        quote!(let _ = #convertible_values_to_db_type;).into()
+        quote!(let _ = #crate_name::validators::#assertion(#self);).into()
     }
 }

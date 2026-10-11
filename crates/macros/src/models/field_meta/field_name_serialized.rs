@@ -1,21 +1,14 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2024 Oyelowo Oyedayo
- */
 
 use std::fmt::{Display, Formatter};
 
 use proc_macro2::TokenStream;
-use quote::{ToTokens, format_ident, quote};
-use syn::Ident;
+use quote::{ToTokens, quote};
 
-use crate::models::{DataType, create_ident_wrapper};
+use crate::models::DataType;
 
+/// A field's name as stored in the database.
 #[derive(Debug, PartialEq, Eq)]
 pub struct DbFieldName(String);
-
-create_ident_wrapper!(DbFieldNameAsIdent);
 
 impl Display for DbFieldName {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -31,10 +24,6 @@ impl ToTokens for DbFieldName {
 }
 
 impl DbFieldName {
-    pub fn as_ident(&self) -> DbFieldNameAsIdent {
-        format_ident!("{self}").into()
-    }
-
     pub fn is_id(&self) -> bool {
         self.0 == "id"
     }
@@ -60,8 +49,8 @@ impl DbFieldName {
     }
 }
 
-impl From<Ident> for DbFieldName {
-    fn from(s: Ident) -> Self {
-        Self(s.to_string())
+impl From<String> for DbFieldName {
+    fn from(name: String) -> Self {
+        Self(name)
     }
 }

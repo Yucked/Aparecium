@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 use proc_macro2::{Ident, Span, TokenStream, TokenTree};
 use quote::ToTokens;
@@ -221,12 +216,22 @@ pub fn query(args: TokenStream) -> TokenStream {
         }
     }
 
+    // Binding names are parameter names chosen by the caller: an invalid one, including one using
+    // the prefix reserved for bound values, fails compilation at the name.
+    let crate_name = crate::helpers::get_crate_name(false);
+    let mut name_checks = TokenStream::new();
     for Binding { key, value } in bindings {
-        let key = key.to_string();
+        let name = key.to_string();
+        name_checks.extend(quote::quote_spanned! {key.span()=>
+            const _: () = #crate_name::Param::assert_valid(#name);
+        });
         output.extend(quote::quote! {
-            .bind((#key, #value))
+            .bind((#name, #value))
         });
     }
 
-    output
+    quote::quote!({
+        #name_checks
+        #output
+    })
 }
