@@ -1,8 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
 /*
  * Syntax from specs:https://surrealdb.com/docs/surrealql/statements/select
@@ -24,23 +19,20 @@
     [ TIMEOUT @duration ]
     [ PARALLEL ]
 ; */
-use std::{
-    fmt::{Display, Formatter, Result as FmtResult},
-    marker::PhantomData,
-    ops::Deref,
-};
+use std::marker::PhantomData;
 
-use serde::{Serialize, de::DeserializeOwned};
-use surrealdb::{Surreal, engine::local::Db, sql};
+use surrealdb::{
+    Connection, Surreal,
+    types::{self, SurrealValue, Table},
+};
 
 use crate::{
-    Aliasable, All, Binding, BindingsList, Buildable, Conditional, DurationLike, Erroneous,
-    ErrorList, Field, Filter, Function, IndexName, Model, NumberLike, Parametric, Queryable,
-    ReturnableSelect, ReturnableStandard, SurrealId, SurrealOrmResult, SurrealSimpleId,
-    SurrealUlid, SurrealUuid, Table, ToRaw, ValueLike,
+    Aliasable, All, Conditional, DurationLike, Field, Filter, Function, IndexName, Model,
+    NumberLike, Projections, RecordId, RecordRange, Render, Result, ReturnType, ReturnableSelect,
+    ReturnableStandard, Sql, ValueLike,
 };
 
-use super::Subquery;
+use super::{Statement, Subquery, impl_statement};
 
 /// Creates a new `Order` instance with the specified database field.
 ///
@@ -69,51 +61,19 @@ use super::Subquery;
 /// order(name).collate().desc();
 /// ```
 pub fn order(field: impl Into<Field>) -> Order {
-    let field: Field = field.into();
     Order {
-        field: field.clone(),
+        field: field.into(),
         direction: None,
         option: None,
     }
 }
 
 /// Represents an ordering field, direction, and options for a database query.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Order {
     field: Field,
     direction: Option<OrderDirection>,
     option: Option<OrderOption>,
-}
-
-impl Parametric for Order {
-    fn get_bindings(&self) -> BindingsList {
-        self.field.get_bindings()
-    }
-}
-
-impl Parametric for &[Order] {
-    fn get_bindings(&self) -> BindingsList {
-        self.iter()
-            .flat_map(|o| o.get_bindings())
-            .collect::<Vec<_>>()
-    }
-}
-
-impl Parametric for Vec<Order> {
-    fn get_bindings(&self) -> BindingsList {
-        self.iter()
-            .flat_map(|o| o.get_bindings())
-            .collect::<Vec<_>>()
-    }
-}
-
-impl Parametric for Orderables {
-    fn get_bindings(&self) -> BindingsList {
-        match self {
-            Orderables::Order(o) => o.get_bindings(),
-            Orderables::OrdersList(ol) => ol.get_bindings(),
-        }
-    }
 }
 
 /// an order or list of orders
@@ -183,17 +143,22 @@ impl Order {
     }
 }
 
-impl Display for &Order {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut query = self.field.build();
-        if let Some(option) = &self.option {
-            query.push_str(&format!(" {}", option));
+impl Render for Order {
+    fn render(&self, sql: &mut Sql) {
+        sql.push(&self.field);
+        if let Some(option) = self.option {
+            sql.push_str(match option {
+                OrderOption::Rand => " RAND()",
+                OrderOption::Collate => " COLLATE",
+                OrderOption::Numeric => " NUMERIC",
+            });
         }
-
-        if let Some(direction) = &self.direction {
-            query.push_str(&format!(" {}", direction));
+        if let Some(direction) = self.direction {
+            sql.push_str(match direction {
+                OrderDirection::Asc => " ASC",
+                OrderDirection::Desc => " DESC",
+            });
         }
-        query.fmt(f)
     }
 }
 
@@ -201,365 +166,208 @@ impl Display for &Order {
 pub trait CanOrder: Into<Field> + Clone {
     /// Sets the direction of the ordering to ascending.
     fn asc(&self) -> Order {
-        let field: Field = self.clone().into();
-        Order {
-            field,
-            direction: Some(OrderDirection::Asc),
-            option: None,
-        }
+        order(self.clone()).asc()
     }
 
     /// Sets the direction of the ordering to descending.
     fn desc(&self) -> Order {
-        let field: Field = self.clone().into();
-        Order {
-            field,
-            direction: Some(OrderDirection::Desc),
-            option: None,
-        }
+        order(self.clone()).desc()
     }
 
     /// Sets the ordering option to random.
     fn rand(&self) -> Order {
-        let field: Field = self.clone().into();
-        Order {
-            field,
-            direction: None,
-            option: Some(OrderOption::Rand),
-        }
+        order(self.clone()).rand()
     }
 
     /// Sets the ordering option to collate.
     fn collate(&self) -> Order {
-        let field: Field = self.clone().into();
-        Order {
-            field,
-            direction: None,
-            option: Some(OrderOption::Collate),
-        }
+        order(self.clone()).collate()
     }
 
     /// Sets the ordering option to sort the values numerically instead of as strings.
     fn numeric(&self) -> Order {
-        let field: Field = self.clone().into();
-        Order {
-            field,
-            direction: None,
-            option: Some(OrderOption::Numeric),
-        }
+        order(self.clone()).numeric()
     }
 }
 
 impl<T> CanOrder for T where T: Into<Field> + Clone {}
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum OrderDirection {
     Asc,
     Desc,
 }
 
-impl Display for OrderDirection {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            OrderDirection::Asc => write!(f, "ASC"),
-            OrderDirection::Desc => write!(f, "DESC"),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum OrderOption {
     Rand,
     Collate,
     Numeric,
 }
-impl Display for OrderOption {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            OrderOption::Rand => write!(f, "RAND()"),
-            OrderOption::Collate => write!(f, "COLLATE"),
-            OrderOption::Numeric => write!(f, "NUMERIC"),
-        }
+
+/// What a `SELECT` reads from: tables, record ids, record ranges, subqueries or functions.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TargettablesForSelect(Vec<Sql>);
+
+impl TargettablesForSelect {
+    fn one(node: impl Render) -> Self {
+        Self(vec![node.to_sql()])
+    }
+
+    fn values<V: SurrealValue>(values: impl IntoIterator<Item = V>) -> Self {
+        Self(
+            values
+                .into_iter()
+                .map(|value| ValueLike::value(value).to_sql())
+                .collect(),
+        )
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum TargettablesForSelect {
-    Table(sql::Table),
-    Tables(Vec<sql::Table>),
-    SurrealId(sql::Thing),
-    SurrealIds(Vec<sql::Thing>),
-    // Should already be bound
-    Subquery(Subquery),
-    Function(Function),
-    RecordRange(ValueLike),
-}
-
-impl From<Vec<sql::Thing>> for TargettablesForSelect {
-    fn from(value: Vec<sql::Thing>) -> Self {
-        Self::SurrealIds(value.into_iter().collect::<Vec<_>>())
-    }
-}
-
-impl From<&sql::Thing> for TargettablesForSelect {
-    fn from(value: &sql::Thing) -> Self {
-        Self::SurrealId(value.to_owned())
-    }
-}
-
-impl From<sql::Thing> for TargettablesForSelect {
-    fn from(value: sql::Thing) -> Self {
-        Self::SurrealId(value)
-    }
-}
-impl From<Vec<sql::Table>> for TargettablesForSelect {
-    fn from(value: Vec<sql::Table>) -> Self {
-        Self::Tables(value.into_iter().collect::<Vec<_>>())
-    }
-}
-
-// from surrealid to TargettablesForSelect
-impl<T, Id> From<&SurrealId<T, Id>> for TargettablesForSelect
-where
-    T: Model,
-    Id: Into<sql::Id>,
-{
-    fn from(value: &SurrealId<T, Id>) -> Self {
-        Self::SurrealId(value.to_thing())
-    }
-}
-
-impl<const N: usize, T, Id> From<&[SurrealId<T, Id>; N]> for TargettablesForSelect
-where
-    T: Model,
-    Id: Into<sql::Id>,
-{
-    fn from(value: &[SurrealId<T, Id>; N]) -> Self {
-        Self::SurrealIds(value.iter().map(|v| v.into()).collect())
-    }
-}
-
-impl<T, Id> From<Vec<&SurrealId<T, Id>>> for TargettablesForSelect
-where
-    T: Model,
-    Id: Into<sql::Id>,
-{
-    fn from(value: Vec<&SurrealId<T, Id>>) -> Self {
-        Self::SurrealIds(value.into_iter().map(|t| t.to_thing()).collect::<Vec<_>>())
-    }
-}
-
-impl<const N: usize, T, Id> From<&[&SurrealId<T, Id>; N]> for TargettablesForSelect
-where
-    T: Model,
-    Id: Into<sql::Id>,
-{
-    fn from(value: &[&SurrealId<T, Id>; N]) -> Self {
-        Self::SurrealIds(value.iter().map(|&t| t.to_thing()).collect::<Vec<_>>())
-    }
-}
-
-impl<const N: usize> From<&[sql::Thing; N]> for TargettablesForSelect {
-    fn from(value: &[sql::Thing; N]) -> Self {
-        Self::SurrealIds(value.iter().map(|t| t.to_owned()).collect::<Vec<_>>())
-    }
-}
-
-impl<T, Id> From<Vec<SurrealId<T, Id>>> for TargettablesForSelect
-where
-    T: Model,
-    Id: Into<sql::Id>,
-{
-    fn from(value: Vec<SurrealId<T, Id>>) -> Self {
-        Self::SurrealIds(value.into_iter().map(|t| t.into()).collect::<Vec<_>>())
-    }
-}
-
-impl<T, Id> From<SurrealId<T, Id>> for TargettablesForSelect
-where
-    T: Model,
-    Id: Into<sql::Id>,
-{
-    fn from(value: SurrealId<T, Id>) -> Self {
-        Self::SurrealId(value.to_thing())
-    }
-}
-
-impl<T: Model> From<SurrealSimpleId<T>> for TargettablesForSelect {
-    fn from(value: SurrealSimpleId<T>) -> Self {
-        Self::SurrealId(value.to_thing())
-    }
-}
-
-impl<T: Model> From<&SurrealSimpleId<T>> for TargettablesForSelect {
-    fn from(value: &SurrealSimpleId<T>) -> Self {
-        Self::SurrealId(value.to_thing())
-    }
-}
-
-impl<T: Model> From<Vec<SurrealSimpleId<T>>> for TargettablesForSelect {
-    fn from(value: Vec<SurrealSimpleId<T>>) -> Self {
-        Self::SurrealIds(value.into_iter().map(|t| t.into()).collect::<Vec<_>>())
-    }
-}
-
-impl<T: Model> From<Vec<&SurrealSimpleId<T>>> for TargettablesForSelect {
-    fn from(value: Vec<&SurrealSimpleId<T>>) -> Self {
-        Self::SurrealIds(value.iter().map(|t| t.to_thing()).collect::<Vec<_>>())
-    }
-}
-
-impl<T: Model> From<&[SurrealSimpleId<T>]> for TargettablesForSelect {
-    fn from(value: &[SurrealSimpleId<T>]) -> Self {
-        Self::SurrealIds(value.iter().map(|t| t.to_thing()).collect::<Vec<_>>())
-    }
-}
-
-impl<T: Model> From<&[&SurrealSimpleId<T>]> for TargettablesForSelect {
-    fn from(value: &[&SurrealSimpleId<T>]) -> Self {
-        Self::SurrealIds(value.iter().map(|t| t.to_thing()).collect::<Vec<_>>())
-    }
-}
-
-impl<T: Model> From<&SurrealUuid<T>> for TargettablesForSelect {
-    fn from(value: &SurrealUuid<T>) -> Self {
-        Self::SurrealId(value.to_thing())
-    }
-}
-
-impl<T: Model> From<SurrealUuid<T>> for TargettablesForSelect {
-    fn from(value: SurrealUuid<T>) -> Self {
-        Self::SurrealId(value.to_thing())
-    }
-}
-
-impl<T: Model> From<Vec<SurrealUuid<T>>> for TargettablesForSelect {
-    fn from(value: Vec<SurrealUuid<T>>) -> Self {
-        Self::SurrealIds(value.into_iter().map(|t| t.into()).collect::<Vec<_>>())
-    }
-}
-
-impl<T: Model> From<Vec<&SurrealUuid<T>>> for TargettablesForSelect {
-    fn from(value: Vec<&SurrealUuid<T>>) -> Self {
-        Self::SurrealIds(value.iter().map(|t| t.to_thing()).collect::<Vec<_>>())
-    }
-}
-
-impl<T: Model> From<&[SurrealUuid<T>]> for TargettablesForSelect {
-    fn from(value: &[SurrealUuid<T>]) -> Self {
-        Self::SurrealIds(value.iter().map(|t| t.to_thing()).collect::<Vec<_>>())
-    }
-}
-
-impl<T: Model> From<&[&SurrealUuid<T>]> for TargettablesForSelect {
-    fn from(value: &[&SurrealUuid<T>]) -> Self {
-        Self::SurrealIds(value.iter().map(|t| t.to_thing()).collect::<Vec<_>>())
-    }
-}
-
-// from surrealUlid
-impl<T: Model> From<&SurrealUlid<T>> for TargettablesForSelect {
-    fn from(value: &SurrealUlid<T>) -> Self {
-        Self::SurrealId(value.to_thing())
-    }
-}
-
-impl<T: Model> From<SurrealUlid<T>> for TargettablesForSelect {
-    fn from(value: SurrealUlid<T>) -> Self {
-        Self::SurrealId(value.to_thing())
-    }
-}
-
-impl<T: Model> From<Vec<SurrealUlid<T>>> for TargettablesForSelect {
-    fn from(value: Vec<SurrealUlid<T>>) -> Self {
-        Self::SurrealIds(value.into_iter().map(|t| t.into()).collect::<Vec<_>>())
-    }
-}
-
-impl<T: Model> From<Vec<&SurrealUlid<T>>> for TargettablesForSelect {
-    fn from(value: Vec<&SurrealUlid<T>>) -> Self {
-        Self::SurrealIds(value.iter().map(|t| t.to_thing()).collect::<Vec<_>>())
-    }
-}
-
-impl<T: Model> From<&[SurrealUlid<T>]> for TargettablesForSelect {
-    fn from(value: &[SurrealUlid<T>]) -> Self {
-        Self::SurrealIds(value.iter().map(|t| t.to_thing()).collect::<Vec<_>>())
-    }
-}
-
-impl<T: Model> From<&[&SurrealUlid<T>]> for TargettablesForSelect {
-    fn from(value: &[&SurrealUlid<T>]) -> Self {
-        Self::SurrealIds(value.iter().map(|t| t.to_thing()).collect::<Vec<_>>())
+impl From<Table> for TargettablesForSelect {
+    fn from(value: Table) -> Self {
+        Self::one(value)
     }
 }
 
 impl From<&Table> for TargettablesForSelect {
     fn from(value: &Table) -> Self {
-        Self::Table(value.into())
+        Self::one(value)
     }
 }
-impl From<Table> for TargettablesForSelect {
-    fn from(value: Table) -> Self {
-        Self::Table(value.into())
+
+impl From<Vec<Table>> for TargettablesForSelect {
+    fn from(value: Vec<Table>) -> Self {
+        Self(value.iter().map(Render::to_sql).collect())
     }
 }
 
 impl From<Vec<&Table>> for TargettablesForSelect {
     fn from(value: Vec<&Table>) -> Self {
-        Self::Tables(
-            value
-                .into_iter()
-                .map(|t| t.clone().into())
-                .collect::<Vec<_>>(),
-        )
+        Self(value.iter().map(Render::to_sql).collect())
     }
 }
 
-impl From<&sql::Table> for TargettablesForSelect {
-    fn from(value: &sql::Table) -> Self {
-        Self::Table(value.to_owned())
-    }
-}
-impl From<Vec<&sql::Table>> for TargettablesForSelect {
-    fn from(value: Vec<&sql::Table>) -> Self {
-        Self::Tables(value.into_iter().map(|t| t.to_owned()).collect::<Vec<_>>())
-    }
-}
-
-impl<const N: usize> From<&[&sql::Table; N]> for TargettablesForSelect {
-    fn from(value: &[&sql::Table; N]) -> Self {
-        Self::Tables(value.iter().map(|&t| t.to_owned()).collect::<Vec<_>>())
+impl<const N: usize> From<&[Table; N]> for TargettablesForSelect {
+    fn from(value: &[Table; N]) -> Self {
+        Self(value.iter().map(Render::to_sql).collect())
     }
 }
 
 impl<const N: usize> From<&[&Table; N]> for TargettablesForSelect {
     fn from(value: &[&Table; N]) -> Self {
-        Self::Tables(value.iter().copied().map(|v| v.into()).collect())
+        Self(value.iter().map(Render::to_sql).collect())
     }
 }
 
-impl<const N: usize> From<&[sql::Table; N]> for TargettablesForSelect {
-    fn from(value: &[sql::Table; N]) -> Self {
-        Self::Tables(value.to_vec())
+impl From<types::RecordId> for TargettablesForSelect {
+    fn from(value: types::RecordId) -> Self {
+        Self::values([value])
     }
 }
 
-impl From<sql::Table> for TargettablesForSelect {
-    fn from(value: sql::Table) -> Self {
-        Self::Table(value)
+impl From<&types::RecordId> for TargettablesForSelect {
+    fn from(value: &types::RecordId) -> Self {
+        Self::values([value.clone()])
     }
 }
+
+impl From<Vec<types::RecordId>> for TargettablesForSelect {
+    fn from(value: Vec<types::RecordId>) -> Self {
+        Self::values(value)
+    }
+}
+
+impl<const N: usize> From<&[types::RecordId; N]> for TargettablesForSelect {
+    fn from(value: &[types::RecordId; N]) -> Self {
+        Self::values(value.iter().cloned())
+    }
+}
+
+impl<T: Model> From<RecordId<T>> for TargettablesForSelect {
+    fn from(value: RecordId<T>) -> Self {
+        Self::values([value])
+    }
+}
+
+impl<T: Model> From<&RecordId<T>> for TargettablesForSelect {
+    fn from(value: &RecordId<T>) -> Self {
+        Self::values([value.clone()])
+    }
+}
+
+impl<T: Model> From<Vec<RecordId<T>>> for TargettablesForSelect {
+    fn from(value: Vec<RecordId<T>>) -> Self {
+        Self::values(value)
+    }
+}
+
+impl<T: Model> From<Vec<&RecordId<T>>> for TargettablesForSelect {
+    fn from(value: Vec<&RecordId<T>>) -> Self {
+        Self::values(value.into_iter().cloned())
+    }
+}
+
+impl<T: Model> From<&[RecordId<T>]> for TargettablesForSelect {
+    fn from(value: &[RecordId<T>]) -> Self {
+        Self::values(value.iter().cloned())
+    }
+}
+
+impl<T: Model> From<&[&RecordId<T>]> for TargettablesForSelect {
+    fn from(value: &[&RecordId<T>]) -> Self {
+        Self::values(value.iter().map(|&id| id.clone()))
+    }
+}
+
+impl<const N: usize, T: Model> From<&[RecordId<T>; N]> for TargettablesForSelect {
+    fn from(value: &[RecordId<T>; N]) -> Self {
+        Self::values(value.iter().cloned())
+    }
+}
+
+impl<const N: usize, T: Model> From<&[&RecordId<T>; N]> for TargettablesForSelect {
+    fn from(value: &[&RecordId<T>; N]) -> Self {
+        Self::values(value.iter().map(|&id| id.clone()))
+    }
+}
+
+impl<T: Model> From<RecordRange<T>> for TargettablesForSelect {
+    fn from(value: RecordRange<T>) -> Self {
+        Self::one(value)
+    }
+}
+
+/// Every `std::ops` range of record ids selects that range of records.
+macro_rules! targets_from_id_ranges {
+    ($($range:ident),*) => {
+        $(
+            impl<T: Model> From<std::ops::$range<RecordId<T>>> for TargettablesForSelect {
+                fn from(value: std::ops::$range<RecordId<T>>) -> Self {
+                    Self::one(RecordRange::from(value))
+                }
+            }
+
+            impl<T: Model> From<std::ops::$range<&RecordId<T>>> for TargettablesForSelect {
+                fn from(value: std::ops::$range<&RecordId<T>>) -> Self {
+                    Self::one(RecordRange::from(value))
+                }
+            }
+        )*
+    };
+}
+
+targets_from_id_ranges!(Range, RangeInclusive, RangeFrom, RangeTo, RangeToInclusive);
 
 impl<T: Into<Subquery>> From<T> for TargettablesForSelect {
     fn from(value: T) -> Self {
-        Self::Subquery(value.into())
+        Self::one(value.into())
     }
 }
 
 impl From<Function> for TargettablesForSelect {
     fn from(value: Function) -> Self {
-        Self::Function(value.clone())
+        Self::one(value)
     }
 }
 
@@ -572,9 +380,18 @@ pub enum Splittables {
     Fields(Vec<Field>),
 }
 
+impl From<Splittables> for Vec<Field> {
+    fn from(value: Splittables) -> Self {
+        match value {
+            Splittables::Field(field) => vec![field],
+            Splittables::Fields(fields) => fields,
+        }
+    }
+}
+
 impl<const N: usize> From<[Field; N]> for Splittables {
     fn from(value: [Field; N]) -> Self {
-        Self::Fields(value.map(Into::into).to_vec())
+        Self::Fields(value.into())
     }
 }
 
@@ -604,18 +421,13 @@ impl From<Vec<Field>> for Splittables {
 
 impl From<Vec<&Field>> for Splittables {
     fn from(value: Vec<&Field>) -> Self {
-        Self::Fields(value.into_iter().map(Into::into).collect::<Vec<_>>())
+        Self::Fields(value.into_iter().map(Into::into).collect())
     }
 }
 
 impl From<Vec<ValueLike>> for Splittables {
     fn from(value: Vec<ValueLike>) -> Self {
-        Self::Fields(
-            value
-                .into_iter()
-                .map(|v| Field::new(v.build()).with_bindings(v.get_bindings()))
-                .collect::<Vec<_>>(),
-        )
+        Self::Fields(value.into_iter().map(Field::from_expr).collect())
     }
 }
 
@@ -626,238 +438,125 @@ pub(crate) type IndexNames = Groupables;
 
 impl<T: Into<Field>> From<T> for Splittables {
     fn from(value: T) -> Self {
-        let value: Field = value.into();
-        Self::Field(value)
+        Self::Field(value.into())
     }
 }
+
 /// Items that can be selected
-pub struct Selectables(ValueLike);
+pub struct Selectables(Sql);
 
 impl<T: Into<Field>> From<T> for Selectables {
     fn from(value: T) -> Self {
-        let value: Field = value.into();
-        Self(ValueLike {
-            string: value.build(),
-            bindings: value.get_bindings(),
-            errors: value.get_errors(),
-        })
+        Self(value.into().to_sql())
     }
 }
 
 impl From<Vec<ValueLike>> for Selectables {
     fn from(value: Vec<ValueLike>) -> Self {
-        Self(ValueLike {
-            string: value.build(),
-            bindings: value.get_bindings(),
-            errors: value.get_errors(),
-        })
+        Self(value.to_sql())
     }
 }
 
 impl From<&All> for Selectables {
-    fn from(_value: &All) -> Self {
-        Self(ValueLike {
-            string: "*".into(),
-            bindings: vec![],
-            errors: vec![],
-        })
+    fn from(value: &All) -> Self {
+        Self(value.to_sql())
     }
 }
 
 impl From<All> for Selectables {
-    fn from(_value: All) -> Self {
-        Self(ValueLike {
-            string: "*".into(),
-            bindings: vec![],
-            errors: vec![],
-        })
+    fn from(value: All) -> Self {
+        Self(value.to_sql())
     }
 }
 
 impl<const N: usize> From<&[Field; N]> for Selectables {
     fn from(value: &[Field; N]) -> Self {
-        Self(ValueLike {
-            string: value.build(),
-            bindings: value.get_bindings(),
-            errors: value.get_errors(),
-        })
+        Self(value.to_sql())
     }
 }
 
 impl<const N: usize> From<&[&Field; N]> for Selectables {
     fn from(value: &[&Field; N]) -> Self {
-        Self(ValueLike {
-            string: value.build(),
-            bindings: value.get_bindings(),
-            errors: value.get_errors(),
-        })
+        Self(value.to_sql())
     }
 }
 
 impl From<Vec<&Field>> for Selectables {
     fn from(value: Vec<&Field>) -> Self {
-        Self(ValueLike {
-            string: value.build(),
-            bindings: value.get_bindings(),
-            errors: value.get_errors(),
-        })
+        Self(value.to_sql())
     }
 }
 
 impl From<Vec<Field>> for Selectables {
     fn from(value: Vec<Field>) -> Self {
-        Self(ValueLike {
-            string: value.build(),
-            bindings: value.get_bindings(),
-            errors: value.get_errors(),
-        })
+        Self(value.to_sql())
     }
 }
 
-// impl From<Field> for Selectables {
-//     fn from(value: Field) -> Self {
-//         Self(ValueLike {
-//             string: value.build(),
-//             bindings: value.get_bindings(),
-//         })
-//     }
-// }
-//
-// impl From<&Field> for Selectables {
-//     fn from(value: &Field) -> Self {
-//         Self(ValueLike {
-//             string: value.build(),
-//             bindings: value.get_bindings(),
-//         })
-//     }
-// }
-
 impl From<Function> for Selectables {
     fn from(value: Function) -> Self {
-        Self(ValueLike {
-            string: value.build(),
-            bindings: value.get_bindings(),
-            errors: value.get_errors(),
-        })
+        Self(value.to_sql())
     }
 }
 
 impl From<&Function> for Selectables {
     fn from(value: &Function) -> Self {
-        Self(ValueLike {
-            string: value.build(),
-            bindings: value.get_bindings(),
-            errors: value.get_errors(),
-        })
+        Self(value.to_sql())
     }
 }
 
-impl Deref for Selectables {
-    type Target = ValueLike;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum SelectionType {
     Select,
     SelectValue,
     SelectDiff,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 enum WithIndexType {
     NoIndex,
     Indexes(Vec<IndexName>),
 }
 
-impl Parametric for WithIndexType {
-    fn get_bindings(&self) -> BindingsList {
-        match self {
-            WithIndexType::NoIndex => vec![],
-            WithIndexType::Indexes(indexes) => indexes
-                .iter()
-                .flat_map(|i| i.get_bindings())
-                .collect::<Vec<_>>(),
-        }
-    }
-}
-
-impl Buildable for WithIndexType {
-    fn build(&self) -> String {
-        match self {
-            WithIndexType::NoIndex => "WITH NO INDEX".into(),
-            WithIndexType::Indexes(indexes) => format!(
-                "WITH INDEX {}",
-                indexes
-                    .iter()
-                    .map(|i| i.build())
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum ExplainMode {
     Simple,
     Full,
 }
 
 /// Select statement initializer
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SelectStatementInit {
     selection_type: SelectionType,
-    projections: String,
-    targets: Vec<String>,
+    projections: Sql,
+    targets: Vec<Sql>,
     only: bool,
-    where_: Option<String>,
-    split: Vec<String>,
-    group_by: Vec<String>,
+    where_: Option<Filter>,
+    split: Vec<Field>,
+    group_by: Vec<Field>,
     group_all: bool,
     order_by: Vec<Order>,
-    limit: Option<String>,
-    start: Option<String>,
-    fetch: Vec<String>,
-    omitted_fields: Vec<String>,
+    limit: Option<NumberLike>,
+    start: Option<NumberLike>,
+    fetch: Vec<Field>,
+    omitted_fields: Vec<Field>,
     with_index_type: Option<WithIndexType>,
-    timeout: Option<String>,
+    timeout: Option<DurationLike>,
     parallel: bool,
     explain_mode: Option<ExplainMode>,
-    bindings: BindingsList,
-    errors: ErrorList,
 }
 
 impl Aliasable for SelectStatement {
-    fn build_aliasable(&self) -> String {
-        format!("({})", self.build().trim_end_matches(';'))
+    fn render_aliasable(&self, sql: &mut Sql) {
+        sql.push_str("(");
+        self.render_body(sql);
+        sql.push_str(")");
     }
 }
-
-impl Queryable for SelectStatement {}
 
 impl ReturnableSelect for SelectStatement {}
 
-impl Conditional for SelectStatement {
-    fn get_condition_query_string(&self) -> String {
-        format!("{}", self)
-    }
-}
-
-impl Erroneous for SelectStatement {
-    fn get_errors(&self) -> Vec<String> {
-        self.0.errors.to_vec()
-    }
-}
-
-impl Parametric for SelectStatement {
-    fn get_bindings(&self) -> BindingsList {
-        self.0.bindings.to_vec()
-    }
-}
+impl Conditional for SelectStatement {}
 
 /// Creates a SELECT statement.
 ///
@@ -867,13 +566,13 @@ impl Parametric for SelectStatement {
 ///
 /// Examples
 /// ```rust
-/// use aparecium::{*, statements::{order, select}, functions::{math}};
+/// use aparecium::{*, statements::{order, select}, functions::{math}, types::RecordId};
 /// # let name = Field::new("name");
 /// # let age = Field::new("age");
 /// # let country = Field::new("country");
 /// # let city = Field::new("city");
-/// # let ref fake_id = TestUser::create_id("oyelowo");
-/// # let fake_id2 = TestUser::create_id("oyedayo");
+/// # let ref fake_id = RecordId::new("user", "oyelowo");
+/// # let fake_id2 = RecordId::new("user", "oyedayo");
 ///
 ///  select(All)
 ///     .from(fake_id)
@@ -885,7 +584,7 @@ impl Parametric for SelectStatement {
 ///     .limit(153)
 ///     .start(10)
 ///     .parallel();
-///  
+///
 ///  // Using cond! macro
 ///  select(All)
 ///     .from(fake_id)
@@ -903,7 +602,7 @@ impl Parametric for SelectStatement {
 ///     .where_(
 ///         cond!((city.is("Prince Edward Island")) AND (city IS "NewFoundland") OR (city ~ "Toronto"))
 ///     );
-///     
+///
 ///  select(All)
 ///     .from(fake_id2)
 ///     .where_(country.is("INDONESIA"))
@@ -919,7 +618,7 @@ impl Parametric for SelectStatement {
 ///  select(arr![count!().__as__(total), math::sum!(age), &gender, &country])
 ///     .from(user)
 ///     .group_by(&[gender, country]);
-///  
+///
 ///  // Select reference of reference
 ///  # let user = Table::new("user");
 ///  # let country = Field::new("country");
@@ -929,7 +628,7 @@ impl Parametric for SelectStatement {
 ///  select(&[&gender, &country, &city])
 ///     .from(user)
 ///     .group_by(&[gender, country, city]);
-///  
+///
 ///  // Select reference of owned types
 ///  # let user = Table::new("user");
 ///  # let country = Field::new("country");
@@ -937,7 +636,7 @@ impl Parametric for SelectStatement {
 ///  # let city = Field::new("city");
 ///  select(&[gender, country, city])
 ///     .from(user);
-///     
+///
 ///  // Select vector of homogenous fields
 ///  # let user = Table::new("user");
 ///  # let country = Field::new("country");
@@ -950,7 +649,7 @@ pub fn select(selectables: impl Into<Selectables>) -> SelectStatementInit {
 
     SelectStatementInit {
         selection_type: SelectionType::Select,
-        projections: selectables.build(),
+        projections: selectables.0,
         targets: vec![],
         only: false,
         where_: None,
@@ -966,8 +665,6 @@ pub fn select(selectables: impl Into<Selectables>) -> SelectStatementInit {
         omitted_fields: vec![],
         timeout: None,
         parallel: false,
-        bindings: selectables.get_bindings(),
-        errors: selectables.get_errors(),
     }
 }
 
@@ -995,10 +692,10 @@ impl SelectStatementInit {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::{*, statements::{order, select}};
+    /// # use aparecium::{*, statements::{order, select}, types::RecordId};
     /// # let user = Table::new("user");
     /// # let alien = Table::new("alien");
-    /// # let user_id1 = TestUser::create_id("oyelowo");
+    /// # let user_id1 = RecordId::new("user", "oyelowo");
     ///  //  Can select from a table name
     ///  select(All).from(user);
     ///
@@ -1009,108 +706,35 @@ impl SelectStatementInit {
     ///  select(All).from(select(All).from(alien));
     ///
     /// ```
-    /// ```rust, ignore
-    ///  // or a list of tables, ids or subqueries
-    ///  select(All).from(![user, user_id, select(All).from(alien)]);
-    /// ```
     pub fn from(self, targettables: impl Into<TargettablesForSelect>) -> SelectStatement {
-        self.__internal_from(targettables)
+        self.with_targets(targettables)
     }
 
     /// Same as normal from but only selects from a single table
-    #[allow(clippy::wrong_self_convention)]
+    #[expect(
+        clippy::wrong_self_convention,
+        reason = "a builder step named after SurrealQL's `FROM ONLY`, not a conversion"
+    )]
     pub fn from_only(mut self, targettables: impl Into<TargettablesForSelect>) -> SelectStatement {
         self.only = true;
-        self.__internal_from(targettables)
+        self.with_targets(targettables)
     }
 
-    fn __internal_from(
-        mut self,
-        targettables: impl Into<TargettablesForSelect>,
-    ) -> SelectStatement {
-        let targets: TargettablesForSelect = targettables.into();
-        let mut targets_bindings = vec![];
-
-        let target_names = match targets {
-            TargettablesForSelect::Table(table) => {
-                vec![table.to_string()]
-            }
-            TargettablesForSelect::Tables(tables) => tables
-                .into_iter()
-                .map(|t| t.to_string())
-                .collect::<Vec<_>>(),
-            // Should already be bound
-            TargettablesForSelect::Subquery(query) => {
-                targets_bindings.extend(query.get_bindings());
-                vec![query.build()]
-            }
-            TargettablesForSelect::SurrealId(id) => {
-                let binding = Binding::new(id.to_owned());
-                let param = binding.get_param_dollarised();
-                targets_bindings.push(binding);
-                vec![param]
-            }
-
-            TargettablesForSelect::SurrealIds(ids) => {
-                let mut params = vec![];
-
-                ids.into_iter().for_each(|id| {
-                    let binding = Binding::new(id.to_owned());
-                    let param = binding.get_param_dollarised();
-                    targets_bindings.push(binding);
-                    params.push(param);
-                });
-                params
-            }
-            TargettablesForSelect::Function(function) => {
-                targets_bindings.extend(function.get_bindings());
-                vec![function.build()]
-            }
-            TargettablesForSelect::RecordRange(r) => {
-                targets_bindings.extend(r.get_bindings());
-                vec![r.build()]
-            }
-        };
-
-        self.update_bindings(targets_bindings);
-        self.targets.extend(target_names);
-        self.into()
+    fn with_targets(mut self, targettables: impl Into<TargettablesForSelect>) -> SelectStatement {
+        self.targets.extend(targettables.into().0);
+        SelectStatement(self)
     }
 
     /// Omits a field or multiple fields from the query return values.
     pub fn omit(mut self, fetchables: impl Into<Omittables>) -> Self {
-        let fields: Omittables = fetchables.into();
-
-        let fields = match fields {
-            Omittables::Field(one_field) => vec![one_field],
-            Omittables::Fields(many_fields) => many_fields,
-        };
-
-        fields.iter().for_each(|f| {
-            self.omitted_fields.push(f.build());
-            self.bindings.extend(f.get_bindings());
-            self.errors.extend(f.get_errors());
-        });
-        self
-    }
-
-    fn update_bindings(&mut self, bindings: BindingsList) -> &mut Self {
-        // let mut updated_params = vec![];
-        // updated_params.extend(self.________params_accumulator.to_vec());
-        // updated_params.extend(parametric_value.get_bindings());
-        self.bindings.extend(bindings);
+        self.omitted_fields
+            .extend(Vec::<Field>::from(fetchables.into()));
         self
     }
 }
 
-// impl<T: IntoIterator<Item = IndexName>> From<T> for Field {
-//     fn from(value: T) -> Self {
-//         Self::new(value.into_iter().collect())
-//     }
-// }
-
 /// The query builder struct used to construct complex database queries.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SelectStatement(SelectStatementInit);
 
 impl From<SelectStatementInit> for SelectStatement {
@@ -1130,13 +754,13 @@ impl SelectStatement {
     ///
     /// Examples
     /// ```rust
-    /// # use aparecium::{*, statements::{order, select}};
+    /// # use aparecium::{*, statements::{order, select}, types::RecordId};
     /// # let name = Field::new("name");
     /// # let age = Field::new("age");
     /// # let country = Field::new("country");
     /// # let city = Field::new("city");
-    /// # let fake_id = TestUser::create_id("oyelowo");
-    /// # let fake_id2 = TestUser::create_id("oyedayo");
+    /// # let fake_id = RecordId::new("user", "oyelowo");
+    /// # let fake_id2 = RecordId::new("user", "oyedayo");
     /// // Supports simpler where clause without `cond` helper function
     /// # let select2 = select(All)
     /// #   .from(fake_id)
@@ -1149,9 +773,7 @@ impl SelectStatement {
     ///                     .or(city.like("Toronto"))
     ///                 );
     pub fn where_(mut self, condition: impl Conditional + Clone) -> Self {
-        self.update_bindings(condition.get_bindings());
-        let condition = Filter::new(condition);
-        self.0.where_ = Some(condition.build());
+        self.0.where_ = Some(Filter::new(condition));
         self
     }
 
@@ -1163,18 +785,10 @@ impl SelectStatement {
 
     /// Adds an index or multiple indexes to the `WITH INDEX` clause of the query.
     pub fn with_index(mut self, indexes: impl Into<IndexNames>) -> Self {
-        let index_names: Groupables = indexes.into();
-
-        let indexes = match index_names {
-            Groupables::Field(one_field) => vec![one_field],
-            Groupables::Fields(many_fields) => many_fields,
-        };
-
-        self.update_bindings(indexes.get_bindings());
-        self.0.errors.extend(indexes.get_errors());
-        self.0.with_index_type = Some(WithIndexType::Indexes(indexes));
+        self.0.with_index_type = Some(WithIndexType::Indexes(indexes.into().into()));
         self
     }
+
     /// Adds a field or multiple fields to the `SPLIT BY` clause of the query.
     /// As SurrealDB supports s and nested fields within arrays,
     /// it is possible to split the result on a specific field name,
@@ -1207,16 +821,7 @@ impl SelectStatement {
     ///     .split(locations.cities);
     /// ```
     pub fn split(mut self, splittables: impl Into<Splittables>) -> Self {
-        let fields: Splittables = splittables.into();
-
-        let fields = match fields {
-            Splittables::Field(one_field) => vec![one_field],
-            Splittables::Fields(many_fields) => many_fields,
-        };
-
-        fields.iter().for_each(|f| {
-            self.0.split.push(f.to_string());
-        });
+        self.0.split.extend(Vec::<Field>::from(splittables.into()));
         self
     }
 
@@ -1235,12 +840,12 @@ impl SelectStatement {
     /// # use aparecium::{*, statements::{order, select}, functions::{count, math}};
     /// # let user = Table::new("user");
     /// # let country = Field::new("country");
-    ///  
+    ///
     ///  // Group records by a single field
     ///  select(All)
     ///     .from(user)
     ///     .group_by(country);
-    ///  
+    ///
     /// // Group results by list borrowed list of referenced fields
     /// # let user = Table::new("user");
     /// # let country = Field::new("country");
@@ -1250,13 +855,13 @@ impl SelectStatement {
     ///  select(All)
     ///     .from(user)
     ///     .group_by(&[&gender, &country, &city]);
-    ///  
+    ///
     /// // Group results by list borrowed list of owned fields
     /// # let user = Table::new("user");
     ///  select(All)
     ///     .from(user)
     ///     .group_by(&[gender, country, city]);
-    ///     
+    ///
     /// # let user = Table::new("user");
     /// # let country = Field::new("country");
     /// # let gender = Field::new("gender");
@@ -1283,16 +888,7 @@ impl SelectStatement {
     ///     .group_by(settings.published);
     /// ```
     pub fn group_by(mut self, groupables: impl Into<Groupables>) -> Self {
-        let fields: Groupables = groupables.into();
-
-        let fields = match fields {
-            Groupables::Field(one_field) => vec![one_field],
-            Groupables::Fields(many_fields) => many_fields,
-        };
-
-        fields.iter().for_each(|f| {
-            self.0.group_by.push(f.to_string());
-        });
+        self.0.group_by.extend(Vec::<Field>::from(groupables.into()));
         self
     }
 
@@ -1337,7 +933,7 @@ impl SelectStatement {
     /// select(All)
     ///     .from(user)
     ///     .order_by(&[order(age).numeric().desc(), order(city).rand().asc()]);
-    ///     
+    ///
     /// # let user = Table::new("user");
     /// # let age = Field::new("age");
     /// // Order by multiple fields by chainging to accumulate
@@ -1347,11 +943,7 @@ impl SelectStatement {
     ///     .order_by(order(state).collate().asc());
     /// ```
     pub fn order_by(mut self, orderables: impl Into<Orderables>) -> Self {
-        let orderables: Orderables = orderables.into();
-        self.update_bindings(orderables.get_bindings());
-
-        let orders: Vec<Order> = orderables.into();
-        self.0.order_by.extend(orders);
+        self.0.order_by.extend(Vec::<Order>::from(orderables.into()));
         self
     }
 
@@ -1381,9 +973,7 @@ impl SelectStatement {
     ///     .limit(50);
     /// ```
     pub fn limit(mut self, limit: impl Into<NumberLike>) -> Self {
-        let limit: NumberLike = limit.into();
-        self.0.limit = Some(limit.build());
-        self.update_bindings(limit.get_bindings());
+        self.0.limit = Some(limit.into());
         self
     }
 
@@ -1406,9 +996,7 @@ impl SelectStatement {
     ///     .limit(50);
     /// ```
     pub fn start(mut self, start: impl Into<NumberLike>) -> Self {
-        let start: NumberLike = start.into();
-        self.0.start = Some(start.build());
-        self.update_bindings(start.get_bindings());
+        self.0.start = Some(start.into());
         self
     }
 
@@ -1461,18 +1049,7 @@ impl SelectStatement {
     ///     .fetch(&[account, account.users]);
     /// ```
     pub fn fetch(mut self, fetchables: impl Into<Fetchables>) -> Self {
-        let fields: Fetchables = fetchables.into();
-
-        let fields = match fields {
-            Fetchables::Field(one_field) => vec![one_field],
-            Fetchables::Fields(many_fields) => many_fields,
-        };
-
-        fields.iter().for_each(|f| {
-            self.0.fetch.push(f.build());
-            self.0.bindings.extend(f.get_bindings());
-            self.0.errors.extend(f.get_errors());
-        });
+        self.0.fetch.extend(Vec::<Field>::from(fetchables.into()));
         self
     }
 
@@ -1480,24 +1057,10 @@ impl SelectStatement {
     ///
     /// # Arguments
     ///
-    /// * `duration` - a value that can represent a duration for the timeout. This can be one of the following:
-    ///
-    ///   * `Duration` - a standard Rust `Duration` value.
-    ///
-    ///   * `Field` - an identifier for a specific field in the query, represented by an `Idiom` value.
-    ///
-    ///   * `Param` - a named parameter in the query, represented by a `Param` value.
-    ///
-    /// # Examples
-    ///
-    /// ```rust,ignore
-    /// let query = query.timeout(Duration::from_secs(30));
-    ///
-    /// assert_eq!(query.to_raw().to_string(), "30s");
-    /// ```
+    /// * `duration` - a value that can represent a duration for the timeout: a duration, a
+    ///   `Field` or a `Param`. It is written as a literal.
     pub fn timeout(mut self, duration: impl Into<DurationLike>) -> Self {
-        let duration: DurationLike = duration.into();
-        self.0.timeout = Some(duration.to_raw().build());
+        self.0.timeout = Some(duration.into());
         self
     }
 
@@ -1518,118 +1081,91 @@ impl SelectStatement {
         self.0.explain_mode = Some(ExplainMode::Full);
         self
     }
-
-    fn update_bindings(&mut self, bindings: BindingsList) -> &mut Self {
-        // let mut updated_params = vec![];
-        // updated_params.extend(self.________params_accumulator.to_vec());
-        // updated_params.extend(parametric_value.get_bindings());
-        self.0.bindings.extend(bindings);
-        self
-    }
 }
 
-impl Display for SelectStatement {
-    fn fmt(&self, f: &mut Formatter) -> FmtResult {
-        write!(f, "{}", self.build())
-    }
-}
-
-impl Buildable for SelectStatement {
-    fn build(&self) -> String {
+impl Statement for SelectStatement {
+    fn render_body(&self, sql: &mut Sql) {
         let statement = &self.0;
-        let select = match statement.selection_type {
-            SelectionType::Select => "SELECT",
-            SelectionType::SelectValue => "SELECT VALUE",
-            SelectionType::SelectDiff => "SELECT DIFF",
-        };
+        sql.push_str(match statement.selection_type {
+            SelectionType::Select => "SELECT ",
+            SelectionType::SelectValue => "SELECT VALUE ",
+            SelectionType::SelectDiff => "SELECT DIFF ",
+        });
+        sql.push(&statement.projections).push_str(" ");
 
-        let omitted_fields = if !statement.omitted_fields.is_empty() {
-            format!("OMIT {} ", statement.omitted_fields.join(", "))
-        } else {
-            "".to_string()
-        };
+        if !statement.omitted_fields.is_empty() {
+            sql.push_str("OMIT ")
+                .push(&statement.omitted_fields)
+                .push_str(" ");
+        }
 
-        let only = if statement.only { "ONLY " } else { "" };
-        let mut query = format!(
-            "{select} {} {}FROM {}{}",
-            statement.projections,
-            omitted_fields,
-            only,
-            statement.targets.join(", ")
-        );
+        sql.push_str("FROM ");
+        if statement.only {
+            sql.push_str("ONLY ");
+        }
+        sql.push(&statement.targets);
 
-        if let Some(with_index_type) = &statement.with_index_type {
-            match with_index_type {
-                WithIndexType::NoIndex => query = format!("{query} WITH NO INDEX"),
-                WithIndexType::Indexes(indexes) => {
-                    query = format!(
-                        "{query} WITH INDEX {}",
-                        indexes
-                            .iter()
-                            .map(|i| i.to_string())
-                            .collect::<Vec<_>>()
-                            .join(", ")
-                    )
-                }
+        match &statement.with_index_type {
+            Some(WithIndexType::NoIndex) => {
+                sql.push_str(" WITH NO INDEX");
             }
+            Some(WithIndexType::Indexes(indexes)) => {
+                sql.push_str(" WITH INDEX ").push(indexes);
+            }
+            None => {}
         }
 
         if let Some(condition) = &statement.where_ {
-            query = format!("{query} WHERE {condition}");
+            sql.push_str(" WHERE ").push(condition);
         }
 
         if !statement.split.is_empty() {
-            query = format!("{query} SPLIT {}", &statement.split.join(", "));
+            sql.push_str(" SPLIT ").push(&statement.split);
         }
 
         if !statement.group_by.is_empty() {
-            query = format!("{query} GROUP BY {}", &statement.group_by.join(", "));
+            sql.push_str(" GROUP BY ").push(&statement.group_by);
         } else if statement.group_all {
-            query = format!("{query} GROUP ALL");
+            sql.push_str(" GROUP ALL");
         }
 
         if !statement.order_by.is_empty() {
-            query = format!(
-                "{query} ORDER BY {}",
-                &statement
-                    .order_by
-                    .iter()
-                    .map(|o| o.to_string())
-                    .collect::<Vec<_>>()
-                    .join(", "),
-            );
+            sql.push_str(" ORDER BY ").push(&statement.order_by);
         }
 
-        if let Some(ref limit_value) = statement.limit {
-            query = format!("{query} LIMIT {}", limit_value);
+        if let Some(limit) = &statement.limit {
+            sql.push_str(" LIMIT ").push(limit);
         }
 
-        if let Some(ref start_value) = statement.start {
-            query = format!("{query} START AT {}", start_value);
+        if let Some(start) = &statement.start {
+            sql.push_str(" START AT ").push(start);
         }
 
         if !statement.fetch.is_empty() {
-            query = format!("{query} FETCH {}", statement.fetch.join(", "));
+            sql.push_str(" FETCH ").push(&statement.fetch);
         }
 
-        if let Some(timeout_value) = &statement.timeout {
-            query = format!("{query} TIMEOUT {}", timeout_value);
+        if let Some(timeout) = &statement.timeout {
+            sql.push_str(" TIMEOUT ").push_inlined(timeout);
         }
 
         if statement.parallel {
-            query = format!("{query} PARALLEL");
+            sql.push_str(" PARALLEL");
         }
 
-        if let Some(explain_mode) = &statement.explain_mode {
-            match explain_mode {
-                ExplainMode::Simple => query = format!("{query} EXPLAIN"),
-                ExplainMode::Full => query = format!("{query} EXPLAIN FULL"),
+        match statement.explain_mode {
+            Some(ExplainMode::Simple) => {
+                sql.push_str(" EXPLAIN");
             }
+            Some(ExplainMode::Full) => {
+                sql.push_str(" EXPLAIN FULL");
+            }
+            None => {}
         }
-
-        format!("{query};")
     }
 }
+
+impl_statement!(SelectStatement);
 
 /// A mini version of the select statement used as Model convenience method for building select statements.
 #[derive(Debug, Clone)]
@@ -1638,109 +1174,79 @@ pub struct SelectStatementMini<T: Model>(SelectStatement, PhantomData<T>);
 impl<T: Model> SelectStatementMini<T> {
     /// Order the results by the given fields
     pub fn order_by(mut self, orderables: impl Into<Orderables>) -> Self {
-        let orderables: Orderables = orderables.into();
-        self.0.update_bindings(orderables.get_bindings());
-
-        let orders: Vec<Order> = orderables.into();
-        self.0.0.order_by.extend(orders);
+        self.0 = self.0.order_by(orderables);
         self
     }
 
     /// Starts the result at the offset
     pub fn start(mut self, start: impl Into<NumberLike>) -> Self {
-        let start: NumberLike = start.into();
-        self.0.0.start = Some(start.build());
-        self.0.update_bindings(start.get_bindings());
+        self.0 = self.0.start(start);
         self
     }
 
     /// Limits the number of results returned
     pub fn limit(mut self, limit: impl Into<NumberLike>) -> Self {
-        let limit: NumberLike = limit.into();
-        self.0.0.limit = Some(limit.build());
-        self.0.update_bindings(limit.get_bindings());
+        self.0 = self.0.limit(limit);
         self
     }
 
     /// Parallelizes the query
     pub fn parallel(mut self) -> Self {
-        self.0.0.parallel = true;
+        self.0 = self.0.parallel();
         self
     }
 }
 
-impl<T> From<SelectStatement> for SelectStatementMini<T>
-where
-    T: Serialize + DeserializeOwned + Model,
-{
+impl<T: Model> From<SelectStatement> for SelectStatementMini<T> {
     fn from(value: SelectStatement) -> Self {
         Self(value, PhantomData)
     }
 }
 
-impl<T> Erroneous for SelectStatementMini<T> where T: Serialize + DeserializeOwned + Model {}
-
-impl<T> Parametric for SelectStatementMini<T>
-where
-    T: Serialize + DeserializeOwned + Model,
-{
-    fn get_bindings(&self) -> crate::BindingsList {
-        self.0.get_bindings()
-    }
-}
-impl<T> Buildable for SelectStatementMini<T>
-where
-    T: Serialize + DeserializeOwned + Model,
-{
-    fn build(&self) -> String {
-        self.0.build()
+impl<T: Model> Statement for SelectStatementMini<T> {
+    fn render_body(&self, sql: &mut Sql) {
+        self.0.render_body(sql);
     }
 }
 
-impl<T> Queryable for SelectStatementMini<T> where T: Serialize + DeserializeOwned + Model {}
+impl_statement!([T: Model] SelectStatementMini<T>);
 
 impl<T> ReturnableStandard<T> for SelectStatementMini<T>
 where
-    T: Serialize + DeserializeOwned + Model + Send + Sync,
+    T: Model + Send + Sync,
 {
-    fn set_return_type(mut self, return_type: crate::ReturnType) -> Self {
-        if let crate::ReturnType::Projections(projection) = return_type {
-            self.0.0.projections = format!("{}, {}", self.0.0.projections, projection.build());
+    fn set_return_type(mut self, return_type: ReturnType) -> Self {
+        if let ReturnType::Projections(projections) = return_type {
+            let projections: Projections = projections;
+            self.0.0.projections.push_str(", ").push(&projections);
         }
         self
     }
 
-    fn get_return_type(&self) -> crate::ReturnType {
-        crate::ReturnType::After
+    fn get_return_type(&self) -> ReturnType {
+        ReturnType::After
     }
 }
 
+/// A `SELECT VALUE count …` statement returning a single number.
 #[derive(Debug, Clone)]
 pub struct SelectStatementCount(SelectStatement);
 
 impl SelectStatementCount {
-    // /// Gets count of the records that would be returned by the select statement.
-    // /// Defaults to zero if there is no result or query is invalid.
-    pub async fn get(&self, db: Surreal<Db>) -> SurrealOrmResult<usize> {
+    /// Gets count of the records that would be returned by the select statement.
+    /// Defaults to zero if there is no result.
+    pub async fn get(&self, db: Surreal<impl Connection>) -> Result<usize> {
         Ok(self.0.return_one(db).await?.unwrap_or_default())
     }
 }
 
-impl Erroneous for SelectStatementCount {}
-
-impl Parametric for SelectStatementCount {
-    fn get_bindings(&self) -> crate::BindingsList {
-        self.0.get_bindings()
+impl Statement for SelectStatementCount {
+    fn render_body(&self, sql: &mut Sql) {
+        self.0.render_body(sql);
     }
 }
 
-impl Buildable for SelectStatementCount {
-    fn build(&self) -> String {
-        self.0.build()
-    }
-}
-
-impl Queryable for SelectStatementCount {}
+impl_statement!(SelectStatementCount);
 
 impl ReturnableSelect for SelectStatementCount {}
 

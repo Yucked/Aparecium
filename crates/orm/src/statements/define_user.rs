@@ -1,19 +1,16 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
-
 use std::fmt::{self, Display};
 
-use crate::{
-    traits::{Binding, BindingsList, Buildable, Erroneous, Parametric, Queryable},
-    types::Idiomx,
-};
+use surrealdb::types::Value;
 
+use crate::{Ident, Sql};
+
+use super::{Statement, impl_definition};
+
+/// A user's plain-text password, hashed by SurrealDB.
 pub struct Password(pub(crate) String);
 
 impl Password {
+    /// The password text.
     pub fn into_inner(self) -> String {
         self.0
     }
@@ -33,9 +30,10 @@ impl From<&str> for Password {
 
 impl Display for Password {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
+        f.write_str(&self.0)
     }
 }
+
 /// Define a new database user.
 /// Requirements
 /// You must be authenticated with a user that has enough permissions. Only the OWNER built-in role grants permissions to create users.
@@ -43,29 +41,36 @@ impl Display for Password {
 /// Root users can create Root, Namespace and Database users.
 /// Namespace users can create Namespace and Database users
 /// Database user can create Database users.
-/// To select the level where you want to create the user, you may need to select a namespace and/or database before you can use the DEFINE USER statement for database or namespace tokens.
-/// Note: You cannot use the DEFINE USER statement to create a SCOPE user.
 ///
 /// Examples:
 ///
 /// ```rust
-/// use aparecium::{*, CrudType::*, statements::{define_user, UserRole}};
+/// use aparecium::{*, statements::{define_user, UserRole}};
 ///
-/// let statement = define_user("username")
+/// let statement = define_user("alice")
 ///     .on_database()
 ///     .passhash("$argon2id$v=19$m=19456,t=2,p=1$u1CPdtdC0Ek5GE1gvidj/g$fjFa7PZM+4hp4hlUJN1fz/FaDAf7KY1Qu48F5m5P0V8")
 ///     .role(UserRole::Viewer);
 ///
-/// let username = User::new("username");
-/// let statement = define_user(username).on_root().password("123456").role(UserRole::Owner);
+/// let alice = User::new("alice");
+/// let statement = define_user(alice).on_root().password("example-password").role(UserRole::Owner);
 ///
-/// assert!(!statement.build().is_empty());
+/// assert_eq!(
+///     statement.to_debug_sql(),
+///     "DEFINE USER alice ON ROOT PASSWORD 'example-password' ROLES OWNER;"
+/// );
 /// ```
-pub fn define_user(name: impl Into<Idiomx>) -> DefineUserStatement {
-    DefineUserStatement::new(name)
+pub fn define_user(name: impl Into<Ident>) -> DefineUserStatement {
+    DefineUserStatement {
+        name: name.into(),
+        user_type: None,
+        credential: None,
+        role: None,
+    }
 }
 
 /// User Role
+#[derive(Clone, Copy)]
 pub enum UserRole {
     /// Owner
     Owner,
@@ -77,32 +82,36 @@ pub enum UserRole {
 
 impl Display for UserRole {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let string = match self {
+        f.write_str(match self {
             UserRole::Owner => "OWNER",
             UserRole::Editor => "EDITOR",
             UserRole::Viewer => "VIEWER",
-        };
-        write!(f, "{string}")
+        })
     }
 }
 
+/// The level a user is defined on.
+#[derive(Clone, Copy)]
 pub enum UserType {
+    /// The root level
     Root,
+    /// The current namespace
     Namespace,
+    /// The current database
     Database,
 }
 
 impl Display for UserType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let string = match self {
+        f.write_str(match self {
             UserType::Root => "ROOT",
             UserType::Namespace => "NAMESPACE",
             UserType::Database => "DATABASE",
-        };
-        write!(f, "{string}")
+        })
     }
 }
 
+/// An already-hashed password.
 pub struct Passhash(String);
 
 impl From<String> for Passhash {
@@ -119,38 +128,27 @@ impl From<&str> for Passhash {
 
 impl Display for Passhash {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
+        f.write_str(&self.0)
     }
 }
 
-// Define the types for the possible login credentials
+/// A user's login credential.
 pub enum UserCredential {
+    /// A plain-text password
     Password(Password),
+    /// A password hash
     Passhash(Passhash),
 }
 
 /// Define a new database user.
 pub struct DefineUserStatement {
-    name: String,
+    name: Ident,
     user_type: Option<UserType>,
     credential: Option<UserCredential>,
     role: Option<UserRole>,
-    bindings: BindingsList,
 }
 
 impl DefineUserStatement {
-    // Set the user name
-    fn new(name: impl Into<Idiomx>) -> Self {
-        let binding = Binding::new(name.into()).with_description("user name");
-        Self {
-            name: binding.get_param_dollarised(),
-            user_type: None,
-            credential: None,
-            role: None,
-            bindings: vec![binding],
-        }
-    }
-
     /// Set user on root
     pub fn on_root(mut self) -> Self {
         self.user_type = Some(UserType::Root);
@@ -171,21 +169,13 @@ impl DefineUserStatement {
 
     /// Set the password
     pub fn password(mut self, password: impl Into<Password>) -> Self {
-        let password: Password = password.into();
-        let binding = Binding::new(password.into_inner()).with_description("user password");
-        let password_param = binding.get_param_dollarised();
-        self.bindings.push(binding);
-        self.credential = Some(UserCredential::Password(password_param.into()));
+        self.credential = Some(UserCredential::Password(password.into()));
         self
     }
 
     /// Set the passhash credential
     pub fn passhash(mut self, passhash: impl Into<Passhash>) -> Self {
-        let passhash: Passhash = passhash.into();
-        let binding = Binding::new(passhash.0.clone());
-        let passhash_param = binding.get_param_dollarised();
-        self.bindings.push(binding);
-        self.credential = Some(UserCredential::Passhash(passhash_param.into()));
+        self.credential = Some(UserCredential::Passhash(passhash.into()));
         self
     }
 
@@ -196,44 +186,31 @@ impl DefineUserStatement {
     }
 }
 
-impl Buildable for DefineUserStatement {
-    fn build(&self) -> String {
-        let mut query = format!("DEFINE USER {}", self.name);
+impl Statement for DefineUserStatement {
+    fn render_body(&self, sql: &mut Sql) {
+        sql.push_str("DEFINE USER ").push(&self.name);
 
         if let Some(user_type) = &self.user_type {
-            query.push_str(&format!(" ON {user_type}"));
+            sql.push_str(" ON ").push_display(user_type);
         }
 
-        if let Some(credential) = &self.credential {
-            match credential {
-                UserCredential::Password(password) => {
-                    query.push_str(&format!(" PASSWORD {password}"));
-                }
-                UserCredential::Passhash(hash) => {
-                    query.push_str(&format!(" PASSHASH {hash}"));
-                }
-            };
-        };
+        // SurrealQL takes the credential as a string literal; the definition inlines it.
+        match &self.credential {
+            Some(UserCredential::Password(password)) => {
+                sql.push_str(" PASSWORD ")
+                    .push_value(Value::String(password.0.clone()));
+            }
+            Some(UserCredential::Passhash(hash)) => {
+                sql.push_str(" PASSHASH ")
+                    .push_value(Value::String(hash.0.clone()));
+            }
+            None => {}
+        }
+
         if let Some(role) = &self.role {
-            query.push_str(&format!(" ROLES {role}"));
+            sql.push_str(" ROLES ").push_display(role);
         }
-        query += ";";
-        query
     }
 }
 
-impl Display for DefineUserStatement {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.build())
-    }
-}
-
-impl Parametric for DefineUserStatement {
-    fn get_bindings(&self) -> BindingsList {
-        self.bindings.to_vec()
-    }
-}
-
-impl Queryable for DefineUserStatement {}
-
-impl Erroneous for DefineUserStatement {}
+impl_definition!(DefineUserStatement);

@@ -1,34 +1,6 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
+use crate::{Namespace, Sql};
 
-/*
- *
- *
-REMOVE statement
-
-Statement syntax
-REMOVE [
-    NAMESPACE @name
-    | DATABASE @name
-    | LOGIN @name ON [ NAMESPACE | DATABASE ]
-    | TOKEN @name ON [ NAMESPACE | DATABASE ]
-    | SCOPE @name
-    | TABLE @name
-    | EVENT @name ON [ TABLE ] @table
-    | FIELD @name ON [ TABLE ] @table
-    | INDEX @name ON [ TABLE ] @table
-]
- * */
-
-use std::fmt::{self, Display};
-
-use crate::{
-    traits::{BindingsList, Buildable, Erroneous, Parametric, Queryable},
-    types::Namespace,
-};
+use super::{Statement, impl_definition};
 
 /// Remove namespace statement
 ///
@@ -40,13 +12,14 @@ use crate::{
 /// ```rust
 /// use aparecium::{*, statements::remove_namespace};
 ///
-/// # let namespace = Namespace::new("namespace");
+/// # let namespace = Namespace::new("acme");
 /// let statement = remove_namespace(namespace);
-/// assert_eq!(statement.build(), "REMOVE NAMESPACE namespace;");
+/// assert_eq!(statement.to_debug_sql(), "REMOVE NAMESPACE acme;");
 /// ```
 pub fn remove_namespace(namespace: impl Into<Namespace>) -> RemoveNamespaceStatement {
-    let namespace = namespace.into();
-    RemoveNamespaceStatement { namespace }
+    RemoveNamespaceStatement {
+        namespace: namespace.into(),
+    }
 }
 
 /// Remove namespace statement
@@ -54,24 +27,10 @@ pub struct RemoveNamespaceStatement {
     namespace: Namespace,
 }
 
-impl Buildable for RemoveNamespaceStatement {
-    fn build(&self) -> String {
-        format!("REMOVE NAMESPACE {};", self.namespace)
+impl Statement for RemoveNamespaceStatement {
+    fn render_body(&self, sql: &mut Sql) {
+        sql.push_str("REMOVE NAMESPACE ").push(&self.namespace);
     }
 }
 
-impl Display for RemoveNamespaceStatement {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.build())
-    }
-}
-
-impl Parametric for RemoveNamespaceStatement {
-    fn get_bindings(&self) -> BindingsList {
-        vec![]
-    }
-}
-
-impl Erroneous for RemoveNamespaceStatement {}
-
-impl Queryable for RemoveNamespaceStatement {}
+impl_definition!(RemoveNamespaceStatement);

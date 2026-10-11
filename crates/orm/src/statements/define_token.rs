@@ -1,51 +1,19 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
+use crate::{Ident, Scope, Sql, StrandLike, TokenTarget, TokenType};
 
-use std::fmt::{self, Display};
-
-use surrealdb::sql;
-
-use crate::{
-    traits::{Binding, BindingsList, Buildable, Erroneous, Parametric, Queryable},
-    types::{Idiomx, Scope, TokenTarget, TokenType},
-};
+use super::{Statement, impl_definition};
 
 // DEFINE TOKEN statement
 // SurrealDB can work with third-party OAuth providers. Let's say that your provider issues your service a JWT once it's authenticated. By using the DEFINE TOKEN statement, you can set the public key needed to verify a JWT's authenticity.
 //
-// You can specify what TYPE of cryptographic signature algorithm your token uses. The following algorithms are supported:
-// EDDSA, ES256, ES384, ES512, HS256, HS384, HS512, PS256, PS384, PS512, RS256, RS384, RS512.
-//
-// Requirements
-// To DEFINE TOKEN ... ON NAMESPACE ... you must have root or namespace level access.
-// To DEFINE TOKEN ... ON DATABASE ... you must have root, namespace, or database level access.
-// To DEFINE TOKEN ... ON SCOPE ... you must have root, namespace, or database level access.
-// You must select your namespace and/or database before you can use the DEFINE DATABASE statement for database or namespace tokens.
 // Statement syntax
 // DEFINE TOKEN @name ON [ NAMESPACE | DATABASE | SCOPE @scope ] TYPE @type VALUE @value
-// -- Specify the namespace and database for the token
-// USE NS abcum DB app_vitalsense;
-//
-// -- Set the name of the token
-// DEFINE TOKEN token_name
-//   -- Use this OAuth provider for database authorization
-//   ON DATABASE
-//   -- Specify the cryptographic signature algorithm used to sign the token
-//   TYPE HS512
-//   -- Specify the public key so we can verify the authenticity of the token
-//   VALUE "sNSYneezcr8kqphfOC6NwwraUHJCVAt0XjsRSNmssBaBRh3WyMa9TRfq8ST7fsU2H2kGiOpU4GbAF1bCiXmM1b3JGgleBzz7rsrz6VvYEM4q3CLkcO8CMBIlhwhzWmy8"
-// ;
 
 /// Define the API for the Token builder
 pub struct DefineTokenStatement {
-    name: String,
+    name: Ident,
     token_type: Option<TokenType>,
-    value: Option<String>,
+    value: Option<StrandLike>,
     target: Option<TokenTarget>,
-    bindings: BindingsList,
 }
 
 /// Define a new token.
@@ -55,43 +23,37 @@ pub struct DefineTokenStatement {
 /// You can specify what TYPE of cryptographic signature algorithm your token uses. The following algorithms are supported:
 /// EDDSA, ES256, ES384, ES512, HS256, HS384, HS512, PS256, PS384, PS512, RS256, RS384, RS512.
 ///
-/// Requirements
-/// To DEFINE TOKEN ... ON NAMESPACE ... you must have root or namespace level access.
-/// To DEFINE TOKEN ... ON DATABASE ... you must have root, namespace, or database level access.
-/// To DEFINE TOKEN ... ON SCOPE ... you must have root, namespace, or database level access.
-/// You must select your namespace and/or database before you can use the DEFINE DATABASE statement for database or namespace tokens.
-///
 /// Examples:
 ///
 /// ```rust
 /// use aparecium::{*, statements::define_token};
-/// let statement = define_token("oyelowo_token")
+/// let statement = define_token("acme_token")
 ///             .on_namespace()
 ///             .type_(TokenType::PS512)
-///             .value("abrakradabra");
-/// assert!(!statement.build().is_empty());
+///             .value("example-key");
+/// assert_eq!(
+///     statement.to_debug_sql(),
+///     "DEFINE TOKEN acme_token ON NAMESPACE TYPE PS512 VALUE 'example-key';"
+/// );
 ///
-/// let statement = define_token("oyelowo_token")
+/// let statement = define_token("acme_token")
 ///             .on_database()
 ///             .type_(TokenType::EDDSA)
-///             .value("abrakradabra");
-/// assert!(!statement.build().is_empty());
+///             .value("example-key");
+/// assert!(!statement.to_debug_sql().is_empty());
 ///
-/// let statement = define_token("oyelowo_token")
+/// let statement = define_token("acme_token")
 ///             .on_scope("regional")
 ///             .type_(TokenType::HS256)
-///             .value("abrakradabra");
-/// assert!(!statement.build().is_empty());
+///             .value("example-key");
+/// assert!(!statement.to_debug_sql().is_empty());
 /// ```
-pub fn define_token(token_name: impl Into<Idiomx>) -> DefineTokenStatement {
-    let token_name: Idiomx = token_name.into();
-
+pub fn define_token(token_name: impl Into<Ident>) -> DefineTokenStatement {
     DefineTokenStatement {
-        name: token_name.to_string(),
+        name: token_name.into(),
         token_type: None,
         value: None,
         target: None,
-        bindings: vec![],
     }
 }
 
@@ -107,9 +69,10 @@ impl DefineTokenStatement {
         self.target = Some(TokenTarget::Database);
         self
     }
+
     /// Use this OAuth provider for scope authorization
     pub fn on_scope(mut self, scope: impl Into<Scope>) -> Self {
-        self.target = Some(TokenTarget::Scope(scope.into().into()));
+        self.target = Some(TokenTarget::Scope(scope.into()));
         self
     }
 
@@ -120,48 +83,28 @@ impl DefineTokenStatement {
     }
 
     /// Specify the public key so we can verify the authenticity of the token
-    pub fn value(mut self, value: impl Into<sql::Strand>) -> Self {
-        let binding = Binding::new(value.into());
-        self.bindings.push(binding.clone());
-        self.value = Some(binding.get_param_dollarised().to_owned());
-
+    pub fn value(mut self, value: impl Into<StrandLike>) -> Self {
+        self.value = Some(value.into());
         self
     }
 }
 
-impl Buildable for DefineTokenStatement {
-    fn build(&self) -> String {
-        let mut query = format!("DEFINE TOKEN {}", self.name);
+impl Statement for DefineTokenStatement {
+    fn render_body(&self, sql: &mut Sql) {
+        sql.push_str("DEFINE TOKEN ").push(&self.name);
 
         if let Some(target) = &self.target {
-            query = format!("{query} ON {target}");
+            sql.push_str(" ON ").push(target);
         }
 
-        if let Some(ty) = &self.token_type {
-            query = format!("{query} TYPE {ty}");
+        if let Some(token_type) = &self.token_type {
+            sql.push_str(" TYPE ").push(token_type);
         }
 
         if let Some(value) = &self.value {
-            query = format!("{query} VALUE {value}");
+            sql.push_str(" VALUE ").push(value);
         }
-
-        query += ";";
-        query
     }
 }
 
-impl Display for DefineTokenStatement {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.build())
-    }
-}
-
-impl Parametric for DefineTokenStatement {
-    fn get_bindings(&self) -> BindingsList {
-        self.bindings.to_vec()
-    }
-}
-
-impl Queryable for DefineTokenStatement {}
-
-impl Erroneous for DefineTokenStatement {}
+impl_definition!(DefineTokenStatement);

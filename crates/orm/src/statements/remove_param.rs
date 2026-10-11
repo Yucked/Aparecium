@@ -1,61 +1,27 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
-use std::fmt::{self};
+use crate::{Param, Sql};
 
-use crate::{
-    Param,
-    traits::{BindingsList, Buildable, Erroneous, Parametric, Queryable},
-};
+use super::{Statement, impl_definition};
 
 /// Creates a REMOVE PARAM statement builder.
 ///
 /// Examples
 /// ```rust
 /// use aparecium::{*, statements::remove_param};
-/// remove_param("website_name");
+/// assert_eq!(remove_param("website_name").to_debug_sql(), "REMOVE PARAM $website_name;");
 /// ```
 pub fn remove_param(name: impl Into<Param>) -> RemoveParamStatement {
-    let name: Param = name.into();
-
-    RemoveParamStatement {
-        name: name.to_string(),
-        bindings: vec![],
-        errors: vec![],
-    }
+    RemoveParamStatement { name: name.into() }
 }
 
 /// Represents the REMOVE PARAM statement.
 pub struct RemoveParamStatement {
-    name: String,
-    bindings: BindingsList,
-    errors: crate::ErrorList,
+    name: Param,
 }
 
-impl Queryable for RemoveParamStatement {}
-
-impl Erroneous for RemoveParamStatement {
-    fn get_errors(&self) -> crate::ErrorList {
-        self.errors.clone()
+impl Statement for RemoveParamStatement {
+    fn render_body(&self, sql: &mut Sql) {
+        sql.push_str("REMOVE PARAM ").push(&self.name);
     }
 }
 
-impl Parametric for RemoveParamStatement {
-    fn get_bindings(&self) -> BindingsList {
-        self.bindings.clone()
-    }
-}
-
-impl Buildable for RemoveParamStatement {
-    fn build(&self) -> String {
-        format!("REMOVE PARAM {};", self.name)
-    }
-}
-
-impl fmt::Display for RemoveParamStatement {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.build())
-    }
-}
+impl_definition!(RemoveParamStatement);

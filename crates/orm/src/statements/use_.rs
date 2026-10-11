@@ -1,15 +1,6 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
+use crate::{Database, Namespace, Sql};
 
-use std::fmt::Display;
-
-use crate::{
-    traits::{BindingsList, Buildable, Erroneous, Parametric, Queryable},
-    types::{Database, Namespace},
-};
+use super::{Statement, impl_statement};
 
 /// Creates a USE statement.
 /// The USE statement specifies a namespace and / or a database to use for the subsequent SurrealQL statements.
@@ -17,19 +8,19 @@ use crate::{
 /// Examples
 ///
 /// ```rust
-/// use std::time::Duration;
 /// use aparecium::{*, statements::use_};
 ///
 /// // Switch to the test Namespace
-/// use_().database(Database::from("test".to_string()));
+/// use_().database(Database::from("test"));
 ///
 /// // Switch to the test Namespace
-/// use_().namespace(Namespace::from("test".to_string()));
+/// use_().namespace(Namespace::from("test"));
 ///
 /// // Switch to the test Namespace and test database
-/// use_()
-///     .database(Database::from("test".to_string()))
-///     .namespace(Namespace::from("test".to_string()));
+/// let statement = use_()
+///     .database(Database::from("test"))
+///     .namespace(Namespace::from("test"));
+/// assert_eq!(statement.to_debug_sql(), "USE DB test NS test;");
 /// ```
 pub fn use_() -> UseStatement {
     UseStatement::default()
@@ -56,36 +47,16 @@ impl UseStatement {
     }
 }
 
-impl Buildable for UseStatement {
-    fn build(&self) -> String {
-        let mut query = String::from("USE");
-
+impl Statement for UseStatement {
+    fn render_body(&self, sql: &mut Sql) {
+        sql.push_str("USE");
         if let Some(database) = &self.database {
-            query.push_str(&format!(" DB {database}"));
+            sql.push_str(" DB ").push(database);
         }
-
         if let Some(namespace) = &self.namespace {
-            query.push_str(&format!(" NS {namespace}"));
+            sql.push_str(" NS ").push(namespace);
         }
-
-        query.push(';');
-
-        query
     }
 }
 
-impl Display for UseStatement {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.build())
-    }
-}
-
-impl Queryable for UseStatement {}
-
-impl Erroneous for UseStatement {}
-
-impl Parametric for UseStatement {
-    fn get_bindings(&self) -> BindingsList {
-        vec![]
-    }
-}
+impl_statement!(UseStatement);

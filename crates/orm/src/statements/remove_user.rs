@@ -1,32 +1,8 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
-
-/*
- *
- *
-REMOVE statement
-
-Statement syntax
-REMOVE [
-    NAMESPACE @name
-    | DATABASE @name
-    | LOGIN @name ON [ NAMESPACE | DATABASE ]
-    | User @name ON [ NAMESPACE | DATABASE ]
-    | USER @name ON [ ROOT | NAMESPACE | DATABASE ]
-    | SCOPE @name
-    | TABLE @name
-    | EVENT @name ON [ TABLE ] @table
-    | FIELD @name ON [ TABLE ] @table
-    | INDEX @name ON [ TABLE ] @table
-]
- * */
-
 use std::fmt::{self, Display};
 
-use crate::{BindingsList, Buildable, Erroneous, Parametric, Queryable, User};
+use crate::{Sql, User};
+
+use super::{Statement, impl_definition};
 
 /// Remove user statement
 ///
@@ -37,105 +13,79 @@ use crate::{BindingsList, Buildable, Erroneous, Parametric, Queryable, User};
 /// # Example
 /// ```rust
 /// use aparecium::{*, statements::remove_user};
-/// let statement = remove_user("oyelowo").on_namespace();
-/// assert_eq!(statement.build(), "REMOVE USER oyelowo ON NAMESPACE;");
+/// let statement = remove_user("alice").on_namespace();
+/// assert_eq!(statement.to_debug_sql(), "REMOVE USER alice ON NAMESPACE;");
 ///
-/// let statement = remove_user("oyelowo").on_database();
-/// assert_eq!(statement.to_raw().build(), "REMOVE USER oyelowo ON DATABASE;");
+/// let statement = remove_user("alice").on_database();
+/// assert_eq!(statement.to_query().unwrap().sql(), "REMOVE USER alice ON DATABASE;");
 /// ```
 pub fn remove_user(user: impl Into<User>) -> RemoveUserStatementInit {
-    RemoveUserStatementInit {
-        user: user.into(),
-        on: None,
-    }
+    RemoveUserStatementInit { user: user.into() }
 }
 
-#[allow(missing_docs)]
+/// The level a user is removed from.
+#[derive(Clone, Copy)]
 pub enum UserPermissionScope {
+    /// The current namespace
     Namespace,
+    /// The current database
     Database,
+    /// The root level
     Root,
 }
 
 impl Display for UserPermissionScope {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                UserPermissionScope::Namespace => "NAMESPACE",
-                UserPermissionScope::Database => "DATABASE",
-                UserPermissionScope::Root => "ROOT",
-            }
-        )
+        f.write_str(match self {
+            UserPermissionScope::Namespace => "NAMESPACE",
+            UserPermissionScope::Database => "DATABASE",
+            UserPermissionScope::Root => "ROOT",
+        })
     }
 }
 
-/// Remove User statement
+/// A REMOVE USER statement awaiting its level.
 pub struct RemoveUserStatementInit {
     user: User,
-    on: Option<UserPermissionScope>,
-}
-
-/// Remove User statement
-pub struct RemoveUserStatement(RemoveUserStatementInit);
-
-impl std::ops::Deref for RemoveUserStatement {
-    type Target = RemoveUserStatementInit;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl From<RemoveUserStatementInit> for RemoveUserStatement {
-    fn from(init: RemoveUserStatementInit) -> Self {
-        Self(init)
-    }
 }
 
 impl RemoveUserStatementInit {
     /// Specify to remove the User from root
-    pub fn on_root(mut self) -> RemoveUserStatement {
-        self.on = Some(UserPermissionScope::Root);
-        self.into()
+    pub fn on_root(self) -> RemoveUserStatement {
+        self.on(UserPermissionScope::Root)
     }
 
     /// Specify to remove the User from namespace
-    pub fn on_namespace(mut self) -> RemoveUserStatement {
-        self.on = Some(UserPermissionScope::Namespace);
-        self.into()
+    pub fn on_namespace(self) -> RemoveUserStatement {
+        self.on(UserPermissionScope::Namespace)
     }
 
     /// Specify to remove the User from database
-    pub fn on_database(mut self) -> RemoveUserStatement {
-        self.on = Some(UserPermissionScope::Database);
-        self.into()
+    pub fn on_database(self) -> RemoveUserStatement {
+        self.on(UserPermissionScope::Database)
     }
-}
 
-impl Buildable for RemoveUserStatement {
-    fn build(&self) -> String {
-        let mut query = format!("REMOVE USER {}", self.user);
-
-        if let Some(on) = &self.on {
-            query = format!("{} ON {}", query, on);
+    fn on(self, on: UserPermissionScope) -> RemoveUserStatement {
+        RemoveUserStatement {
+            user: self.user,
+            on,
         }
-        format!("{};", query)
-    }
-}
-impl Display for RemoveUserStatement {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.build())
     }
 }
 
-impl Parametric for RemoveUserStatement {
-    fn get_bindings(&self) -> BindingsList {
-        vec![]
+/// Remove User statement
+pub struct RemoveUserStatement {
+    user: User,
+    on: UserPermissionScope,
+}
+
+impl Statement for RemoveUserStatement {
+    fn render_body(&self, sql: &mut Sql) {
+        sql.push_str("REMOVE USER ")
+            .push(&self.user)
+            .push_str(" ON ")
+            .push_display(&self.on);
     }
 }
 
-impl Erroneous for RemoveUserStatement {}
-
-impl Queryable for RemoveUserStatement {}
+impl_definition!(RemoveUserStatement);

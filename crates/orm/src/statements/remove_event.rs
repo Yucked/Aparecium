@@ -1,32 +1,8 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
+use surrealdb::types::Table;
 
-/*
-REMOVE statement
+use crate::{Event, Sql};
 
-Statement syntax
-REMOVE [
-    NAMESPACE @name
-    | DATABASE @name
-    | LOGIN @name ON [ NAMESPACE | DATABASE ]
-    | TOKEN @name ON [ NAMESPACE | DATABASE ]
-    | SCOPE @name
-    | TABLE @name
-    | EVENT @name ON [ TABLE ] @table
-    | FIELD @name ON [ TABLE ] @table
-    | INDEX @name ON [ TABLE ] @table
-]
- * */
-
-use std::fmt::{self, Display};
-
-use crate::{
-    traits::{BindingsList, Buildable, Erroneous, Parametric, Queryable},
-    types::{Event, Table},
-};
+use super::{Statement, impl_definition};
 
 /// Remove event statement
 ///
@@ -41,12 +17,12 @@ use crate::{
 /// # let party = Event::new("party");
 ///
 /// let statement = remove_event(party).on_table(user);
-/// assert_eq!(statement.build(), "REMOVE EVENT party ON TABLE user;");
+/// assert_eq!(statement.to_debug_sql(), "REMOVE EVENT party ON TABLE user;");
 /// ```
 pub fn remove_event(event: impl Into<Event>) -> RemoveEventStatement {
     RemoveEventStatement {
-        table: None,
         event: event.into(),
+        table: None,
     }
 }
 
@@ -58,45 +34,19 @@ pub struct RemoveEventStatement {
 
 impl RemoveEventStatement {
     /// Set the table to remove the event from.
-    ///
-    /// # Arguments
-    /// * `table` - The name of the table to remove the event from. Can be a string or a Table type.
-    ///
-    /// # Example
-    /// ```rust
-    /// use aparecium::{*, statements::remove_event};
-    /// # let user = Table::new("user");
-    /// # let party = Event::new("party");
-    ///
-    /// remove_event(party).on_table(user);
-    /// ```
     pub fn on_table(mut self, table: impl Into<Table>) -> Self {
         self.table = Some(table.into());
         self
     }
 }
 
-impl Buildable for RemoveEventStatement {
-    fn build(&self) -> String {
-        let mut query = format!("REMOVE EVENT {}", self.event);
+impl Statement for RemoveEventStatement {
+    fn render_body(&self, sql: &mut Sql) {
+        sql.push_str("REMOVE EVENT ").push(&self.event);
         if let Some(table) = &self.table {
-            query = format!("{query} ON TABLE {}", table);
+            sql.push_str(" ON TABLE ").push(table);
         }
-        format!("{};", query)
-    }
-}
-impl Display for RemoveEventStatement {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.build())
     }
 }
 
-impl Parametric for RemoveEventStatement {
-    fn get_bindings(&self) -> BindingsList {
-        vec![]
-    }
-}
-
-impl Erroneous for RemoveEventStatement {}
-
-impl Queryable for RemoveEventStatement {}
+impl_definition!(RemoveEventStatement);

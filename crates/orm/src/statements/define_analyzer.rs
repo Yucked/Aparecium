@@ -1,14 +1,11 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
-
 use std::fmt::{self, Display};
 
-use crate::{BindingsList, Buildable, Erroneous, ErrorList, Parametric, Queryable};
+use crate::{Ident, Sql};
 
-#[allow(missing_docs)]
+use super::{Statement, impl_definition};
+
+/// A full-text analyzer tokenizer.
+#[expect(missing_docs, reason = "each variant is the tokenizer's own name")]
 #[derive(Debug, Clone)]
 pub enum Tokenizer {
     Blank,
@@ -19,16 +16,17 @@ pub enum Tokenizer {
 
 impl Display for Tokenizer {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Tokenizer::Blank => write!(f, "Blank"),
-            Tokenizer::Camel => write!(f, "Camel"),
-            Tokenizer::Class => write!(f, "Class"),
-            Tokenizer::Punct => write!(f, "Punct"),
-        }
+        f.write_str(match self {
+            Tokenizer::Blank => "Blank",
+            Tokenizer::Camel => "Camel",
+            Tokenizer::Class => "Class",
+            Tokenizer::Punct => "Punct",
+        })
     }
 }
 
-#[allow(missing_docs)]
+/// A language for the snowball stemming filter.
+#[expect(missing_docs, reason = "each variant is the language's own name")]
 #[derive(Debug, Clone)]
 pub enum SnowballLanguage {
     Arabic,
@@ -52,46 +50,51 @@ pub enum SnowballLanguage {
 
 impl Display for SnowballLanguage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            SnowballLanguage::Arabic => write!(f, "arabic"),
-            SnowballLanguage::Danish => write!(f, "danish"),
-            SnowballLanguage::Dutch => write!(f, "dutch"),
-            SnowballLanguage::English => write!(f, "english"),
-            SnowballLanguage::French => write!(f, "french"),
-            SnowballLanguage::German => write!(f, "german"),
-            SnowballLanguage::Greek => write!(f, "greek"),
-            SnowballLanguage::Hungarian => write!(f, "hungarian"),
-            SnowballLanguage::Italian => write!(f, "italian"),
-            SnowballLanguage::Norwegian => write!(f, "norwegian"),
-            SnowballLanguage::Portuguese => write!(f, "portuguese"),
-            SnowballLanguage::Romanian => write!(f, "romanian"),
-            SnowballLanguage::Russian => write!(f, "russian"),
-            SnowballLanguage::Spanish => write!(f, "spanish"),
-            SnowballLanguage::Swedish => write!(f, "swedish"),
-            SnowballLanguage::Tamil => write!(f, "tamil"),
-            SnowballLanguage::Turkish => write!(f, "turkish"),
-        }
+        f.write_str(match self {
+            SnowballLanguage::Arabic => "arabic",
+            SnowballLanguage::Danish => "danish",
+            SnowballLanguage::Dutch => "dutch",
+            SnowballLanguage::English => "english",
+            SnowballLanguage::French => "french",
+            SnowballLanguage::German => "german",
+            SnowballLanguage::Greek => "greek",
+            SnowballLanguage::Hungarian => "hungarian",
+            SnowballLanguage::Italian => "italian",
+            SnowballLanguage::Norwegian => "norwegian",
+            SnowballLanguage::Portuguese => "portuguese",
+            SnowballLanguage::Romanian => "romanian",
+            SnowballLanguage::Russian => "russian",
+            SnowballLanguage::Spanish => "spanish",
+            SnowballLanguage::Swedish => "swedish",
+            SnowballLanguage::Tamil => "tamil",
+            SnowballLanguage::Turkish => "turkish",
+        })
     }
 }
 
-#[allow(missing_docs)]
+/// A full-text analyzer filter.
 #[derive(Debug, Clone)]
 pub enum AnalyzerFilter {
+    /// `ascii`
     Ascii,
+    /// `edgengram(min, max)`
     Edgengram(u32, u32),
+    /// `lowercase`
     Lowercase,
+    /// `snowball(language)`
     Snowball(SnowballLanguage),
+    /// `uppercase`
     Uppercase,
 }
 
 impl Display for AnalyzerFilter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            AnalyzerFilter::Ascii => write!(f, "ascii"),
-            AnalyzerFilter::Edgengram(min, max) => write!(f, "edgengram({}, {})", min, max),
-            AnalyzerFilter::Lowercase => write!(f, "lowercase"),
-            AnalyzerFilter::Snowball(lang) => write!(f, "snowball({})", lang),
-            AnalyzerFilter::Uppercase => write!(f, "uppercase"),
+            AnalyzerFilter::Ascii => f.write_str("ascii"),
+            AnalyzerFilter::Edgengram(min, max) => write!(f, "edgengram({min}, {max})"),
+            AnalyzerFilter::Lowercase => f.write_str("lowercase"),
+            AnalyzerFilter::Snowball(language) => write!(f, "snowball({language})"),
+            AnalyzerFilter::Uppercase => f.write_str("uppercase"),
         }
     }
 }
@@ -99,99 +102,72 @@ impl Display for AnalyzerFilter {
 /// `DEFINE ANALYZER` statement
 #[derive(Clone, Debug)]
 pub struct DefineAnalyzerStatement {
-    name: String,
+    name: Ident,
     tokenizers: Vec<Tokenizer>,
     filters: Vec<AnalyzerFilter>,
-    bindings: BindingsList,
-    errors: ErrorList,
 }
 
 /// Create a new `DefineAnalyzerStatement`
 /// ```
-/// use aparecium::statements::{define_analyzer, AnalyzerFilter, SnowballLanguage,Tokenizer};
+/// use aparecium::{Render, statements::{define_analyzer, AnalyzerFilter, SnowballLanguage, Tokenizer}};
 ///
-/// let mut analyzer = define_analyzer("ascii").tokenizers([Tokenizer::Class]).filters([
+/// let analyzer = define_analyzer("ascii").tokenizers([Tokenizer::Class]).filters([
 ///    AnalyzerFilter::Lowercase,
 ///    AnalyzerFilter::Ascii,
 ///    AnalyzerFilter::Edgengram(2, 15),
 ///    AnalyzerFilter::Snowball(SnowballLanguage::English),
 /// ]);
+/// assert_eq!(
+///     analyzer.to_debug_sql(),
+///     "DEFINE ANALYZER ascii TOKENIZERS Class FILTERS lowercase,ascii,edgengram(2, 15),snowball(english);"
+/// );
 /// ```
 pub fn define_analyzer(name: &str) -> DefineAnalyzerStatement {
     DefineAnalyzerStatement {
-        name: name.to_string(),
+        name: name.into(),
         tokenizers: vec![],
         filters: vec![],
-        bindings: vec![],
-        errors: vec![],
     }
 }
 
 impl DefineAnalyzerStatement {
     /// Add a tokenizer to the analyzer
-    pub fn tokenizers<I>(mut self, tokenizers: I) -> Self
-    where
-        I: IntoIterator<Item = Tokenizer>,
-    {
-        self.tokenizers
-            .extend(tokenizers.into_iter().collect::<Vec<_>>());
+    pub fn tokenizers(mut self, tokenizers: impl IntoIterator<Item = Tokenizer>) -> Self {
+        self.tokenizers.extend(tokenizers);
         self
     }
 
     /// Add a filter to the analyzer
-    pub fn filters<I>(mut self, filters: I) -> Self
-    where
-        I: IntoIterator<Item = AnalyzerFilter>,
-    {
-        self.filters.extend(filters.into_iter().collect::<Vec<_>>());
+    pub fn filters(mut self, filters: impl IntoIterator<Item = AnalyzerFilter>) -> Self {
+        self.filters.extend(filters);
         self
     }
 }
 
-impl Queryable for DefineAnalyzerStatement {}
-impl Erroneous for DefineAnalyzerStatement {
-    fn get_errors(&self) -> ErrorList {
-        self.errors.to_vec()
+/// Writes `items` separated by `,`.
+fn push_list(sql: &mut Sql, items: &[impl Display]) {
+    for (index, item) in items.iter().enumerate() {
+        if index > 0 {
+            sql.push_str(",");
+        }
+        sql.push_display(item);
     }
 }
 
-impl Parametric for DefineAnalyzerStatement {
-    fn get_bindings(&self) -> BindingsList {
-        self.bindings.to_vec()
-    }
-}
-
-impl Buildable for DefineAnalyzerStatement {
-    fn build(&self) -> String {
-        let mut query = format!("DEFINE ANALYZER {}", self.name);
+impl Statement for DefineAnalyzerStatement {
+    fn render_body(&self, sql: &mut Sql) {
+        sql.push_str("DEFINE ANALYZER ").push(&self.name);
 
         if !self.tokenizers.is_empty() {
-            let tokenizers_str = self
-                .tokenizers
-                .iter()
-                .map(ToString::to_string)
-                .collect::<Vec<_>>()
-                .join(",");
-            query = format!("{query} TOKENIZERS {}", tokenizers_str);
+            sql.push_str(" TOKENIZERS ");
+            push_list(sql, &self.tokenizers);
         }
 
         if !self.filters.is_empty() {
-            let filters_str = self
-                .filters
-                .iter()
-                .map(ToString::to_string)
-                .collect::<Vec<_>>()
-                .join(",");
-            query = format!("{query} FILTERS {}", filters_str);
+            sql.push_str(" FILTERS ");
+            push_list(sql, &self.filters);
         }
-
-        query.push(';');
-        query
     }
 }
 
-impl Display for DefineAnalyzerStatement {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.build())
-    }
-}
+impl_definition!(DefineAnalyzerStatement);

@@ -1,29 +1,8 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
+use surrealdb::types::Table;
 
-/*
-REMOVE statement
+use crate::Sql;
 
-Statement syntax
-REMOVE [
-    NAMESPACE @name
-    | DATABASE @name
-    | LOGIN @name ON [ NAMESPACE | DATABASE ]
-    | TOKEN @name ON [ NAMESPACE | DATABASE ]
-    | SCOPE @name
-    | TABLE @name
-    | EVENT @name ON [ TABLE ] @table
-    | FIELD @name ON [ TABLE ] @table
-    | INDEX @name ON [ TABLE ] @table
-]
- * */
-
-use std::fmt::{self, Display};
-
-use crate::{BindingsList, Buildable, Erroneous, Parametric, Queryable, Table};
+use super::{Statement, impl_definition};
 
 /// Remove table statement
 ///
@@ -34,9 +13,9 @@ use crate::{BindingsList, Buildable, Erroneous, Parametric, Queryable, Table};
 /// # Example
 /// ```rust
 /// use aparecium::{*, statements::remove_table};
-/// # let table = Table::new("table");
+/// # let table = Table::new("user");
 /// let statement = remove_table(table);
-/// assert_eq!(statement.build(), "REMOVE TABLE table;");
+/// assert_eq!(statement.to_debug_sql(), "REMOVE TABLE user;");
 /// ```
 pub fn remove_table(table: impl Into<Table>) -> RemoveTableStatement {
     RemoveTableStatement {
@@ -49,24 +28,10 @@ pub struct RemoveTableStatement {
     table: Table,
 }
 
-impl Buildable for RemoveTableStatement {
-    fn build(&self) -> String {
-        format!("REMOVE TABLE {};", self.table)
+impl Statement for RemoveTableStatement {
+    fn render_body(&self, sql: &mut Sql) {
+        sql.push_str("REMOVE TABLE ").push(&self.table);
     }
 }
 
-impl Display for RemoveTableStatement {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.build())
-    }
-}
-
-impl Parametric for RemoveTableStatement {
-    fn get_bindings(&self) -> BindingsList {
-        vec![]
-    }
-}
-
-impl Erroneous for RemoveTableStatement {}
-
-impl Queryable for RemoveTableStatement {}
+impl_definition!(RemoveTableStatement);

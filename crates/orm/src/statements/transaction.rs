@@ -1,46 +1,22 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
+use crate::{Queryable, Render, Sql};
 
-use std::fmt::{self, Display};
-
-use surrealdb::sql;
-
-use crate::{
-    traits::{BindingsList, Parametric},
-    traits::{Buildable, Erroneous, Queryable},
-};
 /// Creates a Transaction statement starting with BEGIN TRANSACTION and ends with COMMIT
-/// TRANSACTION or END TRANSACTION.
+/// TRANSACTION or CANCEL TRANSACTION.
 ///
-/// Transactions
-/// Each statement within SurrealDB is run within its own transaction.
-/// If a set of changes need to be made together, then groups of statements can be run
-/// together as a single transaction, either succeeding as a whole,
-/// or failing without leaving any residual data modifications.
-///
-/// Starting a transaction
-/// The BEGIN TRANSACTION statement can be used to run a group of statements together,
-/// either succeeding as a whole, or failing. If all of the statements within a transaction succeed,
-/// and the transaction is successful, then all of the data modifications made during the transaction
-/// are committed and become a permanent part of the database. If a transaction encounters errors
-/// and must be cancelled or rolled back, then any data modification made within the transaction is rolledback,
-/// and will not be visible within the database.
+/// Each statement within SurrealDB is run within its own transaction. If a set of changes need to
+/// be made together, then groups of statements can be run together as a single transaction,
+/// either succeeding as a whole, or failing without leaving any residual data modifications.
 ///
 /// Example
 ///
 /// ```rust
-/// use std::time::Duration;
-/// use surrealdb::sql;
-/// use aparecium::{*, statements::{begin_transaction, order, select}};
+/// use aparecium::{*, statements::{begin_transaction, order, select}, types::RecordId};
 /// # let name = Field::new("name");
 /// # let age = Field::new("age");
 /// # let country = Field::new("country");
 /// # let city = Field::new("city");
-/// # let fake_id = sql::Thing::from(("user".to_string(), "oyelowo".to_string()));
-/// # let fake_id2 = sql::Thing::from(("user".to_string(), "oyedayo".to_string()));
+/// # let fake_id = RecordId::new("user", "alice");
+/// # let fake_id2 = RecordId::new("user", "bob");
 ///
 /// let statement1 = select(All)
 ///     .from(fake_id)
@@ -66,7 +42,7 @@ use crate::{
 ///     .commit_transaction();
 /// ```
 pub fn begin_transaction() -> QueryTransaction {
-    BeginTransactionStatement::begin()
+    QueryTransaction { queries: vec![] }
 }
 
 /// Creates a Transaction statement starting
@@ -115,104 +91,59 @@ macro_rules! transaction_deprecated {
 }
 pub use transaction_deprecated;
 
+/// A transaction collecting its statements.
 pub struct QueryTransaction {
-    data: TransactionData,
+    queries: Vec<Sql>,
 }
 
 impl QueryTransaction {
-    /// takes a statement as an argument
-    pub fn query(mut self, query: impl Queryable + Display) -> Self {
-        self.data.bindings.extend(query.get_bindings());
-        self.data.queries.push(query.build());
+    /// Adds a statement to the transaction.
+    pub fn query(mut self, query: impl Queryable) -> Self {
+        self.queries.push(query.to_sql());
         self
     }
 
+    /// Ends the transaction with `COMMIT TRANSACTION`.
     pub fn commit_transaction(self) -> TransactionCompletion {
-        let mut transaction = TransactionCompletion { data: self.data };
-        transaction.data.transaction_completion_type =
-            Some(TranctionCompletionType::CommitTransaction);
-        transaction
+        TransactionCompletion {
+            queries: self.queries,
+            completion: Completion::Commit,
+        }
     }
 
+    /// Ends the transaction with `CANCEL TRANSACTION`.
     pub fn cancel_transaction(self) -> TransactionCompletion {
-        let mut transaction = TransactionCompletion { data: self.data };
-        transaction.data.transaction_completion_type =
-            Some(TranctionCompletionType::CancelTransaction);
-        transaction
-    }
-}
-
-/// Transaction statement initialization builder
-pub struct BeginTransactionStatement;
-
-impl BeginTransactionStatement {
-    pub(crate) fn begin() -> QueryTransaction {
-        QueryTransaction {
-            data: TransactionData {
-                transaction_completion_type: None,
-                queries: vec![],
-                bindings: vec![],
-            },
+        TransactionCompletion {
+            queries: self.queries,
+            completion: Completion::Cancel,
         }
     }
 }
 
-#[derive(Debug, Clone)]
-enum TranctionCompletionType {
-    CommitTransaction,
-    CancelTransaction,
-}
-
-#[derive(Debug, Clone)]
-pub struct TransactionData {
-    transaction_completion_type: Option<TranctionCompletionType>,
-    queries: Vec<String>,
-    bindings: BindingsList,
+#[derive(Debug, Clone, Copy)]
+enum Completion {
+    Commit,
+    Cancel,
 }
 
 /// Completed Transaction statements. Either COMMIT or CANCEL Transaction.
 #[derive(Debug, Clone)]
 pub struct TransactionCompletion {
-    data: TransactionData,
+    queries: Vec<Sql>,
+    completion: Completion,
 }
 
-impl Parametric for TransactionCompletion {
-    fn get_bindings(&self) -> BindingsList {
-        self.data.bindings.to_vec()
+impl Render for TransactionCompletion {
+    fn render(&self, sql: &mut Sql) {
+        sql.push_str("BEGIN TRANSACTION;\n");
+        for query in &self.queries {
+            sql.push_str("\n").push(query).push_str("\n");
+        }
+        sql.push_str(match self.completion {
+            Completion::Commit => "\nCOMMIT TRANSACTION;\n\t",
+            Completion::Cancel => "\nCANCEL TRANSACTION;\n\t",
+        });
     }
 }
 
 impl Queryable for TransactionCompletion {}
-impl Erroneous for TransactionCompletion {}
-
-impl Buildable for TransactionCompletion {
-    fn build(&self) -> String {
-        let mut output = String::new();
-        output.push_str("BEGIN TRANSACTION;\n");
-
-        self.data.queries.iter().for_each(|q| {
-            output.push_str(&format!("\n{};\n", q.trim().trim_end_matches(';')));
-        });
-
-        if let Some(completion_type) = &self.data.transaction_completion_type {
-            let com_type = match completion_type {
-                TranctionCompletionType::CommitTransaction => {
-                    sql::statements::CommitStatement.to_string()
-                }
-                TranctionCompletionType::CancelTransaction => {
-                    sql::statements::CancelStatement.to_string()
-                }
-            };
-
-            output.push_str(&format!("\n{com_type};\n\t"));
-        }
-
-        output
-    }
-}
-
-impl fmt::Display for TransactionCompletion {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.build())
-    }
-}

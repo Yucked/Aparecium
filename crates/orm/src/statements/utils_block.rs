@@ -1,10 +1,5 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
-use crate::{Buildable, Erroneous, Parametric, QueryChain, Queryable, ValueLike};
+use crate::{QueryChain, Queryable, Render, Sql, ValueLike};
 
 #[macro_export]
 /// Macro for creating a surrealdb code block
@@ -36,15 +31,15 @@ use crate::{Buildable, Erroneous, Parametric, QueryChain, Queryable, ValueLike};
 /// ```rust, ignore
 /// // Using in a transaction query function.
 ///
-/// let id1 = Account::create_id("one".into());
-/// let id2 = Account::create_id("two".into());
+/// let id1 = Account::id("one");
+/// let id2 = Account::id("two");
 /// let acc = Account::schema();
 ///
 /// let amount_to_transfer = 300.00;
 /// let transaction_query = begin_transaction()
 ///     .query(block_deprecated!(
 ///         let balance = create(Balance {
-///             id: Balance::create_id("balance".into()),
+///             id: Balance::id("balance"),
 ///             balance: amount_to_transfer,
 ///         });
 ///
@@ -67,8 +62,8 @@ use crate::{Buildable, Erroneous, Parametric, QueryChain, Queryable, ValueLike};
 /// ```
 /// ```rust, ignore
 /// // Using to create a transaction query function.
-/// let id1 = Account::create_id("one".into());
-/// let id2 = Account::create_id("two".into());
+/// let id1 = Account::id("one");
+/// let id2 = Account::id("two");
 /// let amount_to_transfer = 300.00;
 /// let acc = Account::schema();
 ///
@@ -456,7 +451,7 @@ macro_rules! block_deprecated_inner {
 /// let def = define_field(average_sales).on_table(metrics).value(code_block_deprecated);
 ///
 /// assert_eq!(
-///     def.to_raw().build(),
+///     def.to_debug_sql(),
 ///     "DEFINE FIELD average_sales ON TABLE metrics VALUE $value OR {\n\
 ///         LET $sales = (SELECT VALUE quantity FROM sales);\n\n\
 ///         LET $total = math::sum($sales);\n\n\
@@ -469,13 +464,12 @@ pub fn block(code: QueryChain) -> Block {
 }
 
 /// A code block. Surrounds the code with curly braces.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Block(QueryChain);
 
-impl Buildable for Block {
-    fn build(&self) -> String {
-        // format!("{};", self.0.build().trim_end_matches(";"))
-        format!("{{\n{}\n}}", self.0.build())
+impl Render for Block {
+    fn render(&self, sql: &mut Sql) {
+        sql.push_str("{\n").push(&self.0).push_str("\n}");
     }
 }
 
@@ -487,24 +481,8 @@ impl From<QueryChain> for Block {
 
 impl From<Block> for ValueLike {
     fn from(block: Block) -> Self {
-        ValueLike {
-            string: block.build(),
-            bindings: block.get_bindings(),
-            errors: block.get_errors(),
-        }
+        ValueLike::new(block)
     }
 }
 
 impl Queryable for Block {}
-
-impl Parametric for Block {
-    fn get_bindings(&self) -> crate::BindingsList {
-        self.0.get_bindings()
-    }
-}
-
-impl Erroneous for Block {
-    fn get_errors(&self) -> crate::ErrorList {
-        self.0.get_errors()
-    }
-}

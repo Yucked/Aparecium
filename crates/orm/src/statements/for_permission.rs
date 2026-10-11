@@ -1,28 +1,14 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
+use crate::{Conditional, CrudType, Filter, Queryable, Raw, Render, Sql};
 
-use std::fmt::{self, Display};
-
-use crate::{
-    traits::{BindingsList, Buildable, Conditional, Erroneous, Parametric, Queryable, Raw, ToRaw},
-    types::{CrudType, Filter},
-};
-
-#[derive(Clone, Debug)]
-struct ForData {
-    crud_types: Vec<CrudType>,
-    condition: Option<Filter>,
-    bindings: BindingsList,
-}
-
+/// The CRUD operations a permission applies to.
 #[derive(Clone, Debug)]
 pub enum ForArgs {
+    /// One operation
     ForOption(CrudType),
+    /// Several operations
     ForOptions(Vec<CrudType>),
 }
+
 impl From<CrudType> for ForArgs {
     fn from(value: CrudType) -> Self {
         Self::ForOption(value)
@@ -34,6 +20,7 @@ impl From<Vec<CrudType>> for ForArgs {
         Self::ForOptions(value)
     }
 }
+
 impl From<ForArgs> for Vec<CrudType> {
     fn from(value: ForArgs) -> Self {
         match value {
@@ -55,14 +42,16 @@ impl<const N: usize> From<[CrudType; N]> for ForArgs {
     }
 }
 
-pub struct ForStart(ForData);
+/// A `FOR` permission awaiting its condition.
+pub struct ForStart(Vec<CrudType>);
 
 impl ForStart {
-    pub fn where_(mut self, condition: impl Conditional) -> ForPermission {
-        let condition = Filter::new(condition);
-        self.0.condition = Some(condition.clone());
-        self.0.bindings.extend(condition.get_bindings());
-        ForPermission(self.0)
+    /// Sets the condition under which the operations are permitted.
+    pub fn where_(self, condition: impl Conditional) -> ForPermission {
+        ForPermission {
+            crud_types: self.0,
+            condition: Filter::new(condition),
+        }
     }
 }
 
@@ -79,63 +68,36 @@ impl ForStart {
 /// # let country = Field::new("country");
 ///
 ///  // You can create for a single crud operation
-/// let statement = for_permission(Create).where_(name.like("Oyelowo"));
-///  
+/// let statement = for_permission(Create).where_(name.like("Alice"));
+///
 ///  // You can also create for a  list of crud operations
 /// let statement = for_permission(&[Create, Delete, Select, Update]).where_(country.like("Canada"));
 ///
-/// assert!(!statement.build().is_empty());
+/// assert!(!statement.to_debug_sql().is_empty());
 /// ```
 pub fn for_permission(for_crud_types: impl Into<ForArgs>) -> ForStart {
-    ForStart(ForData {
-        crud_types: for_crud_types.into().into(),
-        condition: None,
-        bindings: vec![],
-    })
+    ForStart(for_crud_types.into().into())
 }
 
 /// Builder struct for a `FOR` statement which is typeically used in DEFINE TABLE and DEFINE FIELD
 /// statements for setting more granular permissions
 #[derive(Clone, Debug)]
-pub struct ForPermission(ForData);
+pub struct ForPermission {
+    crud_types: Vec<CrudType>,
+    condition: Filter,
+}
 
-impl Buildable for ForPermission {
-    fn build(&self) -> String {
-        let mut query = "FOR".to_string();
-        if !&self.0.crud_types.is_empty() {
-            query = format!(
-                "{query} {}",
-                &self
-                    .0
-                    .crud_types
-                    .iter()
-                    .map(|ct| { ct.to_string() })
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            );
+impl Render for ForPermission {
+    fn render(&self, sql: &mut Sql) {
+        sql.push_str("FOR");
+        if !self.crud_types.is_empty() {
+            sql.push_str(" ").push(&self.crud_types);
         }
-
-        if let Some(cond) = &self.0.condition {
-            query = format!("{query}\n\tWHERE {cond}");
-        }
-        query
+        sql.push_str("\n\tWHERE ").push(&self.condition);
     }
 }
 
-impl Erroneous for ForPermission {}
 impl Queryable for ForPermission {}
-
-impl Parametric for ForPermission {
-    fn get_bindings(&self) -> BindingsList {
-        self.0.bindings.to_vec()
-    }
-}
-
-impl Display for ForPermission {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.build())
-    }
-}
 
 /// Permission types which can be a a single For statement
 /// list of `for` statements
@@ -151,25 +113,55 @@ pub enum Permissions {
     RawStatementList(Vec<Raw>),
 }
 
-impl ToRaw for Permissions {
-    fn to_raw(self: &Permissions) -> Raw {
+/// Permissions render one per line.
+impl Render for Permissions {
+    fn render(&self, sql: &mut Sql) {
         match self {
-            Permissions::For(for_one) => for_one.to_raw(),
-            Permissions::Fors(for_many) => Raw::new(
-                for_many
-                    .iter()
-                    .map(|f| f.to_raw().build())
-                    .collect::<Vec<_>>()
-                    .join("\n"),
-            ),
-            Permissions::RawStatement(r) => r.to_raw(),
-            Permissions::RawStatementList(raw_list) => Raw::new(
-                raw_list
-                    .iter()
-                    .map(|f| f.to_raw().build())
-                    .collect::<Vec<_>>()
-                    .join("\n"),
-            ),
+            Permissions::For(one) => one.render(sql),
+            Permissions::Fors(many) => {
+                sql.push_joined(many, "\n");
+            }
+            Permissions::RawStatement(raw) => raw.render(sql),
+            Permissions::RawStatementList(raws) => {
+                sql.push_joined(raws, "\n");
+            }
+        }
+    }
+}
+
+/// The `PERMISSIONS` clause shared by definitions.
+#[derive(Clone, Debug, Default)]
+pub(crate) struct PermissionsClause {
+    none: bool,
+    full: bool,
+    fors: Vec<Permissions>,
+}
+
+impl PermissionsClause {
+    pub(crate) fn none(&mut self) {
+        self.none = true;
+    }
+
+    pub(crate) fn full(&mut self) {
+        self.full = true;
+    }
+
+    /// Additional permissions accumulate.
+    pub(crate) fn push(&mut self, permissions: impl Into<Permissions>) {
+        self.fors.push(permissions.into());
+    }
+}
+
+/// Renders ` PERMISSIONS NONE`, ` PERMISSIONS FULL`, or the `FOR` permissions one per line;
+/// nothing when unset.
+impl Render for PermissionsClause {
+    fn render(&self, sql: &mut Sql) {
+        if self.none {
+            sql.push_str(" PERMISSIONS NONE");
+        } else if self.full {
+            sql.push_str(" PERMISSIONS FULL");
+        } else if !self.fors.is_empty() {
+            sql.push_str("\nPERMISSIONS\n").push_joined(&self.fors, "\n");
         }
     }
 }

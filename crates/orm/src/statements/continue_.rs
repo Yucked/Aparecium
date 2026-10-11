@@ -1,12 +1,6 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
+use crate::Sql;
 
-use std::fmt;
-
-use crate::traits::{BindingsList, Buildable, Erroneous, Parametric, Queryable};
+use super::{Statement, impl_statement};
 
 /// Creates a CONTINUE statement builder.
 ///
@@ -14,7 +8,7 @@ use crate::traits::{BindingsList, Buildable, Erroneous, Parametric, Queryable};
 /// ```rust
 /// use aparecium::{*, statements::continue_};
 ///
-/// continue_();
+/// assert_eq!(continue_().to_debug_sql(), "CONTINUE;");
 /// ```
 pub fn continue_() -> ContinueStatement {
     ContinueStatement
@@ -23,24 +17,10 @@ pub fn continue_() -> ContinueStatement {
 /// Represents the CONTINUE statement
 pub struct ContinueStatement;
 
-impl Queryable for ContinueStatement {}
-
-impl Erroneous for ContinueStatement {}
-
-impl Parametric for ContinueStatement {
-    fn get_bindings(&self) -> BindingsList {
-        vec![]
+impl Statement for ContinueStatement {
+    fn render_body(&self, sql: &mut Sql) {
+        sql.push_str("CONTINUE");
     }
 }
 
-impl Buildable for ContinueStatement {
-    fn build(&self) -> String {
-        "CONTINUE;".to_string()
-    }
-}
-
-impl fmt::Display for ContinueStatement {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.build())
-    }
-}
+impl_statement!(ContinueStatement);

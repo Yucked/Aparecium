@@ -1,36 +1,37 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
-
 // Statement syntax
 // DEFINE SCOPE @name SESSION @duration SIGNUP @expression SIGNIN @expression
-// Example usage
-// Below shows how you can create a namespace using the DEFINE NAMESPACE statement.
 //
 // -- Enable scope authentication directly in SurrealDB
 // DEFINE SCOPE account SESSION 24h
 // 	SIGNUP ( CREATE user SET email = $email, pass = crypto::argon2::generate($pass) )
 // 	SIGNIN ( SELECT * FROM user WHERE email = $email AND crypto::argon2::compare(pass, $pass) )
 // ;
-use std::fmt::{self, Display};
+use crate::{DurationLike, Raw, Render, Scope, Sql};
 
-use crate::{
-    traits::{Binding, BindingsList, Buildable, Erroneous, Parametric, Queryable},
-    types::{DurationLike, Scope},
-};
+use super::{Statement, Subquery, impl_definition};
 
-use super::Subquery;
+/// A scope's SIGNUP or SIGNIN expression: a statement, rendered as a subquery, or raw SurrealQL
+/// in parentheses.
+pub struct ScopeExpression(Sql);
+
+impl<T: Into<Subquery>> From<T> for ScopeExpression {
+    fn from(value: T) -> Self {
+        Self(value.into().to_sql())
+    }
+}
+
+impl From<Raw> for ScopeExpression {
+    fn from(value: Raw) -> Self {
+        let mut sql = Sql::new();
+        sql.push_str("(").push(&value).push_str(")");
+        Self(sql)
+    }
+}
 
 /// Define a new scope.
 /// Setting scope access allows SurrealDB to operate as a web database.
 /// With scopes you can set authentication and access rules which enable
 /// fine-grained access to tables and fields.
-///
-/// Requirements
-/// To use DEFINE SCOPE you must have root, namespace, or database level access.
-/// You must select your namespace and database before you can use the DEFINE SCOPE statement.
 ///
 /// Examples:
 ///
@@ -42,100 +43,73 @@ use super::Subquery;
 /// # let email = Field::new("email");
 /// # let pass = Field::new("pass");
 /// # let pass_param = Param::new("pass_param");
-/// let statement = define_scope("oyelowo_scope")
+/// let statement = define_scope("acme_scope")
 ///     .session(Duration::from_secs(45))
 ///     .signup(Raw::new(
 ///         "CREATE user SET email = $email, pass = crypto::argon2::generate($pass)",
 ///     ))
 ///     .signin(
 ///         select(All).from(user).where_(
-///             cond(email.equal("oyelowo@codebreather.com"))
+///             cond(email.equal("alice@example.com"))
 ///                 .and(crypto::argon2::compare!(pass, pass_param)),
 ///         ),
 ///     );
 ///
-/// assert!(!statement.build().is_empty());
+/// assert!(!statement.to_debug_sql().is_empty());
 /// ```
 pub fn define_scope(scope_name: impl Into<Scope>) -> DefineScopeStatement {
-    let binding_scope_name = Binding::new(scope_name.into()).with_description("Session scope");
-    let name = binding_scope_name.get_param_dollarised();
     DefineScopeStatement {
-        name,
+        name: scope_name.into(),
         duration: None,
-        signup_expression: None,
-        signin_expression: None,
-        bindings: vec![binding_scope_name],
+        signup: None,
+        signin: None,
     }
 }
 
 /// Define the API for the Scope builder
 pub struct DefineScopeStatement {
-    name: String,
-    duration: Option<String>,
-    signup_expression: Option<String>,
-    signin_expression: Option<String>,
-    bindings: BindingsList,
+    name: Scope,
+    duration: Option<DurationLike>,
+    signup: Option<ScopeExpression>,
+    signin: Option<ScopeExpression>,
 }
 
 impl DefineScopeStatement {
     /// Set the session duration
     pub fn session(mut self, duration: impl Into<DurationLike>) -> Self {
-        let duration: DurationLike = duration.into();
-        self.bindings.extend(duration.get_bindings());
-        self.duration = Some(duration.build());
+        self.duration = Some(duration.into());
         self
     }
 
     /// Set the signup expression
-    pub fn signup(mut self, subquery: impl Into<Subquery>) -> Self {
-        let subquery: Subquery = subquery.into();
-        self.bindings.extend(subquery.get_bindings());
-        self.signup_expression = Some(subquery.build());
+    pub fn signup(mut self, expression: impl Into<ScopeExpression>) -> Self {
+        self.signup = Some(expression.into());
         self
     }
 
     /// Set the signin expression
-    pub fn signin(mut self, subquery: impl Into<Subquery>) -> Self {
-        let subquery: Subquery = subquery.into();
-        self.bindings.extend(subquery.get_bindings());
-        self.signin_expression = Some(subquery.build());
+    pub fn signin(mut self, expression: impl Into<ScopeExpression>) -> Self {
+        self.signin = Some(expression.into());
         self
     }
 }
 
-impl Buildable for DefineScopeStatement {
-    fn build(&self) -> String {
-        let mut query = format!("DEFINE SCOPE {}", self.name);
+impl Statement for DefineScopeStatement {
+    fn render_body(&self, sql: &mut Sql) {
+        sql.push_str("DEFINE SCOPE ").push(&self.name);
 
-        if let Some(session_duration) = &self.duration {
-            query = format!("{query} SESSION {session_duration}");
+        if let Some(duration) = &self.duration {
+            sql.push_str(" SESSION ").push(duration);
         }
 
-        if let Some(signup) = &self.signup_expression {
-            query = format!("{query} \n\tSIGNUP {signup}");
+        if let Some(signup) = &self.signup {
+            sql.push_str(" \n\tSIGNUP ").push(&signup.0);
         }
 
-        if let Some(signin) = &self.signin_expression {
-            query = format!("{query} \n\tSIGNIN {signin}");
+        if let Some(signin) = &self.signin {
+            sql.push_str(" \n\tSIGNIN ").push(&signin.0);
         }
-
-        query += ";";
-        query
     }
 }
 
-impl Display for DefineScopeStatement {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.build())
-    }
-}
-
-impl Parametric for DefineScopeStatement {
-    fn get_bindings(&self) -> BindingsList {
-        self.bindings.to_vec()
-    }
-}
-
-impl Queryable for DefineScopeStatement {}
-
-impl Erroneous for DefineScopeStatement {}
+impl_definition!(DefineScopeStatement);

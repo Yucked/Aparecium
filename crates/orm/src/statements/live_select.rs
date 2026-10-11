@@ -1,15 +1,6 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
+use crate::{Sql, statements::SelectStatement};
 
-use std::fmt;
-
-use crate::{
-    statements::SelectStatement,
-    traits::{BindingsList, Buildable, Erroneous, Parametric, Queryable},
-};
+use super::{Statement, impl_statement};
 
 /// Creates a LIVE SELECT statement builder.
 ///
@@ -18,6 +9,7 @@ use crate::{
 /// use aparecium::{*, statements::{live, select}};
 /// let person = Table::new("person");
 /// let statement = live(select(All).from(person));
+/// assert_eq!(statement.to_debug_sql(), "LIVE SELECT * FROM person;");
 /// ```
 pub fn live(select_statement: SelectStatement) -> LiveSelectStatement {
     LiveSelectStatement {
@@ -30,25 +22,11 @@ pub struct LiveSelectStatement {
     select: SelectStatement,
 }
 
-impl Queryable for LiveSelectStatement {}
-
-impl Erroneous for LiveSelectStatement {}
-
-impl Parametric for LiveSelectStatement {
-    fn get_bindings(&self) -> BindingsList {
-        self.select.get_bindings()
+impl Statement for LiveSelectStatement {
+    fn render_body(&self, sql: &mut Sql) {
+        sql.push_str("LIVE ");
+        self.select.render_body(sql);
     }
 }
 
-impl Buildable for LiveSelectStatement {
-    fn build(&self) -> String {
-        let query = format!("LIVE {}", &self.select.build());
-        query
-    }
-}
-
-impl fmt::Display for LiveSelectStatement {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.build())
-    }
-}
+impl_statement!(LiveSelectStatement);

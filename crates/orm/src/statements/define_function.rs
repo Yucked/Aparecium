@@ -1,12 +1,8 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
+use surrealdb::types::Kind;
 
-use crate::{
-    BindingsList, Block, Buildable, Erroneous, ErrorList, FieldType, Param, Parametric, Queryable,
-};
+use crate::{Block, Param, Sql};
+
+use super::{Statement, impl_definition};
 
 /// Represents a surrealdb define function statement argument
 #[derive(Debug, Clone)]
@@ -14,7 +10,7 @@ pub struct FunctionArgument {
     /// The name of the argument
     pub name: Param,
     /// The type of the argument
-    pub type_: FieldType,
+    pub type_: Kind,
 }
 
 /// A function definition statement
@@ -23,23 +19,15 @@ pub struct DefineFunctionStatement {
     name: String,
     args: Vec<FunctionArgument>,
     body: Option<Block>,
-    bindings: BindingsList,
-    errors: ErrorList,
 }
 
 impl DefineFunctionStatement {
     /// Create a new function definition statement
     ///
     /// # Arguments
-    /// * `name` - The name of the function
+    /// * `name` - The name of the function, without the `fn::` prefix
     pub fn new(name: String) -> Self {
-        Self {
-            name,
-            args: vec![],
-            body: None,
-            bindings: vec![],
-            errors: vec![],
-        }
+        define_function(name)
     }
 
     /// Sets the arguments for the function
@@ -50,10 +38,7 @@ impl DefineFunctionStatement {
 
     /// Sets the body of the function
     pub fn body(mut self, body: impl Into<Block>) -> Self {
-        let body = body.into();
-        self.bindings.extend(body.get_bindings());
-        self.errors.extend(body.get_errors());
-        self.body = Some(body);
+        self.body = Some(body.into());
         self
     }
 }
@@ -64,40 +49,26 @@ pub fn define_function(name: impl Into<String>) -> DefineFunctionStatement {
         name: name.into(),
         args: vec![],
         body: None,
-        bindings: vec![],
-        errors: vec![],
     }
 }
 
-impl Parametric for DefineFunctionStatement {
-    fn get_bindings(&self) -> BindingsList {
-        self.bindings.to_vec()
-    }
-}
-
-impl Erroneous for DefineFunctionStatement {
-    fn get_errors(&self) -> ErrorList {
-        self.errors.to_vec()
-    }
-}
-
-impl Queryable for DefineFunctionStatement {}
-
-impl Buildable for DefineFunctionStatement {
-    fn build(&self) -> String {
-        let mut build = format!("DEFINE FUNCTION fn::{}(", self.name);
-        build.push_str(
-            &self
-                .args
-                .iter()
-                .map(|FunctionArgument { name, type_ }| format!("{}: {}", name.build(), type_))
-                .collect::<Vec<String>>()
-                .join(", "),
-        );
-        build.push_str(") ");
-        if let Some(body) = &self.body {
-            build.push_str(&body.build());
+impl Statement for DefineFunctionStatement {
+    fn render_body(&self, sql: &mut Sql) {
+        // The name is a `::`-separated path, written as given.
+        sql.push_str("DEFINE FUNCTION fn::")
+            .push_str(&self.name)
+            .push_str("(");
+        for (index, FunctionArgument { name, type_ }) in self.args.iter().enumerate() {
+            if index > 0 {
+                sql.push_str(", ");
+            }
+            sql.push(name).push_str(": ").push(type_);
         }
-        format!("{build};")
+        sql.push_str(") ");
+        if let Some(body) = &self.body {
+            sql.push(body);
+        }
     }
 }
+
+impl_definition!(DefineFunctionStatement);

@@ -1,33 +1,6 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
+use crate::{Login, Sql};
 
-/*
- *
- *
-REMOVE statement
-
-Statement syntax
-REMOVE [
-    NAMESPACE @name
-    | DATABASE @name
-    | LOGIN @name ON [ NAMESPACE | DATABASE ]
-    | TOKEN @name ON [ NAMESPACE | DATABASE ]
-    | SCOPE @name
-    | TABLE @name
-    | EVENT @name ON [ TABLE ] @table
-    | FIELD @name ON [ TABLE ] @table
-    | INDEX @name ON [ TABLE ] @table
-]
- * */
-
-use std::fmt::{self, Display};
-
-use crate::{BindingsList, Buildable, Erroneous, Login, Parametric, Queryable};
-
-use super::NamespaceOrDatabase;
+use super::{NamespaceOrDatabase, Statement, impl_definition};
 
 /// Remove login statement
 ///
@@ -38,93 +11,52 @@ use super::NamespaceOrDatabase;
 /// # Example
 /// ```rust
 /// use aparecium::{*, statements::remove_login};
-/// # let username = Login::new("username");
+/// # let username = Login::new("alice");
 /// let statement = remove_login(username).on_namespace();
-/// assert_eq!(statement.build(), "REMOVE LOGIN username ON NAMESPACE;");
+/// assert_eq!(statement.to_debug_sql(), "REMOVE LOGIN alice ON NAMESPACE;");
 /// ```
 pub fn remove_login(login: impl Into<Login>) -> RemoveLoginStatementInit {
     RemoveLoginStatementInit {
         login: login.into(),
-        on: None,
     }
 }
 
+/// A REMOVE LOGIN statement awaiting its level.
 pub struct RemoveLoginStatementInit {
     login: Login,
-    on: Option<NamespaceOrDatabase>,
 }
 
 impl RemoveLoginStatementInit {
     /// Remove login on namespace
-    /// ```rust
-    ///
-    /// use aparecium::{*, statements::remove_login};
-    ///
-    /// let username = Login::new("username");
-    /// let statement = remove_login(username).on_namespace();
-    /// assert_eq!(statement.build(), "REMOVE LOGIN username ON NAMESPACE;");
-    /// ```
-    pub fn on_namespace(mut self) -> RemoveLoginStatement {
-        self.on = Some(NamespaceOrDatabase::Namespace);
-        self.into()
+    pub fn on_namespace(self) -> RemoveLoginStatement {
+        RemoveLoginStatement {
+            login: self.login,
+            on: NamespaceOrDatabase::Namespace,
+        }
     }
 
     /// Remove login on database
-    /// ```rust
-    ///
-    /// use aparecium::{*, statements::remove_login};
-    ///
-    /// let username = Login::new("username");
-    /// let statement = remove_login(username).on_database();
-    /// assert_eq!(statement.build(), "REMOVE LOGIN username ON DATABASE;");
-    /// ```
-    pub fn on_database(mut self) -> RemoveLoginStatement {
-        self.on = Some(NamespaceOrDatabase::Database);
-        self.into()
+    pub fn on_database(self) -> RemoveLoginStatement {
+        RemoveLoginStatement {
+            login: self.login,
+            on: NamespaceOrDatabase::Database,
+        }
     }
 }
 
 /// Remove login statement
-pub struct RemoveLoginStatement(RemoveLoginStatementInit);
+pub struct RemoveLoginStatement {
+    login: Login,
+    on: NamespaceOrDatabase,
+}
 
-impl From<RemoveLoginStatementInit> for RemoveLoginStatement {
-    fn from(init: RemoveLoginStatementInit) -> Self {
-        Self(init)
+impl Statement for RemoveLoginStatement {
+    fn render_body(&self, sql: &mut Sql) {
+        sql.push_str("REMOVE LOGIN ")
+            .push(&self.login)
+            .push_str(" ON ")
+            .push(&self.on);
     }
 }
 
-impl std::ops::Deref for RemoveLoginStatement {
-    type Target = RemoveLoginStatementInit;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl Buildable for RemoveLoginStatement {
-    fn build(&self) -> String {
-        let mut query = format!("REMOVE LOGIN {}", self.login);
-
-        if let Some(on) = &self.on {
-            query = format!("{} ON {}", query, on);
-        }
-
-        format!("{};", query)
-    }
-}
-
-impl Display for RemoveLoginStatement {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.build())
-    }
-}
-
-impl Parametric for RemoveLoginStatement {
-    fn get_bindings(&self) -> BindingsList {
-        vec![]
-    }
-}
-
-impl Erroneous for RemoveLoginStatement {}
-
-impl Queryable for RemoveLoginStatement {}
+impl_definition!(RemoveLoginStatement);

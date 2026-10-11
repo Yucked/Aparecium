@@ -1,9 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
-
 // Statement syntax
 // INSERT [ IGNORE ] INTO @what
 // 	[ @value
@@ -11,33 +5,38 @@
 // 		[ ON DUPLICATE KEY UPDATE @field = @value ... ]
 // 	]
 // ;
-use std::{fmt::Display, marker::PhantomData};
-
-use serde::{Serialize, de::DeserializeOwned};
-use surrealdb::sql;
-
-use crate::{
-    ErrorList, ReturnType, ReturnableDefault, ReturnableStandard,
-    traits::{Binding, BindingsList, Buildable, Erroneous, Node, Parametric, Queryable},
-    types::Updateables,
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    marker::PhantomData,
 };
 
-use super::{SelectStatement, Subquery};
+use surrealdb::types::Value;
+
+use crate::{
+    Node, ReturnType, ReturnableDefault, ReturnableStandard, Sql, Updateables, Updater,
+};
+
+use super::{SelectStatement, Statement, Subquery, impl_statement};
 
 /// Insert statement initialization builder
 #[derive(Debug, Clone)]
-pub struct InsertStatement<T>
-where
-    T: Serialize + DeserializeOwned + Node,
-{
-    on_duplicate_key_update: Vec<String>,
+pub struct InsertStatement<T: Node> {
+    data: Data,
+    on_duplicate_key_update: Vec<Updater>,
     return_type: Option<ReturnType>,
-    // You can select values to copy data from an existing table into a new one
-    select_query_string: Option<String>,
-    bindings: BindingsList,
-    field_names: Vec<String>,
-    node_type: PhantomData<T>,
-    errors: ErrorList,
+    model: PhantomData<T>,
+}
+
+#[derive(Debug, Clone)]
+enum Data {
+    /// Column names and one row of values per record. A record without a column inserts `NONE`.
+    Rows {
+        fields: Vec<String>,
+        rows: Vec<Vec<Value>>,
+        errors: Vec<String>,
+    },
+    /// Copies the result of a subquery.
+    Select(Subquery),
 }
 
 /// Creates a new INSERT SQL statement for a given type.
@@ -46,94 +45,88 @@ where
 ///
 /// # Arguments
 ///
-/// * `insertables` - a single or list of serializable surrealdb nodes or a select statement to
+/// * `insertables` - a single or list of surrealdb nodes or a select statement to
 ///     copy from another table.
 /// # Examples
 ///
 /// ```rust, ignore
 /// // You can insert a single object
-/// insert(User{
-///         name: "Oyelowo".to_string(),
-///         age: 192
-///     });
+/// insert(User { id: User::id("alice"), name: "Alice".to_string(), age: 30 });
 ///
 /// // You can also insert a list of object
 /// insert(vec![
-///     User{
-///         name: "Oyelowo".to_string(),
-///         age: 192
-///     },
-///     User{
-///         name: "Oyedayo".to_string(),
-///         age: 192
-///     },
+///     User { id: User::id("alice"), name: "Alice".to_string(), age: 30 },
+///     User { id: User::id("bob"), name: "Bob".to_string(), age: 31 },
 /// ]);
-///     
+///
 /// // You can also insert from another table. This is good for copying into a new table:
 /// insert(select(All)
 ///         .from(Company::table())
 ///         .where_(age.greater(18))
 /// );
 /// ```
-pub fn insert<T>(insertables: impl Into<Insertables<T>>) -> InsertStatement<T>
-where
-    T: Serialize + DeserializeOwned + Node,
-{
-    let mut field_names = vec![];
-    let mut errors = vec![];
-    let insertables: Insertables<T> = insertables.into();
-    let mut select_query = None;
-
-    let bindings = match insertables {
-        Insertables::Node(node) => {
-            let node_bindings = create_bindings_for_node(&node);
-            field_names = node_bindings.field_names;
-            errors = node_bindings.errors;
-            node_bindings.bindings
-        }
-        Insertables::Nodes(nodes) => nodes
-            .into_iter()
-            .flat_map(|n| {
-                let node_bindings = create_bindings_for_node(&n);
-                errors.extend(node_bindings.errors);
-                field_names = node_bindings.field_names;
-                node_bindings.bindings
-            })
-            .collect::<Vec<_>>(),
-        Insertables::FromSubQuery(query) => {
-            let bindings = query.get_bindings();
-            select_query = Some(query.build());
-            errors.extend(query.get_errors());
-            bindings
-        }
+pub fn insert<T: Node>(insertables: impl Into<Insertables<T>>) -> InsertStatement<T> {
+    let data = match insertables.into() {
+        Insertables::Node(node) => rows([node]),
+        Insertables::Nodes(nodes) => rows(nodes),
+        Insertables::FromSubQuery(query) => Data::Select(query),
     };
 
-    InsertStatement::<T> {
-        bindings,
-        select_query_string: select_query,
-        return_type: None,
+    InsertStatement {
+        data,
         on_duplicate_key_update: vec![],
-        field_names,
+        return_type: None,
+        model: PhantomData,
+    }
+}
+
+/// Converts the nodes into rows over the union of their fields, in sorted order.
+fn rows<T: Node>(nodes: impl IntoIterator<Item = T>) -> Data {
+    let mut errors = vec![];
+    let objects: Vec<BTreeMap<String, Value>> = nodes
+        .into_iter()
+        .map(|node| match node.into_value() {
+            Value::Object(object) => object.into_inner(),
+            other => {
+                errors.push(format!(
+                    "a node must convert into an object to be inserted, not {:?}",
+                    other.kind()
+                ));
+                BTreeMap::new()
+            }
+        })
+        .collect();
+
+    let fields: Vec<String> = objects
+        .iter()
+        .flat_map(BTreeMap::keys)
+        .cloned()
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect();
+
+    let rows = objects
+        .into_iter()
+        .map(|mut object| {
+            fields
+                .iter()
+                .map(|field| object.remove(field).unwrap_or_default())
+                .collect()
+        })
+        .collect();
+
+    Data::Rows {
+        fields,
+        rows,
         errors,
-        node_type: PhantomData,
     }
 }
 
-impl<T> Queryable for InsertStatement<T> where T: Serialize + DeserializeOwned + Node {}
-impl<T> Erroneous for InsertStatement<T>
-where
-    T: Serialize + DeserializeOwned + Node,
-{
-    fn get_errors(&self) -> ErrorList {
-        self.errors.to_vec()
-    }
-}
-
-impl<T> ReturnableDefault<T> for InsertStatement<T> where T: Serialize + DeserializeOwned + Node {}
+impl<T: Node> ReturnableDefault<T> for InsertStatement<T> {}
 
 impl<T> ReturnableStandard<T> for InsertStatement<T>
 where
-    T: Serialize + DeserializeOwned + Node + Send + Sync,
+    T: Node + Send + Sync,
 {
     fn set_return_type(mut self, return_type: ReturnType) -> Self {
         self.return_type = Some(return_type);
@@ -145,22 +138,10 @@ where
     }
 }
 
-impl<T> Display for InsertStatement<T>
-where
-    T: Serialize + DeserializeOwned + Node,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.build())
-    }
-}
-
 /// Things that can be inserted including a single or list of surrealdb nodes or a select statement
 /// when copying from a table to another table.
 #[derive(Debug)]
-pub enum Insertables<T>
-where
-    T: Serialize + DeserializeOwned + Node,
-{
+pub enum Insertables<T: Node> {
     /// A single surrealdb node
     Node(T),
     /// A list of surrealdb node
@@ -169,89 +150,31 @@ where
     FromSubQuery(Subquery),
 }
 
-impl<T> From<Vec<T>> for Insertables<T>
-where
-    T: Serialize + DeserializeOwned + Node,
-{
+impl<T: Node> From<Vec<T>> for Insertables<T> {
     fn from(value: Vec<T>) -> Self {
         Self::Nodes(value)
     }
 }
 
-impl<T> From<T> for Insertables<T>
-where
-    T: Serialize + DeserializeOwned + Node,
-{
+impl<T: Node> From<T> for Insertables<T> {
     fn from(value: T) -> Self {
         Self::Node(value)
     }
 }
 
-impl<T> From<SelectStatement> for Insertables<T>
-where
-    T: Serialize + DeserializeOwned + Node,
-{
+impl<T: Node> From<SelectStatement> for Insertables<T> {
     fn from(value: SelectStatement) -> Self {
         Self::FromSubQuery(value.into())
     }
 }
 
-impl<T> From<&SelectStatement> for Insertables<T>
-where
-    T: Serialize + DeserializeOwned + Node,
-{
+impl<T: Node> From<&SelectStatement> for Insertables<T> {
     fn from(value: &SelectStatement) -> Self {
-        Self::FromSubQuery(value.to_owned().into())
+        Self::FromSubQuery(value.clone().into())
     }
 }
 
-struct NodeBindings {
-    field_names: Vec<String>,
-    bindings: BindingsList,
-    errors: Vec<String>,
-}
-fn create_bindings_for_node<T>(node: &T) -> NodeBindings
-where
-    T: Node + DeserializeOwned + Serialize,
-{
-    let mut errors = vec![];
-    let mut serialized_field_names = T::get_serializable_fields();
-    serialized_field_names.sort_by_key(|a| a.build());
-
-    let value = sql::to_value(node).ok().map_or_else(
-        || {
-            errors.push("Unable to convert node to json".to_string());
-            sql::Value::Null
-        },
-        |v| v,
-    );
-
-    let (field_names, bindings): (Vec<String>, BindingsList) = serialized_field_names
-        .iter()
-        .map(|key| {
-            let key = &key.build();
-            let value = value.pick(&[key.as_str().into()]);
-
-            let binding = if value == sql::Value::None {
-                Binding::new(sql::Value::Null).with_name(key.into())
-            } else {
-                Binding::new(value).with_name(key.into())
-            };
-            (key.to_string(), binding)
-        })
-        .unzip();
-
-    NodeBindings {
-        field_names,
-        bindings,
-        errors,
-    }
-}
-
-impl<T> InsertStatement<T>
-where
-    T: Serialize + DeserializeOwned + Node,
-{
+impl<T: Node> InsertStatement<T> {
     /// Generates ON DUPLICATE KEY UPDATE clause.
     /// This updates records which already exist by specifying an ON DUPLICATE KEY UPDATE clause.
     /// This clause also allows incrementing and decrementing numeric values, and adding or removing values from arrays.
@@ -270,120 +193,79 @@ where
     /// updater(score).minus_equal(5)
     ///
     /// // add to an array. Generates  +=
-    /// updater(friends_names).append("Oyelowo")
+    /// updater(friends_names).append("Alice")
     /// // or alias
-    /// updater(friends_names).plus_equal("Oyelowo")
+    /// updater(friends_names).plus_equal("Alice")
     ///
     /// // remove value from an array. Generates  -=
-    /// updater(friends_names).remove("Oyedayo")
+    /// updater(friends_names).remove("Bob")
     /// // or alias
-    /// updater(friends_names).minus_equal("Oyedayo")
+    /// updater(friends_names).minus_equal("Bob")
     /// ```
     pub fn on_duplicate_key_update(mut self, updateables: impl Into<Updateables>) -> Self {
-        let updates: Updateables = updateables.into();
-        self.bindings.extend(updates.get_bindings());
-        let updater_query = match updates {
-            Updateables::Updater(up) => vec![up.build()],
-            Updateables::Updaters(ups) => ups.into_iter().map(|u| u.build()).collect::<Vec<_>>(),
-        };
-        self.on_duplicate_key_update.extend(updater_query);
+        match updateables.into() {
+            Updateables::Updater(updater) => self.on_duplicate_key_update.push(updater),
+            Updateables::Updaters(updaters) => self.on_duplicate_key_update.extend(updaters),
+        }
         self
     }
 
     /// Sets the return type for the query.
-    ///
-    /// # Arguments
-    ///
-    /// * `return_type` - The type of return to set.
-    ///
-    /// # Examples
-    ///
-    /// Set the return type to `None`:
-    ///
-    /// ```rust,ignore
-    /// statement.return_type(ReturnType::None);
-    /// ```
-    ///
-    /// Set the return type to `Before`:
-    ///
-    /// ```rust,ignore
-    /// statement.return_type(ReturnType::Before);
-    /// ```
-    ///
-    /// Set the return type to `After`:
-    ///
-    /// ```rust,ignore
-    /// statement.return_type(ReturnType::After);
-    /// ```
-    ///
-    /// Set the return type to `Diff`:
-    ///
-    /// ```rust,ignore
-    /// statement.return_type(ReturnType::Diff);
-    /// ```
-    ///
-    /// Set the return type to a projection of specific fields:
-    ///
-    /// ```rust,ignore
-    /// statement.return_type(ReturnType::Projections(vec![...]));
-    /// ```
     pub fn return_type(mut self, return_type: impl Into<ReturnType>) -> Self {
-        let return_type = return_type.into();
-        self.return_type = Some(return_type);
+        self.return_type = Some(return_type.into());
         self
     }
 }
 
-impl<T> Buildable for InsertStatement<T>
-where
-    T: Serialize + DeserializeOwned + Node,
-{
-    fn build(&self) -> String {
-        // if self.bindings.is_empty() {
-        //     return "".into();
-        // }
+impl<T: Node> Statement for InsertStatement<T> {
+    fn render_body(&self, sql: &mut Sql) {
+        sql.push_str("INSERT INTO ").push(&T::table()).push_str(" ");
 
-        let mut query = format!("INSERT INTO {}", &T::table());
-
-        if let Some(query_select) = &self.select_query_string {
-            query = format!("{query} ({})", &query_select.trim_end_matches(';'));
-        } else {
-            let field_names = self.field_names.clone();
-
-            let placeholders = self
-                .bindings
-                .iter()
-                .map(|b| b.get_param_dollarised())
-                .collect::<Vec<_>>()
-                .chunks_exact(field_names.len())
-                .map(|fields_values_params_list| {
-                    format!("({})", fields_values_params_list.join(", "))
-                })
-                .collect::<Vec<_>>()
-                .join(", ");
-
-            let field_names = &field_names.join(", ");
-            query = format!("{query} ({field_names}) VALUES {placeholders}",);
+        match &self.data {
+            Data::Select(query) => {
+                sql.push(query);
+            }
+            Data::Rows {
+                fields,
+                rows,
+                errors,
+            } => {
+                for error in errors {
+                    sql.push_error(error.as_str());
+                }
+                sql.push_str("(");
+                for (index, field) in fields.iter().enumerate() {
+                    if index > 0 {
+                        sql.push_str(", ");
+                    }
+                    sql.push_ident(field);
+                }
+                sql.push_str(") VALUES ");
+                for (index, row) in rows.iter().enumerate() {
+                    if index > 0 {
+                        sql.push_str(", ");
+                    }
+                    sql.push_str("(");
+                    for (index, value) in row.iter().enumerate() {
+                        if index > 0 {
+                            sql.push_str(", ");
+                        }
+                        sql.push_value(value.clone());
+                    }
+                    sql.push_str(")");
+                }
+            }
         }
 
-        if !&self.on_duplicate_key_update.is_empty() {
-            let updates_str = self.on_duplicate_key_update.join(", ");
-            query = format!("{query}  ON DUPLICATE KEY UPDATE {updates_str}",);
+        if !self.on_duplicate_key_update.is_empty() {
+            sql.push_str(" ON DUPLICATE KEY UPDATE ")
+                .push(&self.on_duplicate_key_update);
         }
 
         if let Some(return_type) = &self.return_type {
-            query = format!("{query} {}", &return_type);
+            sql.push_str(" ").push(return_type);
         }
-
-        format!("{query};")
     }
 }
 
-impl<T> Parametric for InsertStatement<T>
-where
-    T: Serialize + DeserializeOwned + Node,
-{
-    fn get_bindings(&self) -> BindingsList {
-        self.bindings.to_vec()
-    }
-}
+impl_statement!([T: Node] InsertStatement<T>);

@@ -1,9 +1,3 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
-
 // Statement syntax
 // IF @condition THEN
 // 	@expression
@@ -13,14 +7,9 @@
 // 	@expression ]
 // END
 
-use std::fmt;
+use crate::{Conditional, Expression, Filter, QueryChain, Render, Sql};
 
-use crate::{
-    QueryChain,
-    expression::Expression,
-    traits::{BindingsList, Buildable, Conditional, Erroneous, Parametric, Queryable},
-    types::Filter,
-};
+use super::{Statement, impl_statement};
 
 /// Creates an IF ELSE statement with compile-time valid transition.
 /// The IF ELSE statement can be used as a main statement, or within a parent statement,
@@ -30,7 +19,7 @@ use crate::{
 ///
 /// Examples
 /// ```rust
-/// use aparecium::{*, statements::{if_, order, select}};
+/// use aparecium::{*, statements::{if_, order, select}, types::RecordId};
 ///         # let age = Field::new("age");
 /// // Can create simple if statement
 /// if_(age.greater_than_or_equal(18))
@@ -43,7 +32,7 @@ use crate::{
 /// # let country = Field::new("country");
 /// if_(age.greater_than_or_equal(18).less_than_or_equal(120))
 ///     .then("Valid")
-///     .else_if(name.like("Oyelowo Oyedayo"))
+///     .else_if(name.like("Alice"))
 ///     .then("The Alien!")
 ///     .else_if(cond(country.is("Canada")).or(country.is("Norway")))
 ///     .then("Cold")
@@ -55,8 +44,8 @@ use crate::{
 /// # let age = Field::new("age");
 /// # let country = Field::new("country");
 /// # let city = Field::new("city");
-/// # let fake_id = TestUser::create_id("oyelowo");
-/// # let fake_id2 = TestUser::create_id("oyedayo");
+/// # let fake_id = RecordId::new("user", "alice");
+/// # let fake_id2 = RecordId::new("user", "bob");
 ///
 /// let select1 = select(All)
 ///     .from(fake_id)
@@ -78,7 +67,7 @@ use crate::{
 ///
 ///  if_(cond(age.greater_than_or_equal(18)).and(age.less_than_or_equal(120)))
 ///     .then(select1)
-///     .else_if(name.like("Oyelowo Oyedayo"))
+///     .else_if(name.like("Alice"))
 ///     .then(select2)
 ///     .else_if(cond(country.is("Canada")).or(country.is("Norway")))
 ///     .then("Cold")
@@ -86,12 +75,17 @@ use crate::{
 ///     .end();
 /// ```
 pub fn if_(condition: impl Conditional) -> IfStatement {
-    IfStatement::new(condition)
+    IfStatement {
+        condition: Filter::new(condition),
+    }
 }
 
+/// The body of an IF branch: an expression or a chain of statements.
 #[derive(Debug, Clone)]
 pub enum Body {
+    /// An expression
     Expression(Expression),
+    /// A chain of statements
     QueryChain(QueryChain),
 }
 
@@ -107,211 +101,124 @@ impl From<QueryChain> for Body {
     }
 }
 
-impl Buildable for Body {
-    fn build(&self) -> String {
+impl Render for Body {
+    fn render(&self, sql: &mut Sql) {
         match self {
-            Self::Expression(expr) => expr.build(),
-            Self::QueryChain(body) => body.build(),
-        }
-    }
-}
-
-impl Parametric for Body {
-    fn get_bindings(&self) -> BindingsList {
-        match self {
-            Self::Expression(expr) => expr.get_bindings(),
-            Self::QueryChain(body) => body.get_bindings(),
-        }
-    }
-}
-
-pub struct ThenExpression {
-    flow_data: FlowStatementData,
-    bindings: BindingsList,
-}
-
-impl ThenExpression {
-    pub fn else_if(mut self, condition: impl Conditional) -> ElseIfStatement {
-        let condition = Filter::new(condition);
-        self.bindings.extend(condition.get_bindings());
-
-        // since condition has to come first, we need to initialize the last element
-        // with it.
-        let new_cond_meta = CondMeta {
-            condition,
-            body: None,
-        };
-        self.flow_data.else_if_data.push(new_cond_meta);
-
-        ElseIfStatement {
-            flow_data: self.flow_data,
-            bindings: self.bindings,
-        }
-    }
-
-    pub fn else_(mut self, body: impl Into<Body>) -> ElseStatement {
-        let body: Body = body.into();
-
-        self.bindings.extend(body.get_bindings());
-        self.flow_data.else_data = Some(body);
-
-        ElseStatement {
-            flow_data: self.flow_data,
-            bindings: self.bindings,
-        }
-    }
-
-    pub fn end(self) -> IfElseStatement {
-        IfElseStatement {
-            flow_data: self.flow_data,
-            bindings: self.bindings,
-        }
-    }
-}
-
-impl ElseStatement {
-    pub fn end(self) -> IfElseStatement {
-        IfElseStatement {
-            flow_data: self.flow_data,
-            bindings: self.bindings,
+            Self::Expression(expr) => expr.render(sql),
+            Self::QueryChain(body) => body.render(sql),
         }
     }
 }
 
 #[derive(Debug, Clone)]
-struct FlowStatementData {
-    if_data: CondMeta,
-    else_if_data: Vec<CondMeta>,
-    else_data: Option<Body>,
-}
-
-impl FlowStatementData {
-    fn new(if_data: CondMeta) -> Self {
-        Self {
-            if_data,
-            else_if_data: vec![],
-            else_data: None,
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-struct CondMeta {
+struct Branch {
     condition: Filter,
-    body: Option<Body>,
+    body: Body,
 }
 
-pub struct ElseStatement {
-    flow_data: FlowStatementData,
-    bindings: BindingsList,
+#[derive(Debug, Clone)]
+struct Branches {
+    if_: Branch,
+    else_ifs: Vec<Branch>,
+    else_: Option<Body>,
 }
 
-pub struct ElseIfStatement {
-    flow_data: FlowStatementData,
-    bindings: BindingsList,
-}
-
-impl ElseIfStatement {
-    pub fn then(mut self, body: impl Into<Body>) -> ThenExpression {
-        let body: Body = body.into();
-
-        if let Some(latest_else_if_cond_meta) = self.flow_data.else_if_data.last_mut() {
-            self.bindings.extend(body.get_bindings());
-            latest_else_if_cond_meta.body = Some(body);
-        }
-
-        ThenExpression {
-            flow_data: self.flow_data,
-            bindings: self.bindings,
-        }
-    }
-}
-
-/// if flow builder
+/// An IF statement awaiting its body.
 #[derive(Debug, Clone)]
 pub struct IfStatement {
     condition: Filter,
 }
 
 impl IfStatement {
-    pub(crate) fn new(condition: impl Conditional) -> Self {
-        Self {
+    /// Can be a select statment or any other valid surrealdb Value
+    pub fn then(self, body: impl Into<Body>) -> ThenExpression {
+        ThenExpression(Branches {
+            if_: Branch {
+                condition: self.condition,
+                body: body.into(),
+            },
+            else_ifs: vec![],
+            else_: None,
+        })
+    }
+}
+
+/// An IF statement with a body, which may continue with `ELSE IF` or `ELSE`.
+pub struct ThenExpression(Branches);
+
+impl ThenExpression {
+    /// Starts an `ELSE IF` branch.
+    pub fn else_if(self, condition: impl Conditional) -> ElseIfStatement {
+        ElseIfStatement {
+            branches: self.0,
             condition: Filter::new(condition),
         }
     }
 
-    /// Can be a select statment or any other valid surrealdb Value
-    pub fn then(self, body: impl Into<Body>) -> ThenExpression {
-        let if_condition = self.condition;
+    /// Adds the final `ELSE` branch.
+    pub fn else_(mut self, body: impl Into<Body>) -> ElseStatement {
+        self.0.else_ = Some(body.into());
+        ElseStatement(self.0)
+    }
 
-        let body: Body = body.into();
-        let bindings = [if_condition.get_bindings(), body.get_bindings()].concat();
+    /// Ends the statement.
+    pub fn end(self) -> IfElseStatement {
+        IfElseStatement(self.0)
+    }
+}
 
-        let if_cond_meta = CondMeta {
-            condition: if_condition,
-            body: Some(body),
-        };
+/// An `ELSE IF` branch awaiting its body.
+pub struct ElseIfStatement {
+    branches: Branches,
+    condition: Filter,
+}
 
-        let flow_data_init = FlowStatementData::new(if_cond_meta);
-        ThenExpression {
-            bindings,
-            flow_data: flow_data_init,
-        }
+impl ElseIfStatement {
+    /// Sets the branch's body.
+    pub fn then(mut self, body: impl Into<Body>) -> ThenExpression {
+        self.branches.else_ifs.push(Branch {
+            condition: self.condition,
+            body: body.into(),
+        });
+        ThenExpression(self.branches)
+    }
+}
+
+/// An IF statement with its final `ELSE` branch.
+pub struct ElseStatement(Branches);
+
+impl ElseStatement {
+    /// Ends the statement.
+    pub fn end(self) -> IfElseStatement {
+        IfElseStatement(self.0)
     }
 }
 
 /// if else flow builder
 #[derive(Debug, Clone)]
-pub struct IfElseStatement {
-    flow_data: FlowStatementData,
-    bindings: BindingsList,
-}
+pub struct IfElseStatement(Branches);
 
-impl Parametric for IfElseStatement {
-    fn get_bindings(&self) -> BindingsList {
-        self.bindings.to_vec()
-    }
-}
+impl Statement for IfElseStatement {
+    fn render_body(&self, sql: &mut Sql) {
+        let branches = &self.0;
+        sql.push_str("IF ")
+            .push(&branches.if_.condition)
+            .push_str(" \n\t{ ")
+            .push(&branches.if_.body)
+            .push_str(" }");
 
-impl Erroneous for IfElseStatement {}
-impl Buildable for IfElseStatement {
-    fn build(&self) -> String {
-        let mut output = String::new();
-        output.push_str(&format!(
-            "IF {} \n\t{{ {} }}",
-            self.flow_data.if_data.condition,
-            self.flow_data
-                .if_data
-                .body
-                .as_ref()
-                .expect("if body must be provided")
-                .build()
-        ));
-
-        for cond in &self.flow_data.else_if_data {
-            output.push_str(&format!(
-                "\nELSE IF {} \n\t{{ {} }}",
-                cond.condition.build(),
-                cond.body
-                    .as_ref()
-                    .expect("else if must have a body. Please report this bug")
-                    .build()
-            ));
+        for branch in &branches.else_ifs {
+            sql.push_str("\nELSE IF ")
+                .push(&branch.condition)
+                .push_str(" \n\t{ ")
+                .push(&branch.body)
+                .push_str(" }");
         }
 
-        if let Some(else_body) = &self.flow_data.else_data {
-            output.push_str(&format!("\nELSE\n\t{{ {} }}", else_body.build()));
+        if let Some(body) = &branches.else_ {
+            sql.push_str("\nELSE\n\t{ ").push(body).push_str(" }");
         }
-
-        output.push(';');
-        output
     }
 }
 
-impl Queryable for IfElseStatement {}
-
-impl fmt::Display for IfElseStatement {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.build())
-    }
-}
+impl_statement!(IfElseStatement);

@@ -1,15 +1,6 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
+use crate::{Database, Sql};
 
-use std::fmt::Display;
-
-use crate::{
-    traits::{BindingsList, Buildable, Erroneous, Parametric, Queryable},
-    types::Database,
-};
+use super::{Statement, impl_definition};
 
 /// Define a new database statement.
 ///
@@ -21,52 +12,31 @@ use crate::{
 /// ```rust
 ///  use aparecium::{*, statements::define_database};
 ///  assert_eq!(
-///          define_database("codebreather").build(),
-///          "DEFINE DATABASE codebreather;"
+///          define_database("acme").to_debug_sql(),
+///          "DEFINE DATABASE acme;"
 ///      );
 ///
-///  let codebreather = Database::new("codebreather");
+///  let acme = Database::new("acme");
 ///  assert_eq!(
-///          define_database(codebreather).build(),
-///          "DEFINE DATABASE codebreather;"
-///      );
-///  
-///  let codebreather = Database::new("codebreather");
-///  assert_eq!(
-///          define_database(codebreather).to_raw().build(),
-///          "DEFINE DATABASE codebreather;"
+///          define_database(acme).to_query().unwrap().sql(),
+///          "DEFINE DATABASE acme;"
 ///      );
 /// ```
 pub fn define_database(database: impl Into<Database>) -> DefineDatabaseStatement {
     DefineDatabaseStatement {
-        database: database.into().into(),
-        bindings: vec![],
+        database: database.into(),
     }
 }
 
 /// A statement for defining a database.
 pub struct DefineDatabaseStatement {
-    database: String,
-    bindings: BindingsList,
+    database: Database,
 }
 
-impl Buildable for DefineDatabaseStatement {
-    fn build(&self) -> String {
-        format!("DEFINE DATABASE {};", self.database)
+impl Statement for DefineDatabaseStatement {
+    fn render_body(&self, sql: &mut Sql) {
+        sql.push_str("DEFINE DATABASE ").push(&self.database);
     }
 }
 
-impl Display for DefineDatabaseStatement {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.build())
-    }
-}
-
-impl Parametric for DefineDatabaseStatement {
-    fn get_bindings(&self) -> BindingsList {
-        self.bindings.to_vec()
-    }
-}
-
-impl Queryable for DefineDatabaseStatement {}
-impl Erroneous for DefineDatabaseStatement {}
+impl_definition!(DefineDatabaseStatement);

@@ -1,12 +1,6 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
+use crate::{Field, Sql, ValueLike};
 
-use crate::{BindingsList, Buildable, Erroneous, ErrorList, Parametric, Queryable, ValueLike};
-
-use super::select::Fetchables;
+use super::{Statement, impl_statement, select::Fetchables};
 
 /// The `RETURN` statement.
 ///
@@ -15,80 +9,47 @@ use super::select::Fetchables;
 ///
 /// # Examples
 /// ```
-/// use aparecium::{*, statements::*, functions::*};
+/// use aparecium::{*, statements::*, functions::*, types::RecordId};
 ///
-/// let user = TestUser::create_id("oyelowo");
+/// let user = RecordId::new("user", "alice");
 /// let account = Field::new("account");
 /// let connection = Field::new("connection");
 ///
 /// let query = return_(user).fetch(&[account, connection]);
 /// assert_eq!(
-///     query.to_raw().build(),
-///     "RETURN user:oyelowo FETCH account, connection;"
+///     query.to_debug_sql(),
+///     "RETURN user:alice FETCH account, connection;"
 /// );
 /// ```
 pub fn return_(return_value: impl Into<ValueLike>) -> ReturnStatement {
-    let return_value: ValueLike = return_value.into();
-    let return_string = return_value.build();
-    let bindings = return_value.get_bindings();
-    let errors = return_value.get_errors();
-
     ReturnStatement {
-        return_value: return_string,
+        return_value: return_value.into(),
         fetch: vec![],
-        bindings,
-        errors,
     }
 }
 
 /// The `RETURN` statement.
+#[derive(Debug, Clone)]
 pub struct ReturnStatement {
-    return_value: String,
-    fetch: Vec<String>,
-    bindings: BindingsList,
-    errors: ErrorList,
+    return_value: ValueLike,
+    fetch: Vec<Field>,
 }
 
 impl ReturnStatement {
     /// Fetches the specified fields.
     pub fn fetch(mut self, fetchables: impl Into<Fetchables>) -> Self {
-        let fields: Fetchables = fetchables.into();
-
-        let fields = match fields {
-            Fetchables::Field(one_field) => vec![one_field],
-            Fetchables::Fields(many_fields) => many_fields,
-        };
-
-        fields.iter().for_each(|f| {
-            self.fetch.push(f.build());
-            self.bindings.extend(f.get_bindings());
-            self.errors.extend(f.get_errors());
-        });
+        self.fetch.extend(Vec::<Field>::from(fetchables.into()));
         self
     }
 }
 
-impl Buildable for ReturnStatement {
-    fn build(&self) -> String {
-        let mut query = format!("RETURN {}", self.return_value);
+impl Statement for ReturnStatement {
+    fn render_body(&self, sql: &mut Sql) {
+        sql.push_str("RETURN ").push(&self.return_value);
         if !self.fetch.is_empty() {
-            query = format!("{query} FETCH {}", self.fetch.join(", "));
+            sql.push_str(" FETCH ").push(&self.fetch);
         }
-
-        format!("{query};")
     }
 }
 
-impl Parametric for ReturnStatement {
-    fn get_bindings(&self) -> BindingsList {
-        self.bindings.clone()
-    }
-}
-
-impl Erroneous for ReturnStatement {
-    fn get_errors(&self) -> ErrorList {
-        self.errors.clone()
-    }
-}
-
-impl Queryable for ReturnStatement {}
+impl_statement!(ReturnStatement);

@@ -1,10 +1,12 @@
-/*utils_chain
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
-use std::fmt::Display;
+use crate::{Render, Sql};
+
+/// A SurrealQL statement. Its body renders without the trailing `;`, so the same rendering
+/// serves top-level statements and subqueries.
+pub(crate) trait Statement {
+    /// Writes the statement without its trailing `;`.
+    fn render_body(&self, sql: &mut Sql);
+}
 
 pub(crate) mod break_;
 pub(crate) mod continue_;
@@ -48,7 +50,6 @@ pub(crate) mod remove_token;
 pub(crate) mod remove_user;
 pub(crate) mod return_;
 pub(crate) mod select;
-pub(crate) mod select_surreal_id_range;
 pub(crate) mod show;
 pub(crate) mod sleep;
 pub(crate) mod subquery;
@@ -58,6 +59,54 @@ pub(crate) mod update;
 pub(crate) mod use_;
 pub(crate) mod utils_block;
 pub(crate) mod utils_chain;
+
+// Defined after the modules so they import these macros by path rather than inheriting them
+// through textual scope.
+
+/// Implements `Render` (the body followed by `;`) and `Queryable` for a [`Statement`].
+// Separate arms: an optional `[..]` before a `ty` is ambiguous, since a type can start with `[`.
+macro_rules! impl_statement {
+    ([$($generics:tt)*] $statement:ty) => {
+        impl<$($generics)*> $crate::Render for $statement {
+            fn render(&self, sql: &mut $crate::Sql) {
+                $crate::statements::Statement::render_body(self, sql);
+                sql.push_str(";");
+            }
+        }
+
+        impl<$($generics)*> $crate::Queryable for $statement {}
+    };
+    ($statement:ty) => {
+        impl $crate::Render for $statement {
+            fn render(&self, sql: &mut $crate::Sql) {
+                $crate::statements::Statement::render_body(self, sql);
+                sql.push_str(";");
+            }
+        }
+
+        impl $crate::Queryable for $statement {}
+    };
+}
+pub(crate) use impl_statement;
+
+/// Implements `Render` and `Queryable` for a definition. SurrealDB stores a definition's
+/// expressions verbatim and evaluates them later without the defining query's parameters, so
+/// every value is written inline.
+macro_rules! impl_definition {
+    ($statement:ty) => {
+        impl $crate::Render for $statement {
+            fn render(&self, sql: &mut $crate::Sql) {
+                let mut body = $crate::Sql::new();
+                $crate::statements::Statement::render_body(self, &mut body);
+                sql.push_inlined(&body);
+                sql.push_str(";");
+            }
+        }
+
+        impl $crate::Queryable for $statement {}
+    };
+}
+pub(crate) use impl_definition;
 
 pub use break_::{BreakStatement, break_};
 pub use continue_::{ContinueStatement, continue_};
@@ -111,7 +160,7 @@ pub use sleep::{SleepStatement, sleep};
 pub use subquery::Subquery;
 pub use throw::{ThrowStatement, throw};
 pub use transaction::{
-    BeginTransactionStatement, TransactionCompletion, begin_transaction, transaction_deprecated,
+    QueryTransaction, TransactionCompletion, begin_transaction, transaction_deprecated,
 };
 pub use update::{UpdateStatement, update, update_only};
 pub use use_::{UseStatement, use_};
@@ -122,18 +171,19 @@ pub mod utils {
     pub use super::utils_chain::{Chainable, QueryChain, chain};
 }
 
-#[allow(missing_docs)]
+/// Where a definition applies.
 pub enum NamespaceOrDatabase {
+    /// `NAMESPACE`
     Namespace,
+    /// `DATABASE`
     Database,
 }
 
-impl Display for NamespaceOrDatabase {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let stringified = match self {
+impl Render for NamespaceOrDatabase {
+    fn render(&self, sql: &mut Sql) {
+        sql.push_str(match self {
             NamespaceOrDatabase::Namespace => "NAMESPACE",
             NamespaceOrDatabase::Database => "DATABASE",
-        };
-        write!(f, "{}", stringified)
+        });
     }
 }

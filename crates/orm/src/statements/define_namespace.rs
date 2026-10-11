@@ -1,15 +1,6 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
+use crate::{Namespace, Sql};
 
-use std::fmt::Display;
-
-use crate::{
-    traits::{BindingsList, Buildable, Erroneous, Parametric, Queryable},
-    types::Namespace,
-};
+use super::{Statement, impl_definition};
 
 /// Define a new namespace .
 /// SurrealDB has a multi-tenancy model which allows you to scope databases to a namespace.
@@ -25,43 +16,28 @@ use crate::{
 /// Examples:
 ///
 /// ```rust
-/// use aparecium::{*, CrudType::*, statements::{define_namespace}};
-/// let oyelowo = Namespace::new("oyelowo");
+/// use aparecium::{*, statements::{define_namespace}};
+/// let acme = Namespace::new("acme");
 ///
-/// let statement = define_namespace(oyelowo);
+/// let statement = define_namespace(acme);
 ///
-/// assert!(!statement.build().is_empty());
+/// assert_eq!(statement.to_debug_sql(), "DEFINE NAMESPACE acme;");
 /// ```
 pub fn define_namespace(namespace: impl Into<Namespace>) -> DefineNamespaceStatement {
     DefineNamespaceStatement {
-        namespace: namespace.into().into(),
-        bindings: vec![],
+        namespace: namespace.into(),
     }
 }
 
 /// Define namespace
 pub struct DefineNamespaceStatement {
-    namespace: String,
-    bindings: BindingsList,
+    namespace: Namespace,
 }
 
-impl Buildable for DefineNamespaceStatement {
-    fn build(&self) -> String {
-        format!("DEFINE NAMESPACE {};", self.namespace)
+impl Statement for DefineNamespaceStatement {
+    fn render_body(&self, sql: &mut Sql) {
+        sql.push_str("DEFINE NAMESPACE ").push(&self.namespace);
     }
 }
 
-impl Display for DefineNamespaceStatement {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.build())
-    }
-}
-
-impl Parametric for DefineNamespaceStatement {
-    fn get_bindings(&self) -> BindingsList {
-        self.bindings.to_vec()
-    }
-}
-
-impl Queryable for DefineNamespaceStatement {}
-impl Erroneous for DefineNamespaceStatement {}
+impl_definition!(DefineNamespaceStatement);

@@ -1,14 +1,5 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
 
-use std::fmt;
-
-use crate::{
-    BindingsList, Block, Buildable, Erroneous, ErrorList, Parametric, Queryable, ValueLike,
-};
+use crate::{Block, Queryable, Render, Sql, ValueLike};
 
 /// Chains together multiple queries into a single `QueryChain`.
 ///
@@ -19,101 +10,74 @@ use crate::{
 /// # Example Usage
 ///
 /// ```rust
-/// use aparecium::{*, statements::select};
+/// use aparecium::{*, statements::select, types::RecordId};
 ///
 /// // Create a query chain with a single query
-/// let user_lowo = TestUser::create_id("oyelowo");
-/// let user_dayo = TestUser::create_id("oyedayo");
+/// let user_lowo = RecordId::new("user", "oyelowo");
+/// let user_dayo = RecordId::new("user", "oyedayo");
 ///
 /// // Append a new query to the chain
 /// let query1 = select(All).from(user_lowo);
 /// let query2 = select(All).from(user_dayo).limit(10);
 /// let chain = chain(query1).chain(query2);
 ///
-/// // The resulting chain contains both queries
-/// assert!(!chain.build().is_empty());
-/// assert_eq!(chain.fine_tune_params(), "SELECT * FROM $_param_00000001;\n\nSELECT * FROM $_param_00000002 LIMIT $_param_00000003;");
-/// assert_eq!(chain.to_raw().to_string(), "SELECT * FROM user:oyelowo;\n\nSELECT * FROM user:oyedayo LIMIT 10;");
+/// assert_eq!(chain.to_query().unwrap().sql(), "SELECT * FROM $_p0;\n\nSELECT * FROM $_p1 LIMIT $_p2;");
+/// assert_eq!(chain.to_debug_sql(), "SELECT * FROM user:oyelowo;\n\nSELECT * FROM user:oyedayo LIMIT 10;");
 /// ```
 pub fn chain(query: impl Queryable) -> QueryChain {
     QueryChain {
-        queries: vec![query.build()],
-        bindings: query.get_bindings(),
-        errors: query.get_errors(),
-        paranthesized: false,
+        queries: vec![query.to_sql()],
+        parenthesized: false,
     }
 }
 
 /// Chains together multiple queries into a single `QueryChain`.
 ///
-/// A `QueryChain` is created with an initial query, and additional queries can be added to the chain using the `chain` method. A `QueryChain` can be built into a single SQL query using the `build` method.
-///
-#[derive(Debug, Clone)]
+/// A `QueryChain` is created with an initial query, and additional queries can be added to the chain using the `chain` method.
+#[derive(Debug, Clone, PartialEq)]
 pub struct QueryChain {
-    queries: Vec<String>,
-    bindings: BindingsList,
-    errors: ErrorList,
-    paranthesized: bool,
+    queries: Vec<Sql>,
+    parenthesized: bool,
 }
 
 /// A chainable query.
 #[derive(Debug, Clone)]
-pub struct Chainable(ValueLike);
+pub struct Chainable(Sql);
 
-impl<T: Erroneous + Parametric + Buildable> From<T> for Chainable {
+impl<T: Render> From<T> for Chainable {
     fn from(query: T) -> Self {
-        Self(ValueLike {
-            string: query.build(),
-            bindings: query.get_bindings(),
-            errors: query.get_errors(),
-        })
+        Self(query.to_sql())
     }
 }
 
 impl QueryChain {
     /// Appends a new query to the end of the chain.
     ///
-    /// This method takes a query that implements the `Queryable`, `Parametric`, and `Display` traits
-    /// and appends it to the end of the query chain. The `get_bindings()` and `get_errors()` methods of
-    /// the provided query are called to retrieve its bindings and errors, which are then merged with
-    /// those of the current query chain. The string representation of the query is also added to the
-    /// list of queries in the chain.
-    ///
     /// # Examples
     ///
     /// ```rust
-    /// use aparecium::{*, statements::select};
-    /// use surrealdb::sql;
+    /// use aparecium::{*, statements::select, types::RecordId};
     ///
     /// // Create a query chain with a single query
-    /// let user_lowo = sql::Thing::from(("user".to_string(), "oyelowo".to_string()));
-    /// let user_dayo = sql::Thing::from(("user".to_string(), "oyedayo".to_string()));
+    /// let user_lowo = RecordId::new("user", "oyelowo");
+    /// let user_dayo = RecordId::new("user", "oyedayo");
     ///
     /// // Append a new query to the chain
     /// let query1 = select(All).from(user_lowo);
     /// let query2 = select(All).from(user_dayo).limit(10);
     /// let chain = chain(query1).chain(query2);
     ///
-    /// // The resulting chain contains both queries
-    /// assert!(!chain.build().is_empty());
-    /// assert_eq!(chain.fine_tune_params(), "SELECT * FROM $_param_00000001;\n\nSELECT * FROM $_param_00000002 LIMIT $_param_00000003;");
-    /// assert_eq!(chain.to_raw().to_string(), "SELECT * FROM user:oyelowo;\n\nSELECT * FROM user:oyedayo LIMIT 10;");
+    /// assert_eq!(chain.to_query().unwrap().sql(), "SELECT * FROM $_p0;\n\nSELECT * FROM $_p1 LIMIT $_p2;");
+    /// assert_eq!(chain.to_debug_sql(), "SELECT * FROM user:oyelowo;\n\nSELECT * FROM user:oyedayo LIMIT 10;");
     /// ```
-    ///
-    /// # Panics
-    ///
-    /// This method does not panic.
     pub fn chain(mut self, query: impl Into<Chainable>) -> Self {
-        let query = query.into().0;
-        self.bindings.extend(query.get_bindings());
-        self.errors.extend(query.get_errors());
-        self.queries.push(query.build());
+        self.queries.push(query.into().0);
         self
     }
 
     /// Surrounds the query chain with a parenthesis.
     pub fn parenthesized(mut self) -> Self {
-        self.paranthesized = true;
+        self.parenthesized = true;
         self
     }
 
@@ -123,74 +87,34 @@ impl QueryChain {
     }
 }
 
-impl Parametric for QueryChain {
-    fn get_bindings(&self) -> BindingsList {
-        self.bindings.to_vec()
-    }
-}
-
 impl Queryable for QueryChain {}
-impl Erroneous for QueryChain {
-    fn get_errors(&self) -> ErrorList {
-        self.errors.to_vec()
-    }
-}
 
-impl Buildable for QueryChain {
-    fn build(&self) -> String {
-        let queries = self.queries.join("\n\n");
-        if self.paranthesized {
-            format!("({})", queries)
-        } else {
-            queries
+impl Render for QueryChain {
+    fn render(&self, sql: &mut Sql) {
+        if self.parenthesized {
+            sql.push_str("(");
         }
-    }
-}
-
-impl fmt::Display for QueryChain {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.build())
+        sql.push_joined(&self.queries, "\n\n");
+        if self.parenthesized {
+            sql.push_str(")");
+        }
     }
 }
 
 impl From<Vec<ValueLike>> for QueryChain {
     fn from(values: Vec<ValueLike>) -> Self {
-        let mut bindings = BindingsList::new();
-        let mut errors = ErrorList::new();
-        let mut queries = Vec::new();
-
-        for query in values {
-            bindings.extend(query.get_bindings());
-            errors.extend(query.get_errors());
-            queries.push(query.build());
-        }
-
         Self {
-            queries,
-            bindings,
-            errors,
-            paranthesized: false,
+            queries: values.iter().map(Render::to_sql).collect(),
+            parenthesized: false,
         }
     }
 }
 
 impl From<Vec<Chainable>> for QueryChain {
     fn from(values: Vec<Chainable>) -> Self {
-        let mut bindings = BindingsList::new();
-        let mut errors = ErrorList::new();
-        let mut queries = Vec::new();
-
-        for query in values {
-            bindings.extend(query.0.get_bindings());
-            errors.extend(query.0.get_errors());
-            queries.push(query.0.build());
-        }
-
         Self {
-            queries,
-            bindings,
-            errors,
-            paranthesized: false,
+            queries: values.into_iter().map(|query| query.0).collect(),
+            parenthesized: false,
         }
     }
 }

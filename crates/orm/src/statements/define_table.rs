@@ -1,22 +1,17 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
+use surrealdb::types::Table;
 
-use std::fmt::{self, Display};
+use crate::Sql;
 
-use crate::{
-    BindingsList, Buildable, Erroneous, Parametric, Queryable, Table,
-    statements::{for_permission::Permissions, select::SelectStatement},
+use super::{
+    Statement,
+    for_permission::{Permissions, PermissionsClause},
+    impl_definition,
+    select::SelectStatement,
 };
 
 // DEFINE TABLE statement
 // The DEFINE TABLE statement allows you to declare your table by name, enabling you to apply strict controls to a table's schema by making it SCHEMAFULL, create a foreign table view, and set permissions specifying what operations can be performed on the field.
 //
-// Requirements
-// You must be authenticated as a root, namespace, or database user before you can use the DEFINE TABLE statement.
-// You must select your namespace and database before you can use the DEFINE TABLE statement.
 // Statement syntax
 // DEFINE TABLE @name
 // 	[ DROP ]
@@ -35,15 +30,12 @@ use crate::{
 
 /// Define the API for the Table builder
 pub struct DefineTableStatement {
-    table: String,
-    drop: Option<bool>,
-    flexible: Option<bool>,
+    table: Table,
+    drop: bool,
+    flexible: bool,
     schema_type: Option<SchemaType>,
-    as_: Option<String>,
-    permissions_none: Option<bool>,
-    permissions_full: Option<bool>,
-    permissions_for: Vec<String>,
-    bindings: BindingsList,
+    as_: Option<SelectStatement>,
+    permissions: PermissionsClause,
 }
 
 /// Define a new table.
@@ -52,22 +44,17 @@ pub struct DefineTableStatement {
 /// enabling you to apply strict controls to a table's schema by making it SCHEMAFULL,
 /// create a foreign table view, and set permissions specifying what operations can be performed on the field.
 ///
-/// Requirements
-/// You must be authenticated as a root, namespace, or database user before you can use the DEFINE TABLE statement.
-/// You must select your namespace and database before you can use the DEFINE TABLE statement.
-///
 /// Examples:
 ///
 /// ```rust
-/// use aparecium::{*, functions::crypto, statements::{define_table, for_permission, order, select}};
+/// use aparecium::{*, statements::{define_table, for_permission, order, select}, types::RecordId};
 /// use CrudType::*;
-/// use std::time::Duration;
 ///
 /// let name = Field::new("name");
 /// let user = Table::from("user");
 /// let age = Field::new("age");
 /// let country = Field::new("country");
-/// let fake_id = TestUser::create_id("oyelowo");
+/// let fake_id = RecordId::new("user", "alice");
 /// let statement = define_table(user)
 ///     .drop()
 ///     .as_(
@@ -80,39 +67,35 @@ pub struct DefineTableStatement {
 ///     )
 ///     .schemafull()
 ///     .permissions(for_permission(Select).where_(age.greater_than_or_equal(18))) // Single works
-///     .permissions(for_permission(&[Create, Delete]).where_(name.is("Oyedayo"))) //Multiple
+///     .permissions(for_permission(&[Create, Delete]).where_(name.is("Alice"))) //Multiple
 ///     .permissions(&[
-///         for_permission(&[Create, Delete]).where_(name.is("Oyedayo")),
+///         for_permission(&[Create, Delete]).where_(name.is("Alice")),
 ///         for_permission(Update).where_(age.less_than_or_equal(130)),
 ///     ]);
 ///
-/// assert!(!statement.build().is_empty());
+/// assert!(!statement.to_debug_sql().is_empty());
 /// ```
 pub fn define_table(table: impl Into<Table>) -> DefineTableStatement {
-    let table: Table = table.into();
     DefineTableStatement {
-        table: table.to_string(),
-        drop: None,
-        flexible: None,
+        table: table.into(),
+        drop: false,
+        flexible: false,
         schema_type: None,
         as_: None,
-        permissions_none: None,
-        permissions_full: None,
-        permissions_for: vec![],
-        bindings: vec![],
+        permissions: PermissionsClause::default(),
     }
 }
 
 impl DefineTableStatement {
     /// Drop the table if it exists and create a new one with the same name.
     pub fn drop(mut self) -> Self {
-        self.drop = Some(true);
+        self.drop = true;
         self
     }
 
     /// Make table flexible
     pub fn flexible(mut self) -> Self {
-        self.flexible = Some(true);
+        self.flexible = true;
         self
     }
 
@@ -128,177 +111,67 @@ impl DefineTableStatement {
         self
     }
 
-    /// Select from existing table.
-    ///
-    /// Examples:
-    ///
-    /// ```rust
-    /// # use aparecium::{*, functions::crypto, statements::{define_table, order, select}};
-    /// # use CrudType::*;
-    /// # use std::time::Duration;
-    ///
-    /// # let name = Field::new("name");
-    /// # let user = Table::from("user");
-    /// # let age = Field::new("age");
-    /// # let country = Field::new("country");
-    /// # let fake_id = TestUser::create_id("oyedayo");
-    ///   let statement = define_table(user)
-    ///     .as_(
-    ///         select(All)
-    ///             .from(fake_id)
-    ///             .where_(country.is("INDONESIA"))
-    ///             .order_by(order(&age).numeric().desc())
-    ///             .limit(20)
-    ///             .start(5),
-    ///     );
-    ///
-    /// assert!(!statement.build().is_empty());
-    /// ```
+    /// Defines the table as a view over a select statement.
     pub fn as_(mut self, select_statement: impl Into<SelectStatement>) -> Self {
-        let statement: SelectStatement = select_statement.into();
-        self.as_ = Some(statement.to_string());
-        self.bindings.extend(statement.get_bindings());
+        self.as_ = Some(select_statement.into());
         self
     }
 
     /// Set permission as NONE
     pub fn permissions_none(mut self) -> Self {
-        self.permissions_none = Some(true);
+        self.permissions.none();
         self
     }
 
     /// Set permission as FULL
     pub fn permissions_full(mut self) -> Self {
-        self.permissions_full = Some(true);
+        self.permissions.full();
         self
     }
 
     /// set specific permissions for the table with constraint for certain table access types.
     /// Events include type inluding CREATE, UPDATE, SELECT and DELETE.
     /// Additional permission chaining accumulates
-    ///
-    ///  Examples:
-    ///  
-    /// ```rust
-    /// # use aparecium::{*, CrudType::*, statements::{define_table, for_permission}};
-    /// # use CrudType::*;
-    /// # use std::time::Duration;
-    ///
-    /// # let name = Field::new("name");
-    /// # let user = Table::from("user");
-    /// # let age = Field::new("age");
-    ///
-    /// # let statement = define_table(user);
-    /// // You can create perimssion for a single event
-    /// let statement = statement.permissions(for_permission(Select).where_(age.greater_than_or_equal(18)));
-    ///
-    /// // Even multiple
-    /// let statement = statement.permissions(for_permission([Create, Update]).where_(name.is("Oyedayo")));
-    ///
-    /// // Multiples multples
-    /// let statement = statement.permissions(&[
-    ///     for_permission([Create, Delete]).where_(name.is("Oyedayo")),
-    ///     for_permission(Update).where_(age.less_than_or_equal(130)),
-    /// ]);
-    ///
-    /// ```
     pub fn permissions(mut self, fors: impl Into<Permissions>) -> Self {
-        use Permissions::*;
-        let fors: Permissions = fors.into();
-        match fors {
-            For(one) => {
-                self.permissions_for.push(one.to_string());
-                self.bindings.extend(one.get_bindings());
-            }
-            Fors(many) => many.iter().for_each(|f| {
-                self.permissions_for.push(f.to_string());
-                self.bindings.extend(f.get_bindings());
-            }),
-            RawStatement(raw) => {
-                self.permissions_for.push(raw.to_string());
-            }
-            RawStatementList(raw_list) => {
-                self.permissions_for.extend(
-                    raw_list
-                        .into_iter()
-                        .map(|r| r.to_string())
-                        .collect::<Vec<_>>(),
-                );
-            }
-        }
+        self.permissions.push(fors);
         self
     }
 }
 
-// Statement syntax
-// DEFINE TABLE @name
-// 	[ DROP ]
-// 	[ SCHEMAFULL | SCHEMALESS ]
-// 	[ AS SELECT @projections
-// 		FROM @tables
-// 		[ WHERE @condition ]
-// 		[ GROUP [ BY ] @groups ]
-// 	]
-// 	[ PERMISSIONS [ NONE | FULL
-// 		| FOR select @expression
-// 		| FOR create @expression
-// 		| FOR update @expression
-// 		| FOR delete @expression
-// 	] ]
-impl Buildable for DefineTableStatement {
-    fn build(&self) -> String {
-        let mut query = format!("DEFINE TABLE {}", &self.table);
+impl Statement for DefineTableStatement {
+    fn render_body(&self, sql: &mut Sql) {
+        sql.push_str("DEFINE TABLE ").push(&self.table);
 
-        if self.drop.unwrap_or_default() {
-            query = format!("{query} DROP");
+        if self.drop {
+            sql.push_str(" DROP");
         }
 
-        if self.flexible.unwrap_or_default() {
-            query = format!("{query} FLEXIBLE");
+        if self.flexible {
+            sql.push_str(" FLEXIBLE");
         }
 
         match self.schema_type {
             Some(SchemaType::Schemafull) => {
-                query = format!("{query} SCHEMAFULL");
+                sql.push_str(" SCHEMAFULL");
             }
             Some(SchemaType::Schemaless) => {
-                query = format!("{query} SCHEMALESS");
+                sql.push_str(" SCHEMALESS");
             }
             None => {}
-        };
+        }
 
         if let Some(select_statement) = &self.as_ {
-            query = format!("{query} AS \n\t{}", select_statement.trim_end_matches(';'));
+            sql.push_str(" AS \n\t");
+            select_statement.render_body(sql);
         }
 
-        if let Some(true) = self.permissions_none {
-            query = format!("{query} PERMISSIONS NONE");
-        } else if let Some(true) = self.permissions_full {
-            query = format!("{query} PERMISSIONS FULL");
-        } else if !&self.permissions_for.is_empty() {
-            query = format!("{query}\nPERMISSIONS\n{}", self.permissions_for.join("\n"));
-        }
-        query.push(';');
-
-        query
+        sql.push(&self.permissions);
     }
 }
 
-impl Display for DefineTableStatement {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.build())
-    }
-}
+impl_definition!(DefineTableStatement);
 
-impl Queryable for DefineTableStatement {}
-impl Erroneous for DefineTableStatement {}
-
-impl Parametric for DefineTableStatement {
-    fn get_bindings(&self) -> BindingsList {
-        self.bindings.to_vec()
-    }
-}
-
+#[derive(Clone, Copy)]
 enum SchemaType {
     Schemafull,
     Schemaless,

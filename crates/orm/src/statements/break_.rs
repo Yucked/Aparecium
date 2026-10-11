@@ -1,19 +1,13 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
+use crate::Sql;
 
-use std::fmt;
-
-use crate::traits::{BindingsList, Buildable, Erroneous, Parametric, Queryable};
+use super::{Statement, impl_statement};
 
 /// Creates a BREAK statement.
 ///
 /// Examples
 /// ```rust
 /// use aparecium::{*, statements::break_};
-/// break_();
+/// assert_eq!(break_().to_debug_sql(), "BREAK;");
 /// ```
 pub fn break_() -> BreakStatement {
     BreakStatement
@@ -22,24 +16,10 @@ pub fn break_() -> BreakStatement {
 /// Represents the BREAK statement
 pub struct BreakStatement;
 
-impl Queryable for BreakStatement {}
-
-impl Erroneous for BreakStatement {}
-
-impl Parametric for BreakStatement {
-    fn get_bindings(&self) -> BindingsList {
-        vec![]
+impl Statement for BreakStatement {
+    fn render_body(&self, sql: &mut Sql) {
+        sql.push_str("BREAK");
     }
 }
 
-impl Buildable for BreakStatement {
-    fn build(&self) -> String {
-        "BREAK;".to_string()
-    }
-}
-
-impl fmt::Display for BreakStatement {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.build())
-    }
-}
+impl_statement!(BreakStatement);

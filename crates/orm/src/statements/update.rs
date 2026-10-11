@@ -1,11 +1,5 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
-
 // Statement syntax
-// UPDATE @targets
+// UPDATE [ ONLY ] @targets
 // 	[ CONTENT @value
 // 	  | MERGE @value
 // 	  | PATCH @value
@@ -18,26 +12,21 @@
 // ;
 use std::marker::PhantomData;
 
-use serde::{Serialize, de::DeserializeOwned};
-use surrealdb::sql;
+use surrealdb::types::{self, SurrealValue, Table, ToSql};
 
 use crate::{
-    Binding, BindingsList, Buildable, Conditional, DurationLike, Erroneous, ErrorList, Filter,
-    Model, Parametric, PatchOp, Queryable, ReturnType, ReturnableDefault, ReturnableStandard,
-    Setter, SurrealId, SurrealSimpleId, SurrealUlid, SurrealUuid, ToRaw,
-    derive_binding_and_errors_from_value,
+    Conditional, DurationLike, Filter, Model, PatchOp, RecordId, ReturnType,
+    ReturnableDefault, ReturnableStandard, Setter, Sql, ValueLike,
 };
+
+use super::{Statement, impl_statement};
 
 /// Creates a new UPDATE statement.
 /// The UPDATE statement can be used to update or modify records in the database.
 ///
-/// # Arguments
-///
-/// * `connection` - built using `with` method on a node. e.g `Student::with(..).writes(..).book(..)`
 /// # Examples
 ///
 /// ```rust, ignore
-/// use std::time::Duration;
 /// use aparecium::{*, statements::update};
 ///
 /// // Update using set method
@@ -45,350 +34,157 @@ use crate::{
 ///     .set(object_partial!(User { score: 5 }))
 ///     .where_(age.greater_than(18));
 ///
-/// // Update many records that match the filter using content method in user table
-/// update::<User>(user)
-///     .content(
-///          User {
-///             team: "Codebreather",
-///             ...
-///          }
-///     ).where_(cond(age.greater_than(18)).and(name.like("codebreather"));
-///     
-/// // Update many records that match the filter using merge method in user table
-/// update::<User>(user)
-///     .merge(
-///          UserDocument {
-///             hobbies: vec!["music production", "problem solving", "rust"],
-///             ...
-///          }
-///     ).where_(cond(age.greater_than(18)).and(name.like("codebreather"));
+/// // Replace a specific record using content method
+/// update::<User>(user1).content(User { name: "Alice".into(), age: 30, ..Default::default() });
 ///
-/// // Update specific record using content method
-/// update::<User>(user1)
-///     .content(
-///          User {
-///             name: "Oyelowo".into(),
-///             age: 198,
-///             ...
-///          }
-///     );
-///     
-/// // Update using content method
-/// update::<User>(user2)
-///     .merge(
-///          UserDocument {
-///             hobbies: vec!["music production", "problem solving", "rust"],
-///             ...
-///          }
-///     );
+/// // Apply a generated patch
+/// update::<User>(user2).set(UserPatch { score: Patch::Set(5), ..Default::default() }.into_setters());
 /// ```
-pub fn update<T>(targettables: impl Into<TargettablesForUpdate>) -> UpdateStatementInit<T>
-where
-    T: Serialize + DeserializeOwned + Model,
-{
-    let table_name = T::table();
-    let targettables: TargettablesForUpdate = targettables.into();
-    let mut bindings = vec![];
-    let mut errors = vec![];
-    let param = match targettables {
-        TargettablesForUpdate::Table(table) => {
-            let table = table.to_string();
-            if table != table_name.to_string() {
-                errors.push(format!(
-                    "table name -{table} does not match the surreal model struct type which belongs to {table} table"
-                ));
-            }
-            table
-        }
-        TargettablesForUpdate::SurrealId(id) => {
-            if !id
-                .to_string()
-                .starts_with(format!("{table_name}:").as_str())
-            {
-                errors.push(format!(
-                    "id - {id} does not belong to {table_name} table from the surreal model struct provided"
-                ));
-            }
-            let binding = Binding::new(id);
-            let param = binding.get_param_dollarised();
-            bindings.push(binding);
-            param
-        }
-    };
-
+pub fn update<T: Model>(targettables: impl Into<TargettablesForUpdate>) -> UpdateStatementInit<T> {
     UpdateStatementInit {
-        target: param,
+        target: targettables.into().checked::<T>(),
         is_only: false,
-        content: None,
-        merge: None,
-        replace: None,
-        patch_ops: vec![],
-        set: vec![],
+        data: Data::None,
         where_: None,
         return_type: None,
         timeout: None,
         parallel: false,
-        bindings,
-        errors,
-        __model_return_type: PhantomData,
+        model: PhantomData,
     }
 }
 
-/// Creates a new UPDATE statement and returns a single object.
-/// The UPDATE statement can be used to update or modify records in the database.
-///
-/// # Arguments
-///
-/// * `connection` - built using `with` method on a node. e.g `Student::with(..).writes(..).book(..)`
-/// # Examples
-///
-/// ```rust, ignore
-/// use std::time::Duration;
-/// use aparecium::{*, statements::update};
-///
-/// // Update using set method
-/// update_only::<User>(user)
-///     .set(object_partial!(
-///         User {
-///             score: 5
-///         }))
-///     .where_(age.greater_than(18));
-///
-/// // Update many records that match the filter using content method in user table
-/// update_only::<User>(user)
-///     .content(
-///          User {
-///             team: "Codebreather",
-///             ...
-///          }
-///     ).where_(cond(age.greater_than(18)).and(name.like("codebreather"));
-///     
-/// // Update many records that match the filter using merge method in user table
-/// update_only::<User>(user)
-///     .merge(
-///          UserDocument {
-///             hobbies: vec!["music production", "problem solving", "rust"],
-///             ...
-///          }
-///     ).where_(cond(age.greater_than(18)).and(name.like("codebreather"));
-///
-/// // Update specific record using content method
-/// update_only::<User>(user1)
-///     .content(
-///          User {
-///             name: "Oyelowo".into(),
-///             age: 198,
-///             ...
-///          }
-///     );
-///     
-/// // Update using content method
-/// update_only::<User>(user2)
-///     .merge(
-///          UserDocument {
-///             hobbies: vec!["music production", "problem solving", "rust"],
-///             ...
-///          }
-///     );
-/// ```
-pub fn update_only<T>(targettables: impl Into<TargettablesForUpdate>) -> UpdateStatementInit<T>
-where
-    T: Serialize + DeserializeOwned + Model,
-{
+/// Creates a new UPDATE ONLY statement, returning a single object.
+pub fn update_only<T: Model>(
+    targettables: impl Into<TargettablesForUpdate>,
+) -> UpdateStatementInit<T> {
     let mut statement = update(targettables);
     statement.is_only = true;
     statement
 }
 
-/// Update statement initializer
-#[derive(Debug, Clone)]
-pub struct UpdateStatementInit<T>
-where
-    T: Serialize + DeserializeOwned + Model,
-{
-    target: String,
-    is_only: bool,
-    content: Option<String>,
-    merge: Option<String>,
-    replace: Option<String>,
-    set: Vec<String>,
-    patch_ops: Vec<String>,
-    where_: Option<String>,
-    return_type: Option<ReturnType>,
-    timeout: Option<String>,
-    bindings: BindingsList,
-    errors: ErrorList,
-    parallel: bool,
-    __model_return_type: PhantomData<T>,
-}
-
-impl<T> Queryable for UpdateStatement<T> where T: Serialize + DeserializeOwned + Model {}
-impl<T> Erroneous for UpdateStatement<T>
-where
-    T: Serialize + DeserializeOwned + Model,
-{
-    fn get_errors(&self) -> ErrorList {
-        self.0.errors.to_vec()
-    }
-}
-
+/// The target of an `UPDATE` or `DELETE`: the model's table or one of its records.
 pub enum TargettablesForUpdate {
-    Table(sql::Table),
-    SurrealId(sql::Thing),
+    /// A table, rendered as its name.
+    Table(Table),
+    /// A record, bound as a value.
+    Record(types::RecordId),
 }
 
-impl<T> From<T> for TargettablesForUpdate
-where
-    T: Serialize + DeserializeOwned + Model,
-{
+impl TargettablesForUpdate {
+    /// Renders the target, recording an error when it does not belong to `T`'s table.
+    pub(crate) fn checked<T: Model>(self) -> Sql {
+        let table = T::table();
+        let mut sql = Sql::new();
+        match self {
+            Self::Table(target) => {
+                if target != table {
+                    sql.push_error(format!(
+                        "table `{}` is not the table `{}` of the model",
+                        target.as_str(),
+                        table.as_str()
+                    ));
+                }
+                sql.push(&target);
+            }
+            Self::Record(id) => {
+                if id.table != table {
+                    sql.push_error(format!(
+                        "record `{}` does not belong to the model's table `{}`",
+                        id.to_sql(),
+                        table.as_str()
+                    ));
+                }
+                sql.push_value(id.into_value());
+            }
+        }
+        sql
+    }
+}
+
+impl<T: Model> From<T> for TargettablesForUpdate {
     fn from(value: T) -> Self {
-        Self::SurrealId(value.get_id_as_thing())
+        Self::Record(value.record_id().into())
     }
 }
 
-impl From<crate::Table> for TargettablesForUpdate {
-    fn from(value: crate::Table) -> Self {
-        Self::Table(value.into())
-    }
-}
-
-impl From<&crate::Table> for TargettablesForUpdate {
-    fn from(value: &crate::Table) -> Self {
-        Self::Table(value.into())
-    }
-}
-
-impl From<&sql::Table> for TargettablesForUpdate {
-    fn from(value: &sql::Table) -> Self {
-        Self::Table(value.to_owned())
-    }
-}
-
-impl From<&sql::Thing> for TargettablesForUpdate {
-    fn from(value: &sql::Thing) -> Self {
-        Self::SurrealId(value.to_owned())
-    }
-}
-
-impl From<sql::Thing> for TargettablesForUpdate {
-    fn from(value: sql::Thing) -> Self {
-        Self::SurrealId(value)
-    }
-}
-
-impl<T, Id> From<SurrealId<T, Id>> for TargettablesForUpdate
-where
-    T: Model,
-    Id: Into<sql::Id>,
-{
-    fn from(value: SurrealId<T, Id>) -> Self {
-        Self::SurrealId(value.to_thing())
-    }
-}
-
-impl<T, Id> From<&SurrealId<T, Id>> for TargettablesForUpdate
-where
-    T: Model,
-    Id: Into<sql::Id>,
-{
-    fn from(value: &SurrealId<T, Id>) -> Self {
-        Self::SurrealId(value.to_owned().to_thing())
-    }
-}
-
-impl<T> From<SurrealSimpleId<T>> for TargettablesForUpdate
-where
-    T: Model,
-{
-    fn from(value: SurrealSimpleId<T>) -> Self {
-        Self::SurrealId(value.to_thing())
-    }
-}
-
-impl<T> From<&SurrealSimpleId<T>> for TargettablesForUpdate
-where
-    T: Model,
-{
-    fn from(value: &SurrealSimpleId<T>) -> Self {
-        Self::SurrealId(value.to_owned().to_thing())
-    }
-}
-
-impl<T> From<SurrealUuid<T>> for TargettablesForUpdate
-where
-    T: Model,
-{
-    fn from(value: SurrealUuid<T>) -> Self {
-        Self::SurrealId(value.to_thing())
-    }
-}
-
-impl<T> From<&SurrealUuid<T>> for TargettablesForUpdate
-where
-    T: Model,
-{
-    fn from(value: &SurrealUuid<T>) -> Self {
-        Self::SurrealId(value.to_owned().to_thing())
-    }
-}
-
-impl<T> From<SurrealUlid<T>> for TargettablesForUpdate
-where
-    T: Model,
-{
-    fn from(value: SurrealUlid<T>) -> Self {
-        Self::SurrealId(value.to_thing())
-    }
-}
-
-impl<T> From<&SurrealUlid<T>> for TargettablesForUpdate
-where
-    T: Model,
-{
-    fn from(value: &SurrealUlid<T>) -> Self {
-        Self::SurrealId(value.to_owned().to_thing())
-    }
-}
-
-impl From<sql::Table> for TargettablesForUpdate {
-    fn from(value: sql::Table) -> Self {
+impl From<Table> for TargettablesForUpdate {
+    fn from(value: Table) -> Self {
         Self::Table(value)
     }
 }
 
-impl<T> UpdateStatementInit<T>
-where
-    T: Serialize + DeserializeOwned + Model,
-{
-    /// Caution! Overrides all data even with default. Use with care. You may prefer `merge` with Updater instead e.g `UserUpdater`.
-    /// Specify the full record data using the CONTENT keyword. The content must be serializable
-    /// and implement Model trait.
+impl From<&Table> for TargettablesForUpdate {
+    fn from(value: &Table) -> Self {
+        Self::Table(value.clone())
+    }
+}
+
+impl From<types::RecordId> for TargettablesForUpdate {
+    fn from(value: types::RecordId) -> Self {
+        Self::Record(value)
+    }
+}
+
+impl From<&types::RecordId> for TargettablesForUpdate {
+    fn from(value: &types::RecordId) -> Self {
+        Self::Record(value.clone())
+    }
+}
+
+impl<T: Model> From<RecordId<T>> for TargettablesForUpdate {
+    fn from(value: RecordId<T>) -> Self {
+        Self::Record(value.into())
+    }
+}
+
+impl<T: Model> From<&RecordId<T>> for TargettablesForUpdate {
+    fn from(value: &RecordId<T>) -> Self {
+        Self::Record(value.into())
+    }
+}
+
+#[derive(Debug, Clone)]
+enum Data {
+    None,
+    Content(ValueLike),
+    Merge(ValueLike),
+    Replace(ValueLike),
+    Set(Vec<Setter>),
+    Patch(Vec<PatchOp>),
+}
+
+/// Update statement initializer
+#[derive(Debug, Clone)]
+pub struct UpdateStatementInit<T: Model> {
+    target: Sql,
+    is_only: bool,
+    data: Data,
+    where_: Option<Filter>,
+    return_type: Option<ReturnType>,
+    timeout: Option<DurationLike>,
+    parallel: bool,
+    model: PhantomData<T>,
+}
+
+impl<T: Model> UpdateStatementInit<T> {
+    /// Caution! Replaces the whole record. Specify the full record data using the CONTENT keyword.
     pub fn content(mut self, content: T) -> UpdateStatement<T> {
-        let (binding, errors) = derive_binding_and_errors_from_value(&content);
-        self.content = Some(binding.get_param_dollarised());
-        self.bindings.push(binding);
-        self.errors.extend(errors);
-        self.into()
+        self.data = Data::Content(ValueLike::value(content));
+        UpdateStatement(self)
     }
 
-    /// merge-update only specific fields by using the MERGE keyword and specifying only the fields which are to be updated.
-    pub fn merge(mut self, merge: impl Serialize) -> UpdateStatement<T> {
-        let (binding, errors) = derive_binding_and_errors_from_value(&merge);
-        self.merge = Some(binding.get_param_dollarised());
-        self.bindings.push(binding);
-        self.errors.extend(errors);
-        self.into()
+    /// Merges the given object into the record with the MERGE keyword. Nested objects are merged
+    /// recursively; use `set` to replace a field's value instead.
+    pub fn merge(mut self, merge: impl SurrealValue) -> UpdateStatement<T> {
+        self.data = Data::Merge(ValueLike::value(merge));
+        UpdateStatement(self)
     }
 
-    /// Caution!
-    /// Fully replaces weapon table with completely new object and data. This will remove all fields
-    /// that are not present in the new object. This is a destructive operation.
-    pub fn replace(mut self, replacement: impl Serialize) -> UpdateStatement<T> {
-        let (binding, errors) = derive_binding_and_errors_from_value(&replacement);
-        self.replace = Some(binding.get_param_dollarised());
-        self.bindings.push(binding);
-        self.errors.extend(errors);
-        self.into()
+    /// Caution! Replaces the whole record with the given object, removing every field it does
+    /// not contain.
+    pub fn replace(mut self, replacement: impl SurrealValue) -> UpdateStatement<T> {
+        self.data = Data::Replace(ValueLike::value(replacement));
+        UpdateStatement(self)
     }
 
     /// When specifying fields to update using the SET clause,
@@ -420,77 +216,51 @@ where
     /// .set(score.decrement_by(5))
     ///
     /// // add to an array. Generates  +=
-    /// .set(friends_names.append("Oyelowo"))
+    /// .set(friends_names.append("Alice"))
     ///
     /// // remove value from an array. Generates  -=
-    /// .set(friends_names.remove("Oyedayo"))
+    /// .set(friends_names.remove("Bob"))
+    /// ```
     pub fn set(mut self, settables: impl Into<Vec<Setter>>) -> UpdateStatement<T> {
-        let settable: Vec<Setter> = settables.into();
-
-        let (settable, bindings) = settable.into_iter().fold(
-            (Vec::new(), Vec::new()),
-            |(mut settable, mut bindings), s| {
-                settable.push(s.build());
-                bindings.extend(s.get_bindings());
-                (settable, bindings)
-            },
-        );
-
-        self.bindings.extend(bindings);
-        self.set.extend(settable);
-        self.into()
+        let settables: Vec<Setter> = settables.into();
+        match &mut self.data {
+            Data::Set(setters) => setters.extend(settables),
+            data => *data = Data::Set(settables),
+        }
+        UpdateStatement(self)
     }
 
     /// Specify the patch operations to be applied to the record using the PATCH keyword.
     ///
-    /// # Arguments
-    /// * `patch_op` - A patch operation to be applied to the record. Use the `patch`
-    ///     helper function.
-    ///
     /// # Example
     /// ```rust, ignore
-    /// use aparecium::{*, statements::patch};
-    /// // Typically, you would use the schema to get the field(e.g `User::schema().name(E).first`) but using this as an example.
-    /// name.patch_replace("Oyelowo");
-    /// name.patch_add("Oyelowo");
+    /// name.patch_replace("Alice");
+    /// name.patch_add("Alice");
     /// name.patch_remove();
     /// // regex search and replace
     /// name.patch_change("@@ -1,4 +1,4 @@\n te\n-s\n+x\n t\n");
+    /// ```
     pub fn patch(mut self, patch_op: impl Into<Vec<PatchOp>>) -> UpdateStatement<T> {
-        let patch_op: Vec<PatchOp> = patch_op.into();
-        for patch_op in patch_op {
-            self.bindings.extend(patch_op.get_bindings());
-            self.errors.extend(patch_op.get_errors());
-            self.patch_ops.push(patch_op.build());
+        let patch_ops: Vec<PatchOp> = patch_op.into();
+        match &mut self.data {
+            Data::Patch(ops) => ops.extend(patch_ops),
+            data => *data = Data::Patch(patch_ops),
         }
-
-        self.into()
+        UpdateStatement(self)
     }
 }
 
 /// A builder for update statements.
-pub struct UpdateStatement<T>(UpdateStatementInit<T>)
-where
-    T: Serialize + DeserializeOwned + Model;
+pub struct UpdateStatement<T: Model>(UpdateStatementInit<T>);
 
-impl<T> From<UpdateStatementInit<T>> for UpdateStatement<T>
-where
-    T: Serialize + DeserializeOwned + Model,
-{
+impl<T: Model> From<UpdateStatementInit<T>> for UpdateStatement<T> {
     fn from(value: UpdateStatementInit<T>) -> Self {
         Self(value)
     }
 }
 
-impl<T> UpdateStatement<T>
-where
-    T: Serialize + DeserializeOwned + Model,
-{
-    /// Adds a condition to the `` clause of the query.
-    ///
-    /// # Arguments
-    ///
-    /// * `condition` - Filter for the query.
+impl<T: Model> UpdateStatement<T> {
+    /// Adds a condition to the `WHERE` clause of the query.
     ///
     /// # Example
     ///
@@ -502,82 +272,19 @@ where
     /// .where_(cond(age.greater_than_or_equal(18)).and(age.less_than_or_equal(90)))
     /// ```
     pub fn where_(mut self, condition: impl Conditional) -> Self {
-        self.update_bindings(condition.get_bindings());
-        let condition = Filter::new(condition);
-        self.0.where_ = Some(condition.build());
-        self
-    }
-
-    fn update_bindings(&mut self, bindings: BindingsList) -> &mut Self {
-        self.0.bindings.extend(bindings);
+        self.0.where_ = Some(Filter::new(condition));
         self
     }
 
     /// Sets the return type for the query.
-    ///
-    /// # Arguments
-    ///
-    /// * `return_type` - The type of return to set.
-    ///
-    /// # Examples
-    ///
-    /// Set the return type to `None`:
-    ///
-    /// ```rust,ignore
-    /// statement.return_type(ReturnType::None);
-    /// ```
-    ///
-    /// Set the return type to `Before`:
-    ///
-    /// ```rust,ignore
-    /// statement.return_type(ReturnType::Before);
-    /// ```
-    ///
-    /// Set the return type to `After`:
-    ///
-    /// ```rust,ignore
-    /// statement.return_type(ReturnType::After);
-    /// ```
-    ///
-    /// Set the return type to `Diff`:
-    ///
-    /// ```rust,ignore
-    /// statement.return_type(ReturnType::Diff);
-    /// ```
-    ///
-    /// Set the return type to a projection of specific fields:
-    ///
-    /// ```rust,ignore
-    /// statement.return_type(ReturnType::Projections(vec![...]));
-    /// ```
     pub fn return_type(mut self, return_type: impl Into<ReturnType>) -> Self {
-        let return_type = return_type.into();
-        self.0.return_type = Some(return_type);
+        self.0.return_type = Some(return_type.into());
         self
     }
 
-    /// Sets the timeout duration for the query.
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - a value that can represent a duration for the timeout. This can be one of the following:
-    ///
-    ///   * `Duration` - a standard Rust `Duration` value.
-    ///
-    ///   * `Field` - an identifier for a specific field in the query, represented by an `Idiom` value.
-    ///
-    ///   * `Param` - a named parameter in the query, represented by a `Param` value.
-    ///
-    /// # Examples
-    ///
-    /// ```rust,ignore
-    /// let query = query.timeout(Duration::from_secs(30));
-    ///
-    /// assert_eq!(query.to_raw().to_string(), "30s");
-    /// ```
+    /// Sets the timeout duration for the query. It is written as a literal.
     pub fn timeout(mut self, duration: impl Into<DurationLike>) -> Self {
-        let duration: DurationLike = duration.into();
-        self.0.timeout = Some(duration.to_raw().build());
+        self.0.timeout = Some(duration.into());
         self
     }
 
@@ -588,75 +295,59 @@ where
     }
 }
 
-impl<T> Buildable for UpdateStatement<T>
-where
-    T: Serialize + DeserializeOwned + Model,
-{
-    fn build(&self) -> String {
+impl<T: Model> Statement for UpdateStatement<T> {
+    fn render_body(&self, sql: &mut Sql) {
         let statement = &self.0;
-        let mut query = format!("UPDATE {}", statement.target);
-
+        sql.push_str("UPDATE ");
         if statement.is_only {
-            query = format!("{query} ONLY");
+            sql.push_str("ONLY ");
         }
+        sql.push(&statement.target);
 
-        if let Some(content) = &statement.content {
-            query = format!("{query} CONTENT  {content}",);
-        } else if let Some(merge) = &statement.merge {
-            query = format!("{query} MERGE {merge}");
-        } else if let Some(replace) = &statement.replace {
-            query = format!("{query} REPLACE {replace}");
-        } else if !statement.set.is_empty() {
-            let set_vec = statement.set.join(", ");
-            query = format!("{query} SET {set_vec}");
-        } else if !statement.patch_ops.is_empty() {
-            let patch_vec = statement.patch_ops.join(", ");
-            query = format!("{query} PATCH [{patch_vec}]");
+        match &statement.data {
+            Data::None => {}
+            Data::Content(content) => {
+                sql.push_str(" CONTENT ").push(content);
+            }
+            Data::Merge(merge) => {
+                sql.push_str(" MERGE ").push(merge);
+            }
+            Data::Replace(replacement) => {
+                sql.push_str(" REPLACE ").push(replacement);
+            }
+            Data::Set(setters) => {
+                sql.push_str(" SET ").push(setters);
+            }
+            Data::Patch(ops) => {
+                sql.push_str(" PATCH [").push(ops).push_str("]");
+            }
         }
 
         if let Some(condition) = &statement.where_ {
-            query = format!("{query} WHERE {condition}");
+            sql.push_str(" WHERE ").push(condition);
         }
 
         if let Some(return_type) = &statement.return_type {
-            query = format!("{query} {return_type}");
+            sql.push_str(" ").push(return_type);
         }
 
         if let Some(timeout) = &statement.timeout {
-            query = format!("{query} TIMEOUT {timeout}");
+            sql.push_str(" TIMEOUT ").push_inlined(timeout);
         }
 
         if statement.parallel {
-            query.push_str(" PARALLEL");
+            sql.push_str(" PARALLEL");
         }
-
-        format!("{query};")
     }
 }
 
-impl<T> std::fmt::Display for UpdateStatement<T>
-where
-    T: Serialize + DeserializeOwned + Model,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.build())
-    }
-}
+impl_statement!([T: Model] UpdateStatement<T>);
 
-impl<T> Parametric for UpdateStatement<T>
-where
-    T: Serialize + DeserializeOwned + Model,
-{
-    fn get_bindings(&self) -> BindingsList {
-        self.0.bindings.to_vec()
-    }
-}
-
-impl<T> ReturnableDefault<T> for UpdateStatement<T> where T: Serialize + DeserializeOwned + Model {}
+impl<T: Model> ReturnableDefault<T> for UpdateStatement<T> {}
 
 impl<T> ReturnableStandard<T> for UpdateStatement<T>
 where
-    T: Serialize + DeserializeOwned + Model + Send + Sync,
+    T: Model + Send + Sync,
 {
     fn set_return_type(mut self, return_type: ReturnType) -> Self {
         self.0.return_type = Some(return_type);

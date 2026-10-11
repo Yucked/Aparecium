@@ -1,16 +1,6 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
+use crate::{Clause, Conditional, Expression, Operatable, Param, SchemaGetter, Sql};
 
-use std::fmt::Display;
-
-use crate::{
-    Clause, Conditional, Operatable, Operation, Param, SchemaGetter, ValueLike,
-    traits::{BindingsList, Buildable, Erroneous, Parametric, Queryable},
-    types::expression::Expression,
-};
+use super::{Statement, impl_statement};
 
 /// Builds LET statement.
 ///
@@ -28,11 +18,9 @@ use crate::{
 /// let_("users").equal_to(select(All).from(user));
 /// ```
 pub fn let_(parameter: impl Into<Param>) -> LetStatement {
-    let param: Param = parameter.into();
     LetStatement {
+        parameter: parameter.into(),
         value: None,
-        bindings: vec![],
-        parameter: param,
     }
 }
 
@@ -66,31 +54,18 @@ pub use let_statement as let_;
 pub struct LetStatement {
     parameter: Param,
     value: Option<Expression>,
-    bindings: BindingsList,
 }
 
+/// As an operand or condition, a `LET` statement stands for the parameter it defines.
 impl Operatable for LetStatement {
-    fn generate_query<T>(&self, operator: impl std::fmt::Display, value: T) -> Operation
-    where
-        T: Into<ValueLike>,
-    {
-        let value: ValueLike = value.into();
-        let condition = format!(
-            "{} {} {}",
-            self.get_param().build(),
-            operator,
-            &value.build()
-        );
-        let updated_bindings = [
-            self.get_bindings().as_slice(),
-            value.get_bindings().as_slice(),
-        ]
-        .concat();
-        Operation {
-            query_string: condition,
-            bindings: updated_bindings,
-            errors: vec![],
-        }
+    fn render_operand(&self, sql: &mut Sql) {
+        sql.push(&self.parameter);
+    }
+}
+
+impl Conditional for LetStatement {
+    fn render_condition(&self, sql: &mut Sql) {
+        sql.push(&self.parameter);
     }
 }
 
@@ -108,9 +83,7 @@ impl LetStatement {
     /// # let_("users")
     /// .equal_to(select(All).from(user));
     pub fn equal_to(mut self, value: impl Into<Expression>) -> Self {
-        let value: Expression = value.into();
-        self.bindings.extend(value.get_bindings());
-        self.value = Some(value);
+        self.value = Some(value.into());
         self
     }
 
@@ -121,75 +94,17 @@ impl LetStatement {
 
     /// For traversing from the param
     pub fn with_path<T: SchemaGetter>(&self, clause: impl Into<Clause>) -> T::Schema {
-        let clause: Clause = clause.into();
-        let value = ValueLike {
-            string: format!("{}{}", self.get_param().build(), clause.build()),
-            bindings: self
-                .get_bindings()
-                .into_iter()
-                .chain(clause.get_bindings())
-                .collect::<Vec<_>>(),
-            errors: self.get_errors(),
-        };
-
-        T::schema_prefixed(value)
+        self.parameter.with_path::<T>(clause)
     }
 }
 
-impl Buildable for LetStatement {
-    fn build(&self) -> String {
-        let mut query = format!("LET {}", self.get_param().build());
-
+impl Statement for LetStatement {
+    fn render_body(&self, sql: &mut Sql) {
+        sql.push_str("LET ").push(&self.parameter);
         if let Some(value) = &self.value {
-            query = format!("{query} = {};", value.build());
+            sql.push_str(" = ").push(value);
         }
-
-        query
     }
 }
 
-impl Buildable for &LetStatement {
-    fn build(&self) -> String {
-        let mut query = format!("LET {}", self.get_param().build());
-
-        if let Some(value) = &self.value {
-            query = format!("{query} = {};", value.build());
-        }
-
-        query
-    }
-}
-
-impl Display for LetStatement {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.build())
-    }
-}
-
-impl Parametric for LetStatement {
-    fn get_bindings(&self) -> BindingsList {
-        self.bindings.to_vec()
-    }
-}
-impl Parametric for &LetStatement {
-    fn get_bindings(&self) -> BindingsList {
-        self.bindings.to_vec()
-    }
-}
-
-impl Queryable for LetStatement {}
-impl Queryable for &LetStatement {}
-impl Erroneous for LetStatement {}
-impl Erroneous for &LetStatement {}
-
-impl Conditional for &LetStatement {
-    fn get_condition_query_string(&self) -> String {
-        self.get_param().build()
-    }
-}
-
-impl Conditional for LetStatement {
-    fn get_condition_query_string(&self) -> String {
-        self.get_param().build()
-    }
-}
+impl_statement!(LetStatement);

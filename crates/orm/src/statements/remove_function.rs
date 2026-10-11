@@ -1,33 +1,21 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
+use std::borrow::Cow;
 
-use std::fmt::{self, Display};
+use crate::Sql;
 
-use crate::{
-    Binding,
-    traits::{BindingsList, Buildable, Erroneous, Parametric, Queryable},
-};
+use super::{Statement, impl_definition};
 
-pub struct FunctionName(String);
+/// A function's full name, e.g. `fn::update_author`, written verbatim.
+pub struct FunctionName(Cow<'static, str>);
 
 impl From<&str> for FunctionName {
     fn from(name: &str) -> Self {
-        Self(name.to_string())
+        Self(Cow::Owned(name.to_owned()))
     }
 }
 
 impl From<String> for FunctionName {
     fn from(name: String) -> Self {
-        Self(name)
-    }
-}
-
-impl Display for FunctionName {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "fn::{}", self.0.trim_start_matches("fn::"))
+        Self(Cow::Owned(name))
     }
 }
 
@@ -36,48 +24,24 @@ impl Display for FunctionName {
 /// Examples
 /// ```rust
 /// use aparecium::{*, statements::remove_function};
-/// remove_function("fn::update_author").build();
+/// assert_eq!(
+///     remove_function("fn::update_author").to_debug_sql(),
+///     "REMOVE FUNCTION fn::update_author;"
+/// );
 /// ```
 pub fn remove_function(name: impl Into<FunctionName>) -> RemoveFunctionStatement {
-    let name: FunctionName = name.into();
-    let name: String = name.to_string();
-    let name = Binding::new(name).as_raw();
-    RemoveFunctionStatement {
-        name: name.get_param_dollarised(),
-        bindings: vec![name],
-        errors: vec![],
-    }
+    RemoveFunctionStatement { name: name.into() }
 }
 
 /// Represents the REMOVE FUNCTION statement.
 pub struct RemoveFunctionStatement {
-    name: String,
-    bindings: BindingsList,
-    errors: crate::ErrorList,
+    name: FunctionName,
 }
 
-impl Queryable for RemoveFunctionStatement {}
-
-impl Erroneous for RemoveFunctionStatement {
-    fn get_errors(&self) -> crate::ErrorList {
-        self.errors.clone()
+impl Statement for RemoveFunctionStatement {
+    fn render_body(&self, sql: &mut Sql) {
+        sql.push_str("REMOVE FUNCTION ").push_str(&self.name.0);
     }
 }
 
-impl Parametric for RemoveFunctionStatement {
-    fn get_bindings(&self) -> BindingsList {
-        self.bindings.clone()
-    }
-}
-
-impl Buildable for RemoveFunctionStatement {
-    fn build(&self) -> String {
-        format!("REMOVE FUNCTION {};", self.name)
-    }
-}
-
-impl fmt::Display for RemoveFunctionStatement {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.build())
-    }
-}
+impl_definition!(RemoveFunctionStatement);

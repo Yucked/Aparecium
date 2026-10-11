@@ -1,61 +1,27 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
-use std::fmt::{self, Display};
+use crate::{Ident, Sql};
 
-use crate::{
-    Binding,
-    traits::{BindingsList, Buildable, Erroneous, Parametric, Queryable},
-};
+use super::{Statement, impl_definition};
 
 /// Creates a REMOVE ANALYZER statement builder.
 ///
 /// Examples
 /// ```rust
 /// use aparecium::{*, statements::remove_analyzer};
-/// remove_analyzer("analyzer::standard").build();
+/// assert_eq!(remove_analyzer("standard").to_debug_sql(), "REMOVE ANALYZER standard;");
 /// ```
-pub fn remove_analyzer(name: impl Display) -> RemoveAnalyzerStatement {
-    let name: String = name.to_string();
-    let name = Binding::new(name).as_raw();
-    RemoveAnalyzerStatement {
-        name: name.get_param_dollarised(),
-        bindings: vec![name],
-        errors: vec![],
-    }
+pub fn remove_analyzer(name: impl Into<Ident>) -> RemoveAnalyzerStatement {
+    RemoveAnalyzerStatement { name: name.into() }
 }
 
 /// Represents the REMOVE ANALYZER statement.
 pub struct RemoveAnalyzerStatement {
-    name: String,
-    bindings: BindingsList,
-    errors: crate::ErrorList,
+    name: Ident,
 }
 
-impl Queryable for RemoveAnalyzerStatement {}
-
-impl Erroneous for RemoveAnalyzerStatement {
-    fn get_errors(&self) -> crate::ErrorList {
-        self.errors.clone()
+impl Statement for RemoveAnalyzerStatement {
+    fn render_body(&self, sql: &mut Sql) {
+        sql.push_str("REMOVE ANALYZER ").push(&self.name);
     }
 }
 
-impl Parametric for RemoveAnalyzerStatement {
-    fn get_bindings(&self) -> BindingsList {
-        self.bindings.clone()
-    }
-}
-
-impl Buildable for RemoveAnalyzerStatement {
-    fn build(&self) -> String {
-        format!("REMOVE ANALYZER {};", self.name)
-    }
-}
-
-impl fmt::Display for RemoveAnalyzerStatement {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.build())
-    }
-}
+impl_definition!(RemoveAnalyzerStatement);

@@ -1,15 +1,8 @@
-/*
- * Author: Oyelowo Oyedayo
- * Email: oyelowo.oss@gmail.com
- * Copyright (c) 2023 Oyelowo Oyedayo
- */
+use surrealdb::types::Table;
 
-use std::fmt;
+use crate::{DatetimeLike, NumberLike, Sql};
 
-use crate::{
-    DatetimeLike, NumberLike, TableLike,
-    traits::{BindingsList, Buildable, Erroneous, Parametric, Queryable},
-};
+use super::{Statement, impl_statement};
 
 /// Creates a SHOW CHANGES statement builder.
 ///
@@ -19,8 +12,11 @@ use crate::{
 ///
 /// let timestamp = chrono::DateTime::from_timestamp(4343434434, 232).unwrap();
 /// let statement = show_changes_for_table("reading").since(timestamp).limit(10);
+/// let query = statement.to_query().unwrap();
+/// assert!(query.sql().starts_with("SHOW CHANGES FOR TABLE reading SINCE d'"));
+/// assert!(query.sql().ends_with("' LIMIT $_p0;"));
 /// ```
-pub fn show_changes_for_table(table: impl Into<TableLike>) -> ShowChangesStatement {
+pub fn show_changes_for_table(table: impl Into<Table>) -> ShowChangesStatement {
     ShowChangesStatement {
         table: table.into(),
         since: None,
@@ -30,75 +26,35 @@ pub fn show_changes_for_table(table: impl Into<TableLike>) -> ShowChangesStateme
 
 /// Represents the initial state for building a SHOW CHANGES statement.
 pub struct ShowChangesStatement {
-    table: TableLike,
+    table: Table,
     since: Option<DatetimeLike>,
     limit: Option<NumberLike>,
 }
 
 impl ShowChangesStatement {
-    /// Sets the SINCE clause for the SHOW CHANGES statement.
+    /// Sets the SINCE clause for the SHOW CHANGES statement. It is written as a literal.
     pub fn since(mut self, timestamp: impl Into<DatetimeLike>) -> ShowChangesStatement {
-        let timestamp: DatetimeLike = timestamp.into();
-        self.since = Some(timestamp);
+        self.since = Some(timestamp.into());
         self
     }
 
     /// Sets the LIMIT clause for the SHOW CHANGES statement.
     pub fn limit(mut self, limit: impl Into<NumberLike>) -> ShowChangesStatement {
-        let limit: NumberLike = limit.into();
-        self.limit = Some(limit);
+        self.limit = Some(limit.into());
         self
     }
 }
 
-impl Queryable for ShowChangesStatement {}
-
-impl Erroneous for ShowChangesStatement {
-    fn get_errors(&self) -> crate::ErrorList {
-        let mut errors = vec![];
-        errors.extend(self.table.get_errors());
-
+impl Statement for ShowChangesStatement {
+    fn render_body(&self, sql: &mut Sql) {
+        sql.push_str("SHOW CHANGES FOR TABLE ").push(&self.table);
         if let Some(timestamp) = &self.since {
-            errors.extend(timestamp.get_errors());
-        }
-
-        if let Some(limit) = &self.limit {
-            errors.extend(limit.get_errors());
-        }
-        errors
-    }
-}
-
-impl Parametric for ShowChangesStatement {
-    fn get_bindings(&self) -> BindingsList {
-        let mut bindings = vec![];
-        bindings.extend(self.table.get_bindings());
-
-        if let Some(timestamp) = &self.since {
-            bindings.extend(timestamp.get_bindings());
+            sql.push_str(" SINCE ").push_inlined(timestamp);
         }
         if let Some(limit) = &self.limit {
-            bindings.extend(limit.get_bindings());
+            sql.push_str(" LIMIT ").push(limit);
         }
-        bindings
     }
 }
 
-impl Buildable for ShowChangesStatement {
-    fn build(&self) -> String {
-        let mut query = format!("SHOW CHANGES FOR TABLE {}", self.table.build());
-        if let Some(timestamp) = &self.since {
-            query += &format!(" SINCE \"{}\"", timestamp.build());
-        }
-        if let Some(limit) = &self.limit {
-            query += &format!(" LIMIT {}", limit.build());
-        }
-        query + ";"
-    }
-}
-
-impl fmt::Display for ShowChangesStatement {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.build())
-    }
-}
+impl_statement!(ShowChangesStatement);
