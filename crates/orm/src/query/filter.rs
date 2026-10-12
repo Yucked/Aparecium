@@ -1,7 +1,7 @@
 
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
-use crate::{Conditional, Render, Sql};
+use crate::{Conditional, Render, Renderer, ValueLike};
 
 use super::Empty;
 
@@ -14,13 +14,13 @@ use super::Empty;
 /// # Example
 ///
 /// ```rust
-/// # use aparecium::*;
+/// # use umbriel::*;
 /// # let age = Field::new("age");
 /// # let name = Field::new("name");
 /// # let title = Field::new("title");
 ///
 /// let filter = cond(age.greater_than(18))
-///                 .and(name.like("%Oyelowo%"))
+///                 .and(name.like("%Charlie%"))
 ///                 .or(title.equal("Professor"));
 /// ```
 pub fn cond(filterable: impl Conditional) -> Filter {
@@ -38,12 +38,12 @@ pub fn cond(filterable: impl Conditional) -> Filter {
 /// # Example
 ///
 /// ```rust
-/// # use aparecium::*;
+/// # use umbriel::*;
 /// # let age = Field::new("age");
 /// # let name = Field::new("name");
 /// # let title = Field::new("title");
 ///
-/// let filter = cond!((age > 18) AND (name ~ "%Oyelowo%") OR (title == "Professor"));
+/// let filter = cond!((age > 18) AND (name ~ "%Charlie%") OR (title == "Professor"));
 /// let filter_simple = cond!(age > 18);
 /// let filter_mixed = cond!((age.or(4).or(545).or(232)) OR (title = "Professor") AND (age < 100));
 /// ```
@@ -488,21 +488,35 @@ macro_rules! cond {
 ///
 /// Combining filters groups the left-hand side, so `cond(a).or(b).and(c)` renders as
 /// `((a) OR (b)) AND (c)`: conditions apply in the order they are chained.
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Filter {
-    sql: Sql,
+    /// Shared, so a filter reused in several conditions or queries is never copied.
+    node: Arc<FilterNode>,
     /// Already a single parenthesized group, so combining needs no extra parentheses.
     grouped: bool,
+}
+
+#[derive(Debug, PartialEq)]
+enum FilterNode {
+    /// A condition as written.
+    Condition(ValueLike),
+    /// `filter`, parenthesized unless it already is a group.
+    Group(Filter),
+    /// `(left) AND (right)`: the left filter as a group, then the right condition.
+    Combined {
+        left: Filter,
+        operator: &'static str,
+        right: ValueLike,
+    },
 }
 
 impl Filter {
     /// Creates a new `Filter` instance.
     pub fn new(query: impl Conditional) -> Self {
-        let mut sql = Sql::new();
-        query.render_condition(&mut sql);
+        let grouped = query.is_grouped();
         Self {
-            grouped: query.is_grouped(),
-            sql,
+            node: Arc::new(FilterNode::Condition(query.into())),
+            grouped,
         }
     }
 
@@ -515,13 +529,13 @@ impl Filter {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// # let title = Field::new("title");
     /// cond(age.greater_than(18))
     ///     .or(title.equal("Professor"));
     /// ```
-    pub fn or(self, filter: impl Render) -> Self {
+    pub fn or(self, filter: impl Conditional) -> Self {
         self.combine(" OR ", filter)
     }
 
@@ -534,13 +548,13 @@ impl Filter {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// # let title = Field::new("title");
     /// cond(age.greater_than(18))
     ///     .and(title.equal("Professor"));
     /// ```
-    pub fn and(self, filter: impl Render) -> Self {
+    pub fn and(self, filter: impl Conditional) -> Self {
         self.combine(" AND ", filter)
     }
 
@@ -549,7 +563,7 @@ impl Filter {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// # let title = Field::new("title");
     ///
@@ -559,30 +573,35 @@ impl Filter {
     /// assert_eq!(filter.to_debug_sql(), "((age > 18) OR (title = 'Professor'))");
     /// ```
     pub fn parenthesized(&self) -> Self {
-        let mut sql = Sql::new();
-        self.push_group(&mut sql);
-        Filter { sql, grouped: true }
-    }
-
-    fn push_group(&self, sql: &mut Sql) {
-        if self.grouped {
-            sql.push(&self.sql);
-        } else {
-            sql.push_str("(").push(&self.sql).push_str(")");
+        Filter {
+            node: Arc::new(FilterNode::Group(self.clone())),
+            grouped: true,
         }
     }
 
-    fn combine(self, operator: &str, filter: impl Render) -> Self {
-        let mut sql = Sql::new();
-        self.push_group(&mut sql);
-        sql.push_str(operator)
-            .push_str("(")
-            .push(&filter)
-            .push_str(")");
+    fn render_group(&self, out: &mut Renderer) {
+        if self.grouped {
+            self.render(out);
+        } else {
+            out.push_str("(").push(self).push_str(")");
+        }
+    }
+
+    fn combine(self, operator: &'static str, filter: impl Conditional) -> Self {
         Filter {
-            sql,
+            node: Arc::new(FilterNode::Combined {
+                left: self,
+                operator,
+                right: filter.into(),
+            }),
             grouped: false,
         }
+    }
+}
+
+impl Default for Filter {
+    fn default() -> Self {
+        Self::new(Empty)
     }
 }
 
@@ -611,8 +630,24 @@ impl From<Empty> for Filter {
 }
 
 impl Render for Filter {
-    fn render(&self, sql: &mut Sql) {
-        sql.push(&self.sql);
+    fn render(&self, out: &mut Renderer) {
+        match &*self.node {
+            FilterNode::Condition(condition) => {
+                out.push(condition);
+            }
+            FilterNode::Group(filter) => filter.render_group(out),
+            FilterNode::Combined {
+                left,
+                operator,
+                right,
+            } => {
+                left.render_group(out);
+                out.push_str(operator)
+                    .push_str("(")
+                    .push(right)
+                    .push_str(")");
+            }
+        }
     }
 }
 
