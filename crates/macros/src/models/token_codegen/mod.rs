@@ -5,13 +5,14 @@ mod field_connection_build;
 mod field_metadata;
 mod field_type_assertions;
 mod field_value_setter;
+mod flatten;
 mod link_methods;
 mod patch;
 mod relate;
 mod serialized_field_fmts;
 mod simple;
 
-use convert_case::{Case, Casing};
+use heck::ToSnakeCase;
 use quote::format_ident;
 use std::collections::HashSet;
 
@@ -83,6 +84,8 @@ pub struct Codegen<'a> {
     /// Generated example: `timeWritten: ___________path.clone().with_field("timeWritten").into(),`
     /// Each schema field is the schema's path followed by the field's stored name.
     pub schema_struct_fields_names_kv: Vec<SchemaStructFieldsNamesKv>,
+    /// The schema's field idents, for its fieldwise `Clone`.
+    pub schema_field_idents: Vec<TokenStream>,
 
     /// Generated example: pub writtenBooks: AliasName,
     /// This is used when you have a relate attribute signaling a graph with e.g node->edge->node
@@ -150,13 +153,18 @@ pub struct Codegen<'a> {
     /// }
     /// ```
     pub record_link_fields_methods: Vec<LinkFieldTraversalMethodToken>,
-    pub field_definitions: Vec<DefineFieldStatementToken>,
+    /// Each stored field's name and definitions, written for the table `_____table`.
     pub field_metadata: Vec<FieldMetadataToken>,
+    /// The types of flattened objects, whose fields are stored as this model's own.
+    pub flattened_objects: Vec<TokenStream>,
+    /// The Rust names of flattened fields: `object!` requires them, and rejects them since their
+    /// schemas are objects rather than assignable fields.
+    pub flattened_field_keys: Vec<TokenStream>,
     pub node_edge_metadata: NodeEdgeMetadataLookupTable<'a>,
     pub fields_relations_aliased: Vec<FieldsRelationsAliased>,
-    /// e.g `pub time: aparecium::Patch<Time>` in `<Model>Patch`.
+    /// e.g `pub time: umbriel::Patch<Time>` in `<Model>Patch`.
     pub patch_fields: Vec<PatchField>,
-    /// e.g `time: aparecium::Patch::Keep`.
+    /// e.g `time: umbriel::Patch::Keep`.
     pub patch_defaults: Vec<PatchDefault>,
     /// Adds the assignment of a patch field that is not `Keep`.
     pub patch_setters: Vec<PatchSetter>,
@@ -188,7 +196,7 @@ impl<'a> Codegen<'a> {
 
     pub(crate) fn common_idents(&self) -> CommonIdents {
         let struct_name_ident = self.table_derive_attributes().ident().to_string();
-        let struct_name_ident_snake = struct_name_ident.to_case(Case::Snake);
+        let struct_name_ident_snake = struct_name_ident.to_snake_case();
         let module_name_internal =
             format_ident!("________internal_{struct_name_ident_snake}_schema");
 
@@ -232,20 +240,15 @@ impl<'a> Codegen<'a> {
         let mut tokens_generator = Self::new(model_attributes);
 
         for field_receiver in model_attributes.fields()? {
-            // A flattened field's contents are stored as the model's own fields, which this
-            // macro cannot see, so its schema, definitions and patch would name a field that is
-            // never stored.
-            if let Some(flatten) = surreal_flag(&field_receiver.attrs, "flatten")? {
-                return Err(syn::Error::new_spanned(
-                    flatten,
-                    "`#[surreal(flatten)]` is not supported on model fields",
-                )
-                .into());
-            }
             tokens_generator.set_field_receiver(field_receiver);
 
+            if let Some(flatten) = surreal_flag(&field_receiver.attrs, "flatten")? {
+                tokens_generator.create_flattened_field(&flatten)?;
+                continue;
+            }
+
             tokens_generator.create_table_id_type_token()?;
-            tokens_generator.create_field_definitions()?;
+            tokens_generator.create_field_definition_checks()?;
             tokens_generator.create_db_field_names_token()?;
             tokens_generator.create_field_type_static_assertion_token()?;
             tokens_generator.create_field_setter_impl()?;
