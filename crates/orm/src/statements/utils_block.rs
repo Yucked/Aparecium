@@ -1,4 +1,3 @@
-
 use crate::{Fragment, QueryChain, Queryable, Render, Renderer, ValueLike};
 
 #[macro_export]
@@ -452,7 +451,7 @@ macro_rules! block_deprecated_inner {
 ///
 /// assert_eq!(
 ///     def.to_debug_sql(),
-///     "DEFINE FIELD average_sales ON TABLE metrics VALUE $value OR {\n\
+///     "DEFINE FIELD average_sales ON TABLE metrics VALUE {\n\
 ///         LET $sales = (SELECT VALUE quantity FROM sales);\n\n\
 ///         LET $total = math::sum($sales);\n\n\
 ///         LET $count = count($sales);\n\n\

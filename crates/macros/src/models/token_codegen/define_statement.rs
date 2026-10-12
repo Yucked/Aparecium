@@ -1,4 +1,3 @@
-
 use crate::helpers::get_crate_name;
 use quote::{ToTokens, quote};
 
@@ -56,8 +55,9 @@ impl Codegen<'_> {
             define_array_field_item_methods.push(quote!(.assert(#item_assert)));
         }
 
+        // `#[orm(value = …)]` is documented as the field's default, so it emits `DEFAULT`.
         if let Some(value) = field_receiver.value.as_ref() {
-            define_field_methods.push(quote!(.value(#value)));
+            define_field_methods.push(quote!(.default(#value)));
         }
 
         if let Some(permissions) = field_receiver.permissions.as_ref() {

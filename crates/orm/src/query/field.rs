@@ -1,11 +1,10 @@
-
 use std::borrow::Cow;
 
 use surrealdb::types::Table;
 
 use crate::{
-    Aliasable, Arrow, Clause, Conditional, Filter, Fragment, Ident, NumberLike, Operatable,
-    Param, Render, Renderer,
+    Aliasable, Arrow, Clause, Conditional, Filter, Fragment, Ident, NumberLike, Operatable, Param,
+    Render, Renderer,
 };
 
 /// A path into a record: a field, a nested field, or a graph traversal.
@@ -177,6 +176,17 @@ impl Field {
         field
     }
 
+    /// The field's name when the path is a single top-level field. For an escaped identifier in
+    /// raw text (`` `display-name` ``, `⟨display-name⟩`) this is its contents, escapes as written.
+    pub(crate) fn top_level_name(&self) -> Option<&str> {
+        match self.parts.as_slice() {
+            [IdiomPart::Field(name)] => Some(name.as_str()),
+            [IdiomPart::Raw(text)] if is_plain_segment(text) => Some(text),
+            [IdiomPart::Raw(text)] => escaped_ident(text),
+            _ => None,
+        }
+    }
+
     /// The JSON pointer for this path, e.g. `/name/first`, when it consists of field names only.
     pub(crate) fn json_pointer(&self) -> Option<String> {
         let mut pointer = String::new();
@@ -204,6 +214,29 @@ fn is_plain_segment(segment: &str) -> bool {
         .next()
         .is_some_and(|c| c.is_alphabetic() || c == '_')
         && segment.chars().all(|c| c.is_alphanumeric() || c == '_')
+}
+
+/// The contents of `text` when it is exactly one escaped identifier: `` `…` `` or `⟨…⟩`, with no
+/// unescaped closing delimiter inside, so `` `a`.b `` and `` `a`.`b` `` are not.
+fn escaped_ident(text: &str) -> Option<&str> {
+    let close = match text.chars().next()? {
+        '`' => '`',
+        '⟨' => '⟩',
+        _ => return None,
+    };
+    let inner = text[text.chars().next()?.len_utf8()..].strip_suffix(close)?;
+    let mut chars = inner.chars();
+    while let Some(c) = chars.next() {
+        match c {
+            // An escape consumes the next character, so `\`` does not close the identifier.
+            '\\' => {
+                chars.next()?;
+            }
+            c if c == close => return None,
+            _ => {}
+        }
+    }
+    (!inner.is_empty()).then_some(inner)
 }
 
 /// Appends `/segment`, escaping `~` and `/` as RFC 6901 requires.
