@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::{statements::select, *};
+    use umbriel::{statements::select, *};
 
     macro_rules! gen_test {
         ($range:expr) => {
@@ -109,33 +109,33 @@ mod tests {
 
     #[test]
     fn test_range_inclusive_for_surreal_custom() {
-        let id1 = TestUser::create_id("oyelowo");
-        let id2 = TestUser::create_id("oyedayo");
+        let id1 = TestUser::create_id("charlie");
+        let id2 = TestUser::create_id("bennett");
         gen_test!(id1..=id2);
     }
 
     #[test]
     fn test_range_from_for_surreal_custom() {
-        let id1 = TestUser::create_id("oyelowo");
+        let id1 = TestUser::create_id("charlie");
         gen_test!(id1..);
     }
 
     #[test]
     fn test_range_to_for_surreal_custom() {
-        let id1 = TestUser::create_id("oyelowo");
+        let id1 = TestUser::create_id("charlie");
         gen_test!(..id1);
     }
 
     #[test]
     fn test_range_to_inclusive_for_surreal_custom() {
-        let id1 = TestUser::create_id("oyelowo");
+        let id1 = TestUser::create_id("charlie");
         gen_test!(..=id1);
     }
 
     #[test]
     fn test_range_for_surreal_custom() {
-        let id1 = TestUser::create_id("oyelowo");
-        let id2 = TestUser::create_id("oyedayo");
+        let id1 = TestUser::create_id("charlie");
+        let id2 = TestUser::create_id("bennett");
         gen_test!(id1..id2);
     }
 }
