@@ -2,8 +2,8 @@ macro_rules! create_test_for_fn_with_single_arg_tests {
     ($(#[$attr:meta])* => $module_name:expr, $function_name:expr, $arg:expr) => {
         paste::paste! {
             mod [<test_ $function_name>] {
-                use aparecium::*;
-                use aparecium::functions::parse;
+                use umbriel::*;
+                use umbriel::functions::parse;
 
                 #[test]
                 fn [<test_ $function_name _fn_with_field_data >] () {
@@ -57,46 +57,46 @@ macro_rules! create_test_for_fn_with_single_arg_tests {
 
 mod email {
     create_test_for_fn_with_single_arg_tests!(
-        => "email", "host", "oyelowo@codebreather.com");
+        => "email", "host", "charlie@example.com");
     create_test_for_fn_with_single_arg_tests!(
         =>
-        "email", "user", "oyelowo@codebreather.com");
+        "email", "user", "charlie@example.com");
 }
 mod url {
     create_test_for_fn_with_single_arg_tests!(
         =>
         "url",
         "domain",
-        "https://codebreather.com:443/topics?arg=value#fragment"
+        "https://example.com:443/topics?arg=value#fragment"
     );
     create_test_for_fn_with_single_arg_tests!(
         =>
         "url",
         "fragment",
-        "https://codebreather.com:443/topics?arg=value#fragment"
+        "https://example.com:443/topics?arg=value#fragment"
     );
     create_test_for_fn_with_single_arg_tests!(
         =>
         "url",
         "host",
-        "https://codebreather.com:443/topics?arg=value#fragment"
+        "https://example.com:443/topics?arg=value#fragment"
     );
     create_test_for_fn_with_single_arg_tests!(
         =>
         "url",
         "path",
-        "https://codebreather.com:443/topics?arg=value#fragment"
+        "https://example.com:443/topics?arg=value#fragment"
     );
     create_test_for_fn_with_single_arg_tests!(
         =>
         "url",
         "port",
-        "https://codebreather.com:443/topics?arg=value#fragment"
+        "https://example.com:443/topics?arg=value#fragment"
     );
     create_test_for_fn_with_single_arg_tests!(
         =>
         "url",
         "query",
-        "https://codebreather.com:443/topics?arg=value#fragment"
+        "https://example.com:443/topics?arg=value#fragment"
     );
 }
