@@ -132,9 +132,11 @@ impl MigrationRunner {
 
                 let migrations_from_db = select(All)
                     .from(Migration::table())
-                    .where_(cond(timestamp.gt(timestamp_value)).or(
-                        cond(timestamp.eq(timestamp_value)).and(name.eq(file_cursor.to_string())),
-                    ))
+                    .where_(
+                        cond(timestamp.gt(timestamp_value))
+                            .or(cond(timestamp.equal(timestamp_value))
+                                .and(name.equal(file_cursor.to_string()))),
+                    )
                     .order_by(timestamp.desc())
                     .return_many::<Migration>(db.clone())
                     .await?;
