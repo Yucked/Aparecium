@@ -10,7 +10,7 @@
 // http::patch()	Perform a remote HTTP PATCH request
 // http::delete()	Perform a remote HTTP DELETE request
 
-use crate::{Function, ObjectLike, Render, Sql, StrandLike, render::sql};
+use crate::{Function, ObjectLike, StrandLike, ValueLike};
 
 /// Represents URL
 pub type Url = StrandLike;
@@ -28,10 +28,10 @@ fn create_fn_with_two_args(
 }
 
 /// An omitted body or header argument is an empty object.
-fn object_or_empty(object: Option<impl Into<ObjectLike>>) -> Sql {
+fn object_or_empty(object: Option<impl Into<ObjectLike>>) -> ValueLike {
     match object {
-        Some(object) => object.into().to_sql(),
-        None => sql!("{ }"),
+        Some(object) => ValueLike::from(Into::<ObjectLike>::into(object)),
+        None => ValueLike::syntax("{ }"),
     }
 }
 
@@ -89,9 +89,9 @@ create_fn_with_url_and_head!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::http};
+    /// use umbriel::{*, functions::http};
     /// use std::collections::HashMap;
-    /// http::head!("https://codebreather.com");
+    /// http::head!("https://example.com");
     ///
     /// # let url_field = Field::new("url_field");
     /// http::head!(url_field);
@@ -100,7 +100,7 @@ create_fn_with_url_and_head!(
     /// http::head!(ur_param);
     ///
     /// let headers = HashMap::from([("x-my-header".to_string(), "some unique string".into())]);
-    /// http::head!("https://codebreather.com", headers);
+    /// http::head!("https://example.com", headers);
     => "head"
 );
 
@@ -122,9 +122,9 @@ create_fn_with_url_and_head!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::http};
+    /// use umbriel::{*, functions::http};
     /// use std::collections::HashMap;
-    /// http::get!("https://codebreather.com");
+    /// http::get!("https://example.com");
     ///
     /// # let url_field = Field::new("url_field");
     /// http::get!(url_field);
@@ -133,7 +133,7 @@ create_fn_with_url_and_head!(
     /// http::delete!(url_param);
     ///
     /// let headers = HashMap::from([("x-my-header".to_string(), "some unique string".into())]);
-    /// http::get!("https://codebreather.com", headers);
+    /// http::get!("https://example.com", headers);
     => "get"
 );
 
@@ -155,9 +155,9 @@ create_fn_with_url_and_head!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::http};
+    /// use umbriel::{*, functions::http};
     /// use std::collections::HashMap;
-    /// http::delete!("https://codebreather.com");
+    /// http::delete!("https://example.com");
     ///
     /// # let url_field = Field::new("url_field");
     /// http::delete!(url_field);
@@ -165,7 +165,7 @@ create_fn_with_url_and_head!(
     /// http::delete!(url_param);
     ///
     /// let headers = HashMap::from([("x-my-header".to_string(), "some unique string".into())]);
-    /// http::delete!("https://codebreather.com", headers);
+    /// http::delete!("https://example.com", headers);
     => "delete"
 );
 
@@ -219,16 +219,16 @@ create_fn_with_3args_url_body_and_head!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::http};
+    /// use umbriel::{*, functions::http};
     /// use std::collections::hash_map::HashMap;
     ///
-    /// http::post!("https://codebreather.com", HashMap::from([("id".to_string(), 1.into())]));
+    /// http::post!("https://example.com", HashMap::from([("id".to_string(), 1.into())]));
     ///
-    /// http::post!("https://codebreather.com", HashMap::from([("id".to_string(), 1.into())]), HashMap::from([("x-my-header".to_string(), "some unique string".into())]));
+    /// http::post!("https://example.com", HashMap::from([("id".to_string(), 1.into())]), HashMap::from([("x-my-header".to_string(), "some unique string".into())]));
     ///
     /// # let body_field = Field::new("body_field");
     /// # let headers_param = Param::new("headers_param");
-    /// http::post!("https://codebreather.com", body_field, headers_param);
+    /// http::post!("https://example.com", body_field, headers_param);
     /// ```
 => "post"
 );
@@ -254,12 +254,12 @@ create_fn_with_3args_url_body_and_head!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::http};
+    /// use umbriel::{*, functions::http};
     /// use std::collections::hash_map::HashMap;
     ///
-    /// http::put!("https://codebreather.com", HashMap::from([("id".to_string(), 1.into())]));
+    /// http::put!("https://example.com", HashMap::from([("id".to_string(), 1.into())]));
     ///
-    /// http::put!("https://codebreather.com", HashMap::from([("id".to_string(), 1.into())]), HashMap::from([("x-my-header".to_string(), "some unique string".into())]));
+    /// http::put!("https://example.com", HashMap::from([("id".to_string(), 1.into())]), HashMap::from([("x-my-header".to_string(), "some unique string".into())]));
     /// ```
 => "put"
 );
@@ -285,12 +285,12 @@ create_fn_with_3args_url_body_and_head!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::http};
+    /// use umbriel::{*, functions::http};
     /// use std::collections::hash_map::HashMap;
     ///
-    /// let result = http::patch!("https://codebreather.com", HashMap::from([("id".to_string(), 1.into())]));
+    /// let result = http::patch!("https://example.com", HashMap::from([("id".to_string(), 1.into())]));
     ///
-    /// let result = http::patch!("https://codebreather.com", HashMap::from([("id".to_string(), 1.into())]), HashMap::from([("x-my-header".to_string(), "some unique string".into())]));
+    /// let result = http::patch!("https://example.com", HashMap::from([("id".to_string(), 1.into())]), HashMap::from([("x-my-header".to_string(), "some unique string".into())]));
     /// ```
 => "patch"
 );
