@@ -169,7 +169,7 @@ impl CustomType {
                 // Dont remove static lifetime for "str" from &'static would be
                 // invalid thus, a compile error. We could potentially keep this restriction only
                 // for str and not other type but leaving as is for now.
-                // 28th March, 2024. Oyelowo Oyedayo
+                // 28th March, 2024. Charlie Bennett
                 Some(lt) if lt.ident == "static" => self.inner(),
                 _ => elem.as_ref(),
             },

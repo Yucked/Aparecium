@@ -46,13 +46,13 @@ mod tests {
     );
     test_parse_db_field_type!(
         record_spaced,
-        "record      < lowo | dayo  |     oye>",
-        FieldType::Record(vec!["lowo".into(), "dayo".into(), "oye".into()])
+        "record      < rlie | nett  |     cha>",
+        FieldType::Record(vec!["rlie".into(), "nett".into(), "cha".into()])
     );
     test_parse_db_field_type!(
         record_no_space,
-        "record<lowo|dayo|oye>",
-        FieldType::Record(vec!["lowo".into(), "dayo".into(), "oye".into()])
+        "record<rlie|nett|cha>",
+        FieldType::Record(vec!["rlie".into(), "nett".into(), "cha".into()])
     );
 
     test_parse_db_field_type!(
@@ -195,20 +195,20 @@ mod tests {
     );
     test_parse_db_field_type!(
         option_record_spaced,
-        "option<record    < lowo | dayo  |     oye>>",
+        "option<record    < rlie | nett  |     cha>>",
         FieldType::Option(Box::new(FieldType::Record(vec![
-            "lowo".into(),
-            "dayo".into(),
-            "oye".into()
+            "rlie".into(),
+            "nett".into(),
+            "cha".into()
         ])))
     );
     test_parse_db_field_type!(
         option_record_no_space,
-        "option<record<lowo|dayo|oye>>",
+        "option<record<rlie|nett|cha>>",
         FieldType::Option(Box::new(FieldType::Record(vec![
-            "lowo".into(),
-            "dayo".into(),
-            "oye".into()
+            "rlie".into(),
+            "nett".into(),
+            "cha".into()
         ])))
     );
 

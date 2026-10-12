@@ -77,7 +77,7 @@ mod tests {
             my_db,
             [
                 "SELECT * FROM users WHERE id = $id",
-                "CREATE user:oyelowo SET name = 'Oyelowo', company = 'Codebreather', skills = ['Rust', 'python', 'typescript']"
+                "CREATE user:charlie SET name = 'Charlie', company = 'ExampleCo', skills = ['Rust', 'python', 'typescript']"
             ], {
                 id: 1
             }
@@ -86,7 +86,7 @@ mod tests {
         let expected_db_conn: Expr = parse2(quote! { my_db }).unwrap();
         let expected_queries = vec![
             "SELECT * FROM users WHERE id = $id".to_string(),
-            "CREATE user:oyelowo SET name = 'Oyelowo', company = 'Codebreather', skills = ['Rust', 'python', 'typescript']".to_string()
+            "CREATE user:charlie SET name = 'Charlie', company = 'ExampleCo', skills = ['Rust', 'python', 'typescript']".to_string()
         ];
         let expected_bindings = [Binding {
             key: parse2(quote! { id }).unwrap(),
