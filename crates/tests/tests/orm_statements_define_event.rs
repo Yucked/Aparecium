@@ -2,14 +2,14 @@
 mod tests {
     use surrealdb::sql;
 
-    use aparecium::{statements::select, *};
-    use aparecium::{statements::*, *};
+    use umbriel::{statements::select, *};
+    use umbriel::{statements::*, *};
 
     #[test]
     fn test_define_event_statement_state_machine() {
         let age = Field::new("age");
         let city = Field::new("city");
-        let fake_id = sql::Thing::from(("user".to_string(), "oyelowo".to_string()));
+        let fake_id = sql::Thing::from(("user".to_string(), "charlie".to_string()));
         let user_table = Table::new("user");
         let email_event = Event::new("email");
 
@@ -38,7 +38,7 @@ mod tests {
             query.to_raw().build(),
             "DEFINE EVENT email ON TABLE user \
                 WHEN age >= 18 THEN \
-                SELECT * FROM user:oyelowo WHERE (city IS 'Prince Edward Island') AND \
+                SELECT * FROM user:charlie WHERE (city IS 'Prince Edward Island') AND \
                 (city IS 'NewFoundland') OR (city ~ 'Toronto') LIMIT 153 START AT 10 PARALLEL;",
         );
     }
