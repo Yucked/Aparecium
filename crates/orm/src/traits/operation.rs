@@ -1,9 +1,8 @@
-
 use std::sync::Arc;
 
 use crate::{
-    Aliasable, ArrayLike, Conditional, GeometryLike, NumberLike, Ordinal, Render, Renderer,
-    Setter, StrandLike, ValueLike,
+    Aliasable, ArrayLike, Conditional, GeometryLike, NumberLike, Ordinal, Render, Renderer, Setter,
+    StrandLike, ValueLike,
 };
 
 /// A SurrealQL binary operator.
@@ -19,14 +18,6 @@ pub enum Operator {
     AnyEqual,
     /// `*=`
     AllEqual,
-    /// `~`
-    Like,
-    /// `!~`
-    NotLike,
-    /// `?~`
-    AnyLike,
-    /// `*~`
-    AllLike,
     /// `<`
     LessThan,
     /// `<=`
@@ -98,10 +89,6 @@ impl Operator {
             Self::Exact => "==",
             Self::AnyEqual => "?=",
             Self::AllEqual => "*=",
-            Self::Like => "~",
-            Self::NotLike => "!~",
-            Self::AnyLike => "?~",
-            Self::AllLike => "*~",
             Self::LessThan => "<",
             Self::LessThanOrEqual => "<=",
             Self::MoreThan => ">",
@@ -292,37 +279,6 @@ pub trait Operatable: Sized + Render + Clone + Into<ValueLike> {
         self.operate(Operator::Equal, value)
     }
 
-    /// `=`. Alias for `equal`. Return a new `operation` that checks whether the field is equal to the specified value
-    ///
-    /// # Arguments
-    ///
-    /// * `value` - The value to check for equality. Could be a value, `Field` or `Param`
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// # use umbriel::*;
-    /// # let age = Field::new("age");
-    /// let query = age.eq(25);
-    /// assert_eq!(query.to_debug_sql(), "age = 25");
-    ///
-    /// # let age = Field::new("age");
-    /// # let valid_age_field = Field::new("valid_age_field");
-    /// let query = age.eq(valid_age_field);
-    /// assert_eq!(query.to_debug_sql(), "age = valid_age_field");
-    ///
-    /// # let age = Field::new("age");
-    /// # let valid_age_param = Param::new("valid_age_param");
-    /// let query = age.eq(valid_age_param);
-    /// assert_eq!(query.to_debug_sql(), "age = $valid_age_param");
-    /// ```
-    fn eq<T>(&self, value: T) -> Operation
-    where
-        T: Into<ValueLike>,
-    {
-        self.operate(Operator::Equal, value)
-    }
-
     /// `!=`. Return a new `DbQuery` that checks whether the field is not equal to the specified value
     ///
     /// # Arguments
@@ -466,88 +422,6 @@ pub trait Operatable: Sized + Render + Clone + Into<ValueLike> {
         T: Into<ValueLike>,
     {
         self.operate(Operator::AllEqual, value)
-    }
-
-    /// `~` Compare two values for equality using fuzzy matching.
-    ///
-    /// # Arguments
-    ///
-    /// * `pattern` - The pattern to match against. Could be a value, `Field` or `Param`.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// # use umbriel::*;
-    /// # let name = Field::new("name");
-    /// let query = name.like("A");
-    /// assert_eq!(query.to_debug_sql(), "name ~ 'A'");
-    /// ```
-    fn like<T>(&self, value: T) -> Operation
-    where
-        T: Into<ValueLike>,
-    {
-        self.operate(Operator::Like, value.into())
-    }
-
-    /// `!~` Compare two values for inequality using fuzzy matching.
-    ///
-    /// # Arguments
-    ///
-    /// * `pattern` - The pattern to match against. Could be a value, `Field` or `Param`.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// # use umbriel::*;
-    /// # let name = Field::new("name");
-    /// let query = name.not_like("A");
-    /// assert_eq!(query.to_debug_sql(), "name !~ 'A'");
-    /// ```
-    fn not_like<T>(&self, value: T) -> Operation
-    where
-        T: Into<ValueLike>,
-    {
-        self.operate(Operator::NotLike, value)
-    }
-
-    /// `?~` Check whether any value in a set is equal to a value using fuzzy matching
-    ///
-    /// # Arguments
-    ///
-    /// * `pattern` - The pattern to match against. Could be a value, `Field` or `Param`.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// # use umbriel::*;
-    /// # let name = Field::new("name");
-    /// name.any_like("A");
-    /// ```
-    fn any_like<T>(&self, value: T) -> Operation
-    where
-        T: Into<ValueLike>,
-    {
-        self.operate(Operator::AnyLike, value)
-    }
-
-    /// `*~` Check whether all values in a set are equal to a value using fuzzy matching.
-    ///
-    /// # Arguments
-    ///
-    /// * `pattern` - The pattern to match against. Could be a value, `Field` or `Param`.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// # use umbriel::*;
-    /// # let name = Field::new("name");
-    /// name.all_like("A");
-    /// ```
-    fn all_like<T>(&self, value: T) -> Operation
-    where
-        T: Into<ValueLike>,
-    {
-        self.operate(Operator::AllLike, value)
     }
 
     /// `<` Check whether the value of the field is less than the given value.
@@ -1356,7 +1230,7 @@ pub trait Operatable: Sized + Render + Clone + Into<ValueLike> {
     /// # Arguments
     ///
     /// * `terms` - The terms to search for in the full-text indexed field.
-    ///     can also be a `Field` or `Param`.
+    ///   can also be a `Field` or `Param`.
     ///
     /// # Example
     ///
@@ -1380,9 +1254,9 @@ pub trait Operatable: Sized + Render + Clone + Into<ValueLike> {
     /// # Arguments
     ///
     /// * `reference` - The match reference number, used by `search::highlight` and `search::score`.
-    ///     It is part of the operator, so it is written as a literal.
+    ///   It is part of the operator, so it is written as a literal.
     /// * `terms` - The terms to search for in the full-text indexed field.
-    ///     can also be a `Field` or `Param`.
+    ///   can also be a `Field` or `Param`.
     ///
     /// # Example
     ///
@@ -1424,7 +1298,12 @@ pub trait Operatable: Sized + Render + Clone + Into<ValueLike> {
     where
         T: Into<Ordinal>,
     {
-        between(self.clone().into(), lower_bound.into(), upper_bound.into(), false)
+        between(
+            self.clone().into(),
+            lower_bound.into(),
+            upper_bound.into(),
+            false,
+        )
     }
 
     /// Check whether the value of the field is between the given lower and upper bounds.
@@ -1446,7 +1325,12 @@ pub trait Operatable: Sized + Render + Clone + Into<ValueLike> {
     where
         T: Into<Ordinal>,
     {
-        between(self.clone().into(), lower_bound.into(), upper_bound.into(), true)
+        between(
+            self.clone().into(),
+            lower_bound.into(),
+            upper_bound.into(),
+            true,
+        )
     }
 
     /// `self <operator> value`.
