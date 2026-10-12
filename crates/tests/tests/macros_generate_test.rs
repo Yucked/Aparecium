@@ -9,7 +9,7 @@ mod helpers;
 #[path = "../../macros/src/models/mod.rs"]
 mod models;
 
-use aparecium::assert_not;
+use umbriel::assert_not;
 use darling::FromDeriveInput;
 use models::{EdgeToken, NodeToken};
 use quote::{ToTokens, quote};
@@ -27,7 +27,7 @@ fn test_node_trait_derive() {
             course: LinkOne<Book>,
 
             #[orm(link_many = Book)]
-            #[serde(rename = "lowo")]
+            #[serde(rename = "rlie")]
             all_semester_courses: LinkMany<Book>,
 
             #[orm(relate(model = "StudentWritesBlog", connection = "->writes->Blog"))]
@@ -40,8 +40,8 @@ fn test_node_trait_derive() {
     let node_token = NodeToken::from_derive_input(&derive_input).unwrap();
     let node_token = node_token.to_token_stream().to_string();
 
-    assert!(node_token.contains("impl aparecium :: Node for Student "));
-    assert_not!(node_token.contains("impl aparecium :: Edge for Student "));
+    assert!(node_token.contains("impl umbriel :: Node for Student "));
+    assert_not!(node_token.contains("impl umbriel :: Edge for Student "));
     insta::assert_snapshot!(
         "node_trait_derive",
         format!("{:#}", node_token.to_token_stream())
@@ -78,7 +78,7 @@ fn test_relate_field_has_serde_skip_serializing_but_not_attribute(
             course: LinkOne<Book>,
 
             #[orm(link_many = Book)]
-            #[serde(rename = "lowo")]
+            #[serde(rename = "rlie")]
             all_semester_courses: LinkMany<Book>,
 
             #[orm(relate(model = "StudentWritesBlog", connection = "->writes->Blog"))]
@@ -94,7 +94,7 @@ fn test_relate_field_has_serde_skip_serializing_but_not_attribute(
     let error_msg = || {
         node_token.contains("Missing required 'skip_serializing' or 'default' serde attribute(s) on `written_blogs`")
     };
-    let has_node_trait_valid = || node_token.contains("impl aparecium :: Node for Student ");
+    let has_node_trait_valid = || node_token.contains("impl umbriel :: Node for Student ");
     match relate_field_attr_provided {
         SerdeSkipSerializingOnly => {
             assert!(
@@ -154,10 +154,10 @@ fn test_edge_trait_derive() {
     let node_token = node_token.to_token_stream().to_string();
     let node_no_whitespace = node_token.replace(" ", "");
 
-    assert!(node_no_whitespace.contains("impl<In,Out>aparecium::EdgeforWrites<In,Out>"));
-    assert!(node_token.contains("impl < In , Out > aparecium :: Edge for Writes < In , Out >"));
-    assert_not!(node_no_whitespace.contains("impl<In,Out>aparecium::NodeforWrites<In,Out>"));
-    assert_not!(node_token.contains("impl < In , Out > aparecium :: Node for Writes < In , Out >"));
+    assert!(node_no_whitespace.contains("impl<In,Out>umbriel::EdgeforWrites<In,Out>"));
+    assert!(node_token.contains("impl < In , Out > umbriel :: Edge for Writes < In , Out >"));
+    assert_not!(node_no_whitespace.contains("impl<In,Out>umbriel::NodeforWrites<In,Out>"));
+    assert_not!(node_token.contains("impl < In , Out > umbriel :: Node for Writes < In , Out >"));
 
     insta::assert_snapshot!(
         "edge_trait_derive",
