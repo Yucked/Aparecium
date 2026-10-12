@@ -1,4 +1,4 @@
-use crate::{Ident, Sql};
+use crate::{Ident, Renderer};
 
 use super::{Statement, impl_definition};
 
@@ -6,7 +6,7 @@ use super::{Statement, impl_definition};
 ///
 /// Examples
 /// ```rust
-/// use aparecium::{*, statements::remove_analyzer};
+/// use umbriel::{*, statements::remove_analyzer};
 /// assert_eq!(remove_analyzer("standard").to_debug_sql(), "REMOVE ANALYZER standard;");
 /// ```
 pub fn remove_analyzer(name: impl Into<Ident>) -> RemoveAnalyzerStatement {
@@ -19,8 +19,8 @@ pub struct RemoveAnalyzerStatement {
 }
 
 impl Statement for RemoveAnalyzerStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("REMOVE ANALYZER ").push(&self.name);
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("REMOVE ANALYZER ").push(&self.name);
     }
 }
 
