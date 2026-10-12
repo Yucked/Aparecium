@@ -1,4 +1,4 @@
-use crate::{Ident, Scope, Sql, StrandLike, TokenTarget, TokenType};
+use crate::{Ident, Scope, Renderer, StrandLike, TokenTarget, TokenType};
 
 use super::{Statement, impl_definition};
 
@@ -26,7 +26,7 @@ pub struct DefineTokenStatement {
 /// Examples:
 ///
 /// ```rust
-/// use aparecium::{*, statements::define_token};
+/// use umbriel::{*, statements::define_token};
 /// let statement = define_token("acme_token")
 ///             .on_namespace()
 ///             .type_(TokenType::PS512)
@@ -90,19 +90,19 @@ impl DefineTokenStatement {
 }
 
 impl Statement for DefineTokenStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("DEFINE TOKEN ").push(&self.name);
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("DEFINE TOKEN ").push(&self.name);
 
         if let Some(target) = &self.target {
-            sql.push_str(" ON ").push(target);
+            out.push_str(" ON ").push(target);
         }
 
         if let Some(token_type) = &self.token_type {
-            sql.push_str(" TYPE ").push(token_type);
+            out.push_str(" TYPE ").push(token_type);
         }
 
         if let Some(value) = &self.value {
-            sql.push_str(" VALUE ").push(value);
+            out.push_str(" VALUE ").push(value);
         }
     }
 }
