@@ -15,7 +15,7 @@ use surrealdb::{
 };
 // use surreal_derive::{Edge, Node};
 
-use aparecium::{
+use umbriel::{
     functions::*,
     statements::{
         DefineFieldStatement, DefineTableStatement, ForPermission, Permissions, SelectStatement,
@@ -41,7 +41,7 @@ fn full() -> u32 {
 //     let name = Field::new("name");
 //     let age = Field::new("age");
 //     // vec![
-//     //     for_permission&[Create, Delete]).where_(name.is("Oyelowo")),
+//     //     for_permission&[Create, Delete]).where_(name.is("Charlie")),
 //     //     for_permissionUpdate).where_(age.less_than_or_equal(130)),
 //     // ]
 //     // .into_iter()
@@ -49,7 +49,7 @@ fn full() -> u32 {
 //     // .collect::<Vec<_>>()
 //     // .to_vec()
 //     PermissionType::from(vec![
-//         for_permission&[Create, Delete]).where_(name.is("Oyelowo")),
+//         for_permission&[Create, Delete]).where_(name.is("Charlie")),
 //         for_permissionUpdate).where_(age.less_than_or_equal(130)),
 //     ])
 //     // .to_raw()
@@ -61,7 +61,7 @@ fn define_student() -> DefineTableStatement {
     let _user_table = Table::from("user");
     let age = Field::new("age");
     let country = Field::new("country");
-    let fake_id2 = sql::Thing::from(("user".to_string(), "oyedayo".to_string()));
+    let fake_id2 = sql::Thing::from(("user".to_string(), "bennett".to_string()));
 
     define_table(Student::table())
         .drop()
@@ -75,9 +75,9 @@ fn define_student() -> DefineTableStatement {
         )
         .schemafull()
         .permissions(for_permission(Select).where_(age.greater_than_or_equal(18))) // Single works
-        .permissions(for_permission([Create, Delete]).where_(name.is("Oyedayo"))) //Multiple
+        .permissions(for_permission([Create, Delete]).where_(name.is("Bennett"))) //Multiple
         .permissions(&[
-            for_permission([Create, Delete]).where_(name.is("Oyedayo")),
+            for_permission([Create, Delete]).where_(name.is("Bennett")),
             for_permission(Update).where_(age.less_than_or_equal(130)),
         ])
 }
@@ -91,7 +91,7 @@ fn erer() -> Filter {
 }
 fn define_age() -> DefineFieldStatement {
     use CrudType::*;
-    use aparecium::{Model, Node};
+    use umbriel::{Model, Node};
     let student::Schema { age, firstName, .. } = Student::schema();
 
     use FieldType::*;
@@ -99,17 +99,17 @@ fn define_age() -> DefineFieldStatement {
     // let statement = define_field(Student::schema().age)
     //     .on_table(Student::table())
     //     .type_(String)
-    //     .value("example@codebreather.com")
+    //     .value("example@example.com")
     //     .assert(cond(value().is_not(NONE)).and(value().like("is_email")))
     //     // .permissions(for_permissionSelect).where_(age.greater_than_or_equal(18))) // Single works
     //     .permissions(PermissionForables::from(
     //         for_permission&[Create, Update])
-    //             .where_(firstName.is("Oyedayo"))
+    //             .where_(firstName.is("Bennett"))
     //             .to_raw(),
     //     )) //Multiple
     //     .permissions(
     //         PermissionForables::from(&[
-    //             for_permission&[Create, Delete]).where_(firstName.is("Oyelowo")),
+    //             for_permission&[Create, Delete]).where_(firstName.is("Charlie")),
     //             for_permissionUpdate).where_(age.less_than_or_equal(130)),
     //         ])
     //         .to_raw(),
@@ -118,13 +118,13 @@ fn define_age() -> DefineFieldStatement {
     define_field(Student::schema().age)
         .on_table(Student::table())
         .type_(String)
-        .value("example@codebreather.com")
+        .value("example@example.com")
         .assert(cond(value().is_not(NONE)).and(value().like("is_email")))
         .permissions(for_permission(Select).where_(age.greater_than_or_equal(18))) // Single works
-        .permissions(for_permission([Create, Update]).where_(firstName.is("Oyedayo"))) //Multiple
+        .permissions(for_permission([Create, Update]).where_(firstName.is("Bennett"))) //Multiple
         .permissions(
             &[
-                for_permission([Create, Delete]).where_(firstName.is("Oyelowo")),
+                for_permission([Create, Delete]).where_(firstName.is("Charlie")),
                 for_permission(Update).where_(age.less_than_or_equal(130)),
             ], // .into_iter()
                // .map(|e| e.to_raw())
@@ -214,7 +214,7 @@ impl Default for Student {
     }
 }
 
-#[derive(aparecium::Edge, TypedBuilder, Serialize, Deserialize, Debug, Clone, Default)]
+#[derive(umbriel::Edge, TypedBuilder, Serialize, Deserialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 #[orm(table = writes)]
 pub struct Writes<In: Node, Out: Node> {
