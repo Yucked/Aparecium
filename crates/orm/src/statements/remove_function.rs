@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use crate::Sql;
+use crate::Renderer;
 
 use super::{Statement, impl_definition};
 
@@ -23,7 +23,7 @@ impl From<String> for FunctionName {
 ///
 /// Examples
 /// ```rust
-/// use aparecium::{*, statements::remove_function};
+/// use umbriel::{*, statements::remove_function};
 /// assert_eq!(
 ///     remove_function("fn::update_author").to_debug_sql(),
 ///     "REMOVE FUNCTION fn::update_author;"
@@ -39,8 +39,8 @@ pub struct RemoveFunctionStatement {
 }
 
 impl Statement for RemoveFunctionStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("REMOVE FUNCTION ").push_str(&self.name.0);
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("REMOVE FUNCTION ").push_str(&self.name.0);
     }
 }
 
