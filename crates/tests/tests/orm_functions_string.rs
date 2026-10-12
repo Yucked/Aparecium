@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::functions::string;
-    use aparecium::*;
+    use umbriel::functions::string;
+    use umbriel::*;
     #[test]
     fn test_concat_macro() {
         let title = Field::new("title");
@@ -59,48 +59,48 @@ mod tests {
     #[test]
     fn test_ends_with_macro_with_field_and_string() {
         let name = Field::new("name");
-        let result = string::ends_with!(name, "lowo");
+        let result = string::ends_with!(name, "rlie");
         assert_eq!(
             result.fine_tune_params(),
             "string::ends_with(name, $_param_00000001)"
         );
-        assert_eq!(result.to_raw().build(), "string::ends_with(name, 'lowo')");
+        assert_eq!(result.to_raw().build(), "string::ends_with(name, 'rlie')");
     }
 
     #[test]
     fn test_ends_with_macro_with_plain_strings() {
-        let result = string::ends_with!("Oyelowo", "lowo");
+        let result = string::ends_with!("Charlie", "rlie");
         assert_eq!(
             result.fine_tune_params(),
             "string::ends_with($_param_00000001, $_param_00000002)"
         );
         assert_eq!(
             result.to_raw().build(),
-            "string::ends_with('Oyelowo', 'lowo')"
+            "string::ends_with('Charlie', 'rlie')"
         );
     }
 
     #[test]
     fn test_starts_with_macro_with_field_and_string() {
         let name = Field::new("name");
-        let result = string::starts_with!(name, "lowo");
+        let result = string::starts_with!(name, "rlie");
         assert_eq!(
             result.fine_tune_params(),
             "string::starts_with(name, $_param_00000001)"
         );
-        assert_eq!(result.to_raw().build(), "string::starts_with(name, 'lowo')");
+        assert_eq!(result.to_raw().build(), "string::starts_with(name, 'rlie')");
     }
 
     #[test]
     fn test_starts_with_macro_with_plain_strings() {
-        let result = string::starts_with!("Oyelowo", "Oye");
+        let result = string::starts_with!("Charlie", "Cha");
         assert_eq!(
             result.fine_tune_params(),
             "string::starts_with($_param_00000001, $_param_00000002)"
         );
         assert_eq!(
             result.to_raw().build(),
-            "string::starts_with('Oyelowo', 'Oye')"
+            "string::starts_with('Charlie', 'Cha')"
         );
     }
     #[test]
@@ -155,12 +155,12 @@ mod tests {
 
     #[test]
     fn test_reverse_with_macro_with_plain_string() {
-        let result = string::reverse!("oyelowo");
+        let result = string::reverse!("charlie");
         assert_eq!(
             result.fine_tune_params(),
             "string::reverse($_param_00000001)"
         );
-        assert_eq!(result.to_raw().build(), "string::reverse('oyelowo')");
+        assert_eq!(result.to_raw().build(), "string::reverse('charlie')");
     }
 
     #[test]
@@ -173,9 +173,9 @@ mod tests {
 
     #[test]
     fn test_trim_with_macro_with_plain_string() {
-        let result = string::trim!("oyelowo");
+        let result = string::trim!("charlie");
         assert_eq!(result.fine_tune_params(), "string::trim($_param_00000001)");
-        assert_eq!(result.to_raw().build(), "string::trim('oyelowo')");
+        assert_eq!(result.to_raw().build(), "string::trim('charlie')");
     }
 
     #[test]
@@ -188,11 +188,11 @@ mod tests {
 
     #[test]
     fn test_slug_with_macro_with_plain_string() {
-        let result = string::slug!("Codebreather is from #Jupiter");
+        let result = string::slug!("ExampleCo is from #Jupiter");
         assert_eq!(result.fine_tune_params(), "string::slug($_param_00000001)");
         assert_eq!(
             result.to_raw().build(),
-            "string::slug('Codebreather is from #Jupiter')"
+            "string::slug('ExampleCo is from #Jupiter')"
         );
     }
 
@@ -206,12 +206,12 @@ mod tests {
 
     #[test]
     fn test_lowercase_with_macro_with_plain_string() {
-        let result = string::lowercase!("OYELOWO");
+        let result = string::lowercase!("CHARLIE");
         assert_eq!(
             result.fine_tune_params(),
             "string::lowercase($_param_00000001)"
         );
-        assert_eq!(result.to_raw().build(), "string::lowercase('OYELOWO')");
+        assert_eq!(result.to_raw().build(), "string::lowercase('CHARLIE')");
     }
 
     #[test]
@@ -224,12 +224,12 @@ mod tests {
 
     #[test]
     fn test_uppercase_with_macro_with_plain_string() {
-        let result = string::uppercase!("oyelowo");
+        let result = string::uppercase!("charlie");
         assert_eq!(
             result.fine_tune_params(),
             "string::uppercase($_param_00000001)"
         );
-        assert_eq!(result.to_raw().build(), "string::uppercase('oyelowo')");
+        assert_eq!(result.to_raw().build(), "string::uppercase('charlie')");
     }
 
     #[test]
@@ -263,12 +263,12 @@ mod tests {
 
     #[test]
     fn test_repeat_with_macro_with_plain_string() {
-        let result = string::repeat!("Oyelowo", 5);
+        let result = string::repeat!("Charlie", 5);
         assert_eq!(
             result.fine_tune_params(),
             "string::repeat($_param_00000001, $_param_00000002)"
         );
-        assert_eq!(result.to_raw().build(), "string::repeat('Oyelowo', 5)");
+        assert_eq!(result.to_raw().build(), "string::repeat('Charlie', 5)");
     }
 
     #[test]
@@ -290,12 +290,12 @@ mod tests {
 
     #[test]
     fn test_slice_with_macro_with_plain_string() {
-        let result = string::slice!("Oyelowo", 3, 5);
+        let result = string::slice!("Charlie", 3, 5);
         assert_eq!(
             result.fine_tune_params(),
             "string::slice($_param_00000001, $_param_00000002, $_param_00000003)"
         );
-        assert_eq!(result.to_raw().build(), "string::slice('Oyelowo', 3, 5)");
+        assert_eq!(result.to_raw().build(), "string::slice('Charlie', 3, 5)");
     }
 
     #[test]
@@ -317,14 +317,14 @@ mod tests {
 
     #[test]
     fn test_replace_with_macro_with_plain_strings() {
-        let result = string::replace!("Oyelowo Oyedayo", "Oyelowo", "Oyedayo");
+        let result = string::replace!("Charlie Bennett", "Charlie", "Bennett");
         assert_eq!(
             result.fine_tune_params(),
             "string::replace($_param_00000001, $_param_00000002, $_param_00000003)"
         );
         assert_eq!(
             result.to_raw().build(),
-            "string::replace('Oyelowo Oyedayo', 'Oyelowo', 'Oyedayo')"
+            "string::replace('Charlie Bennett', 'Charlie', 'Bennett')"
         );
     }
 }
@@ -333,8 +333,8 @@ macro_rules! create_validation_with_tests_tests {
     ($(#[$attr:meta])* => $function_name: expr) => {
         paste::paste! {
             mod [<test_ $function_name>] {
-                use aparecium::*;
-                use aparecium::functions::string::is;
+                use umbriel::*;
+                use umbriel::functions::string::is;
 
                 #[test]
                 fn [<test_ $function_name _with_field>] ()  {
@@ -347,10 +347,10 @@ macro_rules! create_validation_with_tests_tests {
 
                 #[test]
                 fn [<test_ $function_name _string_username>] ()  {
-                    let result = is::[<$function_name _fn>]("oyelowo1234");
+                    let result = is::[<$function_name _fn>]("charlie1234");
 
                     assert_eq!(result.fine_tune_params(), format!("string::is::{}($_param_00000001)", $function_name));
-                    assert_eq!(result.to_raw().to_string(), format!("string::is::{}('oyelowo1234')", $function_name));
+                    assert_eq!(result.to_raw().to_string(), format!("string::is::{}('charlie1234')", $function_name));
                 }
 
                 #[test]
@@ -381,10 +381,10 @@ macro_rules! create_validation_with_tests_tests {
 
                 #[test]
                 fn [<test_ $function_name _macro_string_username>] ()  {
-                    let result = is::[<$function_name>]!("oyelowo1234");
+                    let result = is::[<$function_name>]!("charlie1234");
 
                     assert_eq!(result.fine_tune_params(), format!("string::is::{}($_param_00000001)", $function_name));
-                    assert_eq!(result.to_raw().to_string(), format!("string::is::{}('oyelowo1234')", $function_name));
+                    assert_eq!(result.to_raw().to_string(), format!("string::is::{}('charlie1234')", $function_name));
                 }
 
                 #[test]
@@ -462,26 +462,26 @@ macro_rules! create_fn_with_two_strings_args_tests {
     ($(#[$attr:meta])* => $function_name:expr, $function_path:expr) => {
         paste::paste! {
             mod [<test_ $function_name>] {
-                 use aparecium::[<string_ $function_name>] as [<$function_name>];
-                use aparecium::{functions::string, *};
+                 use umbriel::[<string_ $function_name>] as [<$function_name>];
+                use umbriel::{functions::string, *};
 
                 #[test]
                 fn [<test $function_name fn_on_strand_macro_on_diverse_strands>]() {
                     let name = Field::new("name");
-                    let result = functions::string::[<$function_name _fn>](name, "Oyelowo");
+                    let result = functions::string::[<$function_name _fn>](name, "Charlie");
                     assert_eq!(
                         result.fine_tune_params(),
                         format!("string::{}(name, $_param_00000001)", $function_path)
                     );
                     assert_eq!(
                         result.to_raw().build(),
-                        format!("string::{}(name, 'Oyelowo')", $function_path)
+                        format!("string::{}(name, 'Charlie')", $function_path)
                     );
                 }
 
                 #[test]
                 fn [<test $function_name _fn_on_same_element_types>]() {
-                    let result = string::[<$function_name _fn>]("Oyelowo", "Oyedayo");
+                    let result = string::[<$function_name _fn>]("Charlie", "Bennett");
                     assert_eq!(
                         result.fine_tune_params(),
                         format!("string::{}($_param_00000001, $_param_00000002)", $function_path)
@@ -489,27 +489,27 @@ macro_rules! create_fn_with_two_strings_args_tests {
 
                     assert_eq!(
                         result.to_raw().build(),
-                        format!("string::{}('Oyelowo', 'Oyedayo')", $function_path)
+                        format!("string::{}('Charlie', 'Bennett')", $function_path)
                     );
                 }
 
                 #[test]
                 fn [<test $function_name _macro_on_strand_macro_on_diverse_strands>]() {
                     let name = Field::new("name");
-                    let result = self::[<$function_name>]!(name, "Oyelowo");
+                    let result = self::[<$function_name>]!(name, "Charlie");
                     assert_eq!(
                         result.fine_tune_params(),
                         format!("string::{}(name, $_param_00000001)", $function_path)
                     );
                     assert_eq!(
                         result.to_raw().build(),
-                        format!("string::{}(name, 'Oyelowo')", $function_path)
+                        format!("string::{}(name, 'Charlie')", $function_path)
                     );
                 }
 
                 #[test]
                 fn [<test $function_name _macro_on_same_element_types>]() {
-                    let result = self::[<$function_name>]!("Oyelowo", "Oyedayo");
+                    let result = self::[<$function_name>]!("Charlie", "Bennett");
                     assert_eq!(
                         result.fine_tune_params(),
                         format!("string::{}($_param_00000001, $_param_00000002)", $function_path)
@@ -517,7 +517,7 @@ macro_rules! create_fn_with_two_strings_args_tests {
 
                     assert_eq!(
                         result.to_raw().build(),
-                        format!("string::{}('Oyelowo', 'Oyedayo')", $function_path)
+                        format!("string::{}('Charlie', 'Bennett')", $function_path)
                     );
                 }
             }
