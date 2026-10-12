@@ -1,10 +1,10 @@
 
-use aparecium::{
+use umbriel::{
     cond,
     statements::{order, relate, select},
     *,
 };
-use aparecium_tests::{Book, Student, StudentWritesBook, book, student};
+use umbriel_tests::{Book, Student, StudentWritesBook, book, student};
 use pretty_assertions::assert_eq;
 use std::time::Duration;
 use surrealdb::sql::{Thing, thing};
@@ -28,7 +28,7 @@ fn multiplication_tests1() {
     let mut query1 = select(arr![age, lastName, content])
         .from(Book::table())
         .where_(
-            cond(content.like("lowo"))
+            cond(content.like("rlie"))
                 .and(age.gte(600))
                 .or(firstName.eq("Jupiter"))
                 .and(lastName.eq("Pluto")),
@@ -73,12 +73,12 @@ fn multiplication_tests1() {
                     .and(unoBook)
                     .or(age),
             )
-            .and(bestFriend.exactly_equal("Oyelowo"))
-            .or(firstName.equal_to("Oyedayo"))
+            .and(bestFriend.exactly_equal("Charlie"))
+            .or(firstName.equal_to("Bennett"))
             .and(age.greater_than_or_equal(150)),
         )
         // .where_(
-        //     cond!(age q!(>=) "12:00" OR firstName LIKE "oyelowo" AND lastName q!(~) "oyedyao"  AND age q!(>) 150),
+        //     cond!(age q!(>=) "12:00" OR firstName LIKE "charlie" AND lastName q!(~) "oyedyao"  AND age q!(>) 150),
         // )
         .order_by(firstName.rand().desc())
         .order_by(lastName.collate().asc())
@@ -90,8 +90,8 @@ fn multiplication_tests1() {
         .group_by(firstName)
         .group_by(arr![lastName, unoBook])
         .group_by(arr![lastName, unoBook])
-        // .group_by(&[lastName, unoBook, &Field::new("lowo")])
-        // .group_by(vec![lastName, unoBook, &Field::new("lowo")])
+        // .group_by(&[lastName, unoBook, &Field::new("rlie")])
+        // .group_by(vec![lastName, unoBook, &Field::new("rlie")])
         .start(5)
         .limit(400)
         .fetch(firstName)
@@ -109,9 +109,9 @@ fn multiplication_tests1() {
         .timeout(Duration::from_secs(8))
         .parallel();
 
-    let is_oyelowo = true;
-    if is_oyelowo {
-        query = query.group_by(arr![age, bestFriend, &Field::new("dayo")]);
+    let is_charlie = true;
+    if is_charlie {
+        query = query.group_by(arr![age, bestFriend, &Field::new("nett")]);
     }
 
     insta::assert_snapshot!(&query.fine_tune_params());
@@ -148,7 +148,7 @@ async fn relate_query_building_for_subqueries() {
             .book(
                 select(All)
                     .from(Book::get_table())
-                    .where_(Book::schema().title.like("Oyelowo")),
+                    .where_(Book::schema().title.like("Charlie")),
             ),
     )
     .content(write);
