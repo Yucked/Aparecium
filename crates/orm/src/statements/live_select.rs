@@ -1,4 +1,4 @@
-use crate::{Sql, statements::SelectStatement};
+use crate::{Renderer, statements::SelectStatement};
 
 use super::{Statement, impl_statement};
 
@@ -6,7 +6,7 @@ use super::{Statement, impl_statement};
 ///
 /// Examples
 /// ```rust
-/// use aparecium::{*, statements::{live, select}};
+/// use umbriel::{*, statements::{live, select}};
 /// let person = Table::new("person");
 /// let statement = live(select(All).from(person));
 /// assert_eq!(statement.to_debug_sql(), "LIVE SELECT * FROM person;");
@@ -23,9 +23,9 @@ pub struct LiveSelectStatement {
 }
 
 impl Statement for LiveSelectStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("LIVE ");
-        self.select.render_body(sql);
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("LIVE ");
+        self.select.render_body(out);
     }
 }
 
