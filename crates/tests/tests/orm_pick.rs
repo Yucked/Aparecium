@@ -1,4 +1,4 @@
-use aparecium::{Pickable, pick};
+use umbriel::{Pickable, pick};
 use serde::Serialize;
 
 #[derive(Pickable, Debug, Serialize)]
@@ -34,7 +34,7 @@ pick! {
 
 fn main() {
     let person = Person {
-        name: "Oyelowo".into(),
+        name: "Charlie".into(),
         age: 25,
         some: &43,
         another: &"kaka",
@@ -42,7 +42,7 @@ fn main() {
     println!("{:?}", person);
 
     let new2 = NewPersonWithUnusedTypeGenericsSkipped {
-        name: "Oye".to_string(),
+        name: "Cha".to_string(),
         age: 154,
     };
 
@@ -50,14 +50,14 @@ fn main() {
     println!("{}", new2.age);
 
     let new1 = NewPerson::<'_, u32, &str> {
-        name: "Oye".to_string(),
+        name: "Cha".to_string(),
         age: 154,
     };
     println!("{}", new1.name);
     println!("{}", new1.age);
 
     let new3 = NewPersonWithAttributes {
-        name: "Oye".to_string(),
+        name: "Cha".to_string(),
         age: 154,
     };
     println!("{}", new3.name);
