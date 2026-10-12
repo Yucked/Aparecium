@@ -1,9 +1,10 @@
 
-use surrealdb::types::{self, SurrealValue, Table, ToSql};
+use surrealdb::types::{self, Table, ToSql};
 
 use crate::{
-    Arrow, Conditional, Graph, Ident, IdiomPart, Model, NumberLike, Operatable, Operation, Param,
-    RecordId, Render, Setter, Sql,
+    Arrow, Conditional, Fragment, Graph, Ident, IdiomPart, Model, NumberLike, Operatable,
+    Operation, Param, RecordId, Render, Renderer, Setter, ValueLike,
+    render::Checked,
     statements::{LetStatement, Subquery},
 };
 
@@ -30,7 +31,7 @@ pub enum ClauseType {
     Where(Filter),
     /// Stands for a full statement
     Subquery(Subquery),
-    /// Stands for a record id e.g `person:oyelowo`. Useful in a RELATE query.
+    /// Stands for a record id e.g `person:charlie`. Useful in a RELATE query.
     Id(types::RecordId),
     /// Stands for a parameter e.g `$name`
     Param(Param),
@@ -82,28 +83,26 @@ impl Clause {
 
     pub(crate) fn push_parts(self, parts: &mut Vec<IdiomPart>) {
         let Self { kind, arrow, name } = self;
-        let target = |sql: Sql| match arrow {
-            Some(_) => IdiomPart::Graph(Graph::expr(arrow, sql)),
-            None => IdiomPart::Expr(sql),
+        let target = |node: Fragment| match arrow {
+            Some(_) => IdiomPart::Graph(Graph::expr(arrow, node)),
+            None => IdiomPart::Expr(node),
         };
 
         match kind {
             ClauseType::Id(id) => {
-                let mut sql = Sql::new();
-                if let Some(ClauseName::Table(table)) = &name
-                    && id.table != *table
-                {
-                    sql.push_error(format!(
+                let error = match &name {
+                    Some(ClauseName::Table(table)) if id.table != *table => Some(format!(
                         "record `{}` does not belong to table `{}`",
                         id.to_sql(),
                         table.as_str()
-                    ));
-                }
-                sql.push_value(id.into_value());
-                parts.push(target(sql));
+                    )),
+                    _ => None,
+                };
+                let id = Checked::new(ValueLike::value(id), error);
+                parts.push(target(Fragment::new(id)));
             }
-            ClauseType::Param(param) => parts.push(target(param.to_sql())),
-            ClauseType::Subquery(subquery) => parts.push(target(subquery.to_sql())),
+            ClauseType::Param(param) => parts.push(target(Fragment::new(param))),
+            ClauseType::Subquery(subquery) => parts.push(target(subquery.into_fragment())),
             ClauseType::AnyEdgeFilter(filter) => {
                 let mut tables = match name {
                     Some(ClauseName::Table(table)) => vec![table],
@@ -113,14 +112,14 @@ impl Clause {
                 parts.push(IdiomPart::Graph(Graph::tables(
                     arrow,
                     tables,
-                    filter.condition.map(|condition| condition.to_sql()),
+                    filter.condition,
                 )));
             }
             kind => {
                 match name {
                     Some(ClauseName::Table(table)) => parts.push(match arrow {
                         Some(_) => IdiomPart::Graph(Graph::tables(arrow, vec![table], None)),
-                        None => IdiomPart::Expr(Render::to_sql(&table)),
+                        None => IdiomPart::Expr(Fragment::new(table)),
                     }),
                     Some(ClauseName::Field(field)) => parts.push(IdiomPart::Field(field)),
                     None => {}
@@ -128,8 +127,8 @@ impl Clause {
                 match kind {
                     ClauseType::All => parts.push(IdiomPart::All),
                     ClauseType::Last => parts.push(IdiomPart::Last),
-                    ClauseType::Index(index) => parts.push(IdiomPart::Index(index.0.to_sql())),
-                    ClauseType::Where(filter) => parts.push(IdiomPart::Where(filter.to_sql())),
+                    ClauseType::Index(index) => parts.push(IdiomPart::Index(index.0)),
+                    ClauseType::Where(filter) => parts.push(IdiomPart::Where(filter)),
                     _ => {}
                 }
             }
@@ -317,7 +316,7 @@ impl Operatable for Empty {}
 impl Conditional for Empty {}
 
 impl Render for Empty {
-    fn render(&self, _sql: &mut Sql) {}
+    fn render(&self, _out: &mut Renderer) {}
 }
 
 /// stands for `*`
@@ -325,8 +324,8 @@ impl Render for Empty {
 pub struct All;
 
 impl Render for All {
-    fn render(&self, sql: &mut Sql) {
-        sql.push_str("*");
+    fn render(&self, out: &mut Renderer) {
+        out.push_str("*");
     }
 }
 
@@ -344,8 +343,8 @@ pub fn index(index: impl Into<NumberLike>) -> Index {
 }
 
 impl Render for Index {
-    fn render(&self, sql: &mut Sql) {
-        sql.push(&self.0);
+    fn render(&self, out: &mut Renderer) {
+        out.push(&self.0);
     }
 }
 
