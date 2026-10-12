@@ -1,4 +1,4 @@
-use crate::{DurationLike, Sql};
+use crate::{DurationLike, Renderer};
 
 use super::{Statement, impl_statement};
 
@@ -8,7 +8,7 @@ use super::{Statement, impl_statement};
 ///
 /// ```rust
 /// use std::time::Duration;
-/// use aparecium::{*, statements::sleep};
+/// use umbriel::{*, statements::sleep};
 ///
 /// assert_eq!(sleep(Duration::from_secs(43)).to_debug_sql(), "SLEEP 43s;");
 /// ```
@@ -24,9 +24,9 @@ pub struct SleepStatement {
 }
 
 impl Statement for SleepStatement {
-    fn render_body(&self, sql: &mut Sql) {
+    fn render_body(&self, out: &mut Renderer) {
         // SLEEP takes a duration literal.
-        sql.push_str("SLEEP ").push_inlined(&self.duration);
+        out.push_str("SLEEP ").push_inlined(&self.duration);
     }
 }
 
