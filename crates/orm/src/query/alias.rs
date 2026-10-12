@@ -1,19 +1,19 @@
 
 use std::{borrow::Cow, fmt::Display};
 
-use crate::{Ident, Render, Sql};
+use crate::{Ident, Render, Renderer, ValueLike};
 
 /// An alias for a table or a field/column or even a statement. You usually do not instantiate this
 /// yourself.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Alias {
     name: AliasName,
-    sql: Sql,
+    node: ValueLike,
 }
 
 impl Render for Alias {
-    fn render(&self, sql: &mut Sql) {
-        sql.push(&self.sql);
+    fn render(&self, out: &mut Renderer) {
+        out.push(&self.node).push_str(" AS ").push(&self.name);
     }
 }
 
@@ -53,8 +53,8 @@ impl AliasName {
 }
 
 impl Render for AliasName {
-    fn render(&self, sql: &mut Sql) {
-        self.0.render(sql);
+    fn render(&self, out: &mut Renderer) {
+        self.0.render(out);
     }
 }
 
@@ -64,8 +64,9 @@ impl Display for AliasName {
     }
 }
 
-/// A trait for aliasing a statement or a field/column.
-pub trait Aliasable: Render {
+/// A trait for aliasing a statement or a field/column. The aliased node is its expression form, so
+/// a statement is aliased as a subquery.
+pub trait Aliasable: Render + Clone + Into<ValueLike> {
     /// Alias the current statement or field/column.
     ///
     /// # Arguments
@@ -74,7 +75,7 @@ pub trait Aliasable: Render {
     /// # Example
     ///
     /// ```rust
-    /// use aparecium::{*, statements::*};
+    /// use umbriel::{*, statements::*};
     /// # let name =  Field::new("name");
     /// let moniker =  AliasName::new("moniker");
     /// assert_eq!(name.__as__(moniker).to_debug_sql(), "name AS moniker");
@@ -91,15 +92,9 @@ pub trait Aliasable: Render {
     ///    );
     /// ```
     fn __as__(&self, alias: impl Into<AliasName>) -> Alias {
-        let name: AliasName = alias.into();
-        let mut sql = Sql::new();
-        self.render_aliasable(&mut sql);
-        sql.push_str(" AS ").push(&name);
-        Alias { name, sql }
-    }
-
-    /// Renders the aliased node. Statements override this to render as a subquery.
-    fn render_aliasable(&self, sql: &mut Sql) {
-        self.render(sql);
+        Alias {
+            name: alias.into(),
+            node: self.clone().into(),
+        }
     }
 }
