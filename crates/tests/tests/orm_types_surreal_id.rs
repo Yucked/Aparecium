@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::*;
+    use umbriel::*;
     use surrealdb::sql::Uuid;
 
     #[test]
@@ -11,8 +11,8 @@ mod tests {
 
     #[test]
     fn test_create_id_string_with_model() {
-        let id = TestUser::create_id("oyelowo");
-        assert_eq!(id.to_string(), "user:oyelowo");
+        let id = TestUser::create_id("charlie");
+        assert_eq!(id.to_string(), "user:charlie");
     }
 
     #[test]
@@ -40,8 +40,8 @@ mod tests {
 
     #[test]
     fn test_create_surreal_id_with_string() {
-        let id = TestUserStringId::new("oyelowo".into());
-        assert_eq!(id.to_string(), "user:oyelowo");
+        let id = TestUserStringId::new("charlie".into());
+        assert_eq!(id.to_string(), "user:charlie");
     }
 
     #[test]
@@ -66,8 +66,8 @@ mod tests {
 
     #[test]
     fn test_surreal_id_from_string() {
-        let id = TestUserStringId::try_from("table:oyelowo").unwrap();
-        assert_eq!(id.to_string(), "table:oyelowo");
+        let id = TestUserStringId::try_from("table:charlie").unwrap();
+        assert_eq!(id.to_string(), "table:charlie");
     }
 
     #[test]
