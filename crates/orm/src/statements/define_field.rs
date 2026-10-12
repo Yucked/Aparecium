@@ -1,6 +1,6 @@
 use surrealdb::types::{Kind, Table};
 
-use crate::{Conditional, Field, Filter, Sql, ValueLike};
+use crate::{Conditional, Field, Filter, Renderer, ValueLike};
 
 use super::{
     Statement, impl_definition,
@@ -37,7 +37,7 @@ pub struct DefineFieldStatement {
 /// The DEFINE FIELD statement allows you to instantiate a named field on a table, enabling you to set the field's data type, set a default value, apply assertions to protect data consistency, and set permissions specifying what operations can be performed on the field.
 ///
 /// ```rust
-/// use aparecium::{*, CrudType::*, statements::{define_field, for_permission}, types::Kind};
+/// use umbriel::{*, CrudType::*, statements::{define_field, for_permission}, types::Kind};
 ///
 /// # let name = Field::new("name");
 /// # let user_table = Table::from("user");
@@ -95,7 +95,7 @@ impl DefineFieldStatement {
     ///  Examples:
     ///
     /// ```rust
-    ///     use aparecium::{*, CrudType::*, statements::{define_field}, types::Kind};
+    ///     use umbriel::{*, CrudType::*, statements::{define_field}, types::Kind};
     ///
     ///     # let user_table = Table::from("user");
     ///     # let email = Field::new("email");
@@ -139,26 +139,26 @@ impl DefineFieldStatement {
 }
 
 impl Statement for DefineFieldStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("DEFINE FIELD ").push(&self.field);
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("DEFINE FIELD ").push(&self.field);
 
         if let Some(table) = &self.table {
-            sql.push_str(" ON TABLE ").push(table);
+            out.push_str(" ON TABLE ").push(table);
         }
 
         if let Some(field_type) = &self.type_ {
-            sql.push_str(" TYPE ").push(field_type);
+            out.push_str(" TYPE ").push(field_type);
         }
 
         if let Some(value) = &self.value {
-            sql.push_str(" VALUE $value OR ").push(value);
+            out.push_str(" VALUE $value OR ").push(value);
         }
 
         if let Some(assertion) = &self.assert {
-            sql.push_str(" ASSERT ").push(assertion);
+            out.push_str(" ASSERT ").push(assertion);
         }
 
-        sql.push(&self.permissions);
+        out.push(&self.permissions);
     }
 }
 
