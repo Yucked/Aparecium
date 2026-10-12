@@ -1,4 +1,4 @@
-use crate::{Database, Sql};
+use crate::{Database, Renderer};
 
 use super::{Statement, impl_definition};
 
@@ -10,7 +10,7 @@ use super::{Statement, impl_definition};
 ///
 /// # Example
 /// ```rust
-///  use aparecium::{*, statements::remove_database};
+///  use umbriel::{*, statements::remove_database};
 ///  assert_eq!(
 ///          remove_database("acme").to_debug_sql(),
 ///          "REMOVE DATABASE acme;"
@@ -34,8 +34,8 @@ pub struct RemoveDatabaseStatement {
 }
 
 impl Statement for RemoveDatabaseStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("REMOVE DATABASE ").push(&self.database);
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("REMOVE DATABASE ").push(&self.database);
     }
 }
 
