@@ -1,15 +1,15 @@
 use surrealdb::types::Table;
 
-use crate::{Scope, Renderer};
+use crate::Renderer;
 
 use super::{Statement, impl_statement};
 
-/// Creates statement for INFO for KV(i.e system), NAMESPACE, DATABASE, SCOPE, or TABLE.
+/// Creates statement for INFO for ROOT, NAMESPACE, DATABASE or TABLE.
 ///
 /// Examples
 /// ```rust
 /// use umbriel::{*, statements::info_for};
-/// assert_eq!(info_for().kv().to_debug_sql(), "INFO FOR KV;");
+/// assert_eq!(info_for().root().to_debug_sql(), "INFO FOR ROOT;");
 /// ```
 pub fn info_for() -> InfoStatementInit {
     InfoStatementInit
@@ -17,10 +17,9 @@ pub fn info_for() -> InfoStatementInit {
 
 /// Enum representing the different levels of the SurrealDB system
 enum InfoLevel {
-    Kv,
+    Root,
     Namespace,
     Database,
-    Scope(Scope),
     Table(Table),
 }
 
@@ -28,34 +27,23 @@ enum InfoLevel {
 pub struct InfoStatementInit;
 
 impl InfoStatementInit {
-    /// Creates statement for INFO for the KV(i.e system).
-    /// The top-level KV command returns information regarding the namespaces which
-    /// exists within the SurrealDB system.
-    pub fn kv(self) -> InfoStatement {
-        InfoStatement(InfoLevel::Kv)
+    /// Creates statement for INFO for ROOT.
+    /// The top-level ROOT command returns information regarding the namespaces, root users and
+    /// root access methods of the SurrealDB system.
+    pub fn root(self) -> InfoStatement {
+        InfoStatement(InfoLevel::Root)
     }
 
     /// Creates statement for INFO for NAMESPACE.
-    /// The NS or NAMESPACE command returns information regarding the logins, tokens, and databases under a specific Namespace.
+    /// The NS or NAMESPACE command returns information regarding the users, access methods and databases under a specific Namespace.
     pub fn namespace(self) -> InfoStatement {
         InfoStatement(InfoLevel::Namespace)
     }
 
     /// Creates statement for INFO for DATABASE.
-    /// The DB or DATABASE command returns information regarding the logins, tokens, and scopes, and tables under a specific Database.
+    /// The DB or DATABASE command returns information regarding the users, access methods and tables under a specific Database.
     pub fn database(self) -> InfoStatement {
         InfoStatement(InfoLevel::Database)
-    }
-
-    /// Creates statement for INFO for SCOPE.
-    /// The SCOPE command returns information regarding the tokens configured under a specific Scope.
-    ///
-    /// ```rust
-    /// use umbriel::{*, statements::info_for};
-    /// assert_eq!(info_for().scope("test_scope").to_debug_sql(), "INFO FOR SCOPE test_scope;");
-    /// ```
-    pub fn scope(self, scope: impl Into<Scope>) -> InfoStatement {
-        InfoStatement(InfoLevel::Scope(scope.into()))
     }
 
     /// Creates statement for INFO for TABLE.
@@ -76,17 +64,14 @@ pub struct InfoStatement(InfoLevel);
 impl Statement for InfoStatement {
     fn render_body(&self, out: &mut Renderer) {
         match &self.0 {
-            InfoLevel::Kv => {
-                out.push_str("INFO FOR KV");
+            InfoLevel::Root => {
+                out.push_str("INFO FOR ROOT");
             }
             InfoLevel::Namespace => {
                 out.push_str("INFO FOR NS");
             }
             InfoLevel::Database => {
                 out.push_str("INFO FOR DB");
-            }
-            InfoLevel::Scope(scope) => {
-                out.push_str("INFO FOR SCOPE ").push(scope);
             }
             InfoLevel::Table(table) => {
                 out.push_str("INFO FOR TABLE ").push(table);
