@@ -1,12 +1,13 @@
-# Standalone consumer that names `aparecium` only as `apa`; checked by `tests/macros_compile.rs`.
+# Standalone consumer that names `umbriel` only as `apa`, with representative models (renames,
+# nullable fields, a flattened object, a generic edge); checked by `tests/macros_compile.rs`.
 [package]
 name = "renamed-dependency-fixture"
 version = "0.0.0"
 edition = "2024"
 publish = false
 
-# Not a member of the Aparecium workspace.
+# Not a member of the Umbriel workspace.
 [workspace]
 
 [dependencies]
-apa = { package = "aparecium", path = "../../../orm", default-features = false }
+apa = { package = "umbriel", path = "../../../orm", default-features = false }
