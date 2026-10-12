@@ -60,7 +60,7 @@ pub fn len_fn(string: impl Into<StrandLike>) -> Function {
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::string, statements::let_};
+/// use umbriel::{*, functions::string, statements::let_};
 /// let len = string::len!("Alice Smith");
 /// assert_eq!(len.to_debug_sql(), "string::length('Alice Smith')");
 ///
@@ -91,7 +91,7 @@ pub fn lowercase_fn(string: impl Into<StrandLike>) -> Function {
 /// * `string` - The string to convert to lowercase. Can be a string literal, a field or a parameter representing a string.
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::string, statements::let_};
+/// use umbriel::{*, functions::string, statements::let_};
 /// let lowercase = string::lowercase!("Alice Smith");
 /// assert_eq!(lowercase.to_debug_sql(), "string::lowercase('Alice Smith')");
 ///
@@ -126,7 +126,7 @@ pub fn uppercase_fn(string: impl Into<StrandLike>) -> Function {
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::string, statements::let_};
+/// use umbriel::{*, functions::string, statements::let_};
 /// let uppercase = string::uppercase!("Alice Smith");
 /// assert_eq!(uppercase.to_debug_sql(), "string::uppercase('Alice Smith')");
 ///
@@ -159,7 +159,7 @@ pub fn words_fn(string: impl Into<StrandLike>) -> Function {
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::string, statements::let_};
+/// use umbriel::{*, functions::string, statements::let_};
 /// let words = string::words!("Alice Smith");
 /// assert_eq!(words.to_debug_sql(), "string::words('Alice Smith')");
 ///
@@ -192,7 +192,7 @@ pub fn reverse_fn(string: impl Into<StrandLike>) -> Function {
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::string, statements::let_};
+/// use umbriel::{*, functions::string, statements::let_};
 /// let reverse = string::reverse!("Alice Smith");
 /// assert_eq!(reverse.to_debug_sql(), "string::reverse('Alice Smith')");
 ///
@@ -226,7 +226,7 @@ pub fn trim_fn(string: impl Into<StrandLike>) -> Function {
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::string, statements::let_};
+/// use umbriel::{*, functions::string, statements::let_};
 /// let trim = string::trim!("Alice Smith");
 /// assert_eq!(trim.to_debug_sql(), "string::trim('Alice Smith')");
 ///
@@ -260,7 +260,7 @@ pub fn slug_fn(string: impl Into<StrandLike>) -> Function {
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::string, statements::let_};
+/// use umbriel::{*, functions::string, statements::let_};
 /// let slug = string::slug!("Alice Smith");
 /// assert_eq!(slug.to_debug_sql(), "string::slug('Alice Smith')");
 /// let string_field = Field::new("string_field");
@@ -298,7 +298,7 @@ pub fn concat_fn<T: Into<ValueLike>>(values: Vec<T>) -> Function {
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::string, statements::let_};
+/// use umbriel::{*, functions::string, statements::let_};
 /// let concat = string::concat!("Alice", "Smith");
 /// assert_eq!(concat.to_debug_sql(), "string::concat('Alice', 'Smith')");
 ///
@@ -340,7 +340,7 @@ pub fn contains_fn(string: impl Into<StrandLike>, contains: impl Into<StrandLike
 /// * `contains` - The string to check for. Can be a string literal, field or parameter representing a string.
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::string, statements::let_};
+/// use umbriel::{*, functions::string, statements::let_};
 ///
 /// let contains = string::contains!("Alice Smith", "Smith");
 /// assert_eq!(contains.to_debug_sql(), "string::contains('Alice Smith', 'Smith')");
@@ -375,7 +375,7 @@ pub fn join_fn(values: impl Into<ArgsList>) -> Function {
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::string, statements::let_};
+/// use umbriel::{*, functions::string, statements::let_};
 /// let join = string::join!("Alice", "Smith");
 /// assert_eq!(join.to_debug_sql(), "string::join('Alice', 'Smith')");
 ///
@@ -419,7 +419,7 @@ pub fn ends_with_fn(string: impl Into<StrandLike>, ending: impl Into<StrandLike>
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::string, statements::let_};
+/// use umbriel::{*, functions::string, statements::let_};
 /// let ends_with = string::ends_with!("Alice", "Smith");
 /// assert_eq!(ends_with.to_debug_sql(), "string::ends_with('Alice', 'Smith')");
 /// let string_field = Field::new("string_field");
@@ -455,7 +455,7 @@ pub fn starts_with_fn(string: impl Into<StrandLike>, starting: impl Into<StrandL
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::string, statements::let_};
+/// use umbriel::{*, functions::string, statements::let_};
 /// let starts_with = string::starts_with!("Alice", "Smith");
 /// assert_eq!(starts_with.to_debug_sql(), "string::starts_with('Alice', 'Smith')");
 ///
@@ -492,7 +492,7 @@ pub fn split_fn(string: impl Into<StrandLike>, by: impl Into<StrandLike>) -> Fun
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::string, statements::let_};
+/// use umbriel::{*, functions::string, statements::let_};
 /// let split = string::split!("Alice Smith", " ");
 /// assert_eq!(split.to_debug_sql(), "string::split('Alice Smith', ' ')");
 ///
@@ -530,7 +530,7 @@ pub fn repeat_fn(string: impl Into<StrandLike>, ending: impl Into<NumberLike>) -
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::string, statements::let_};
+/// use umbriel::{*, functions::string, statements::let_};
 /// let repeat = string::repeat!("Alice", 3);
 /// assert_eq!(repeat.to_debug_sql(), "string::repeat('Alice', 3)");
 /// let string_field = Field::new("string_field");
@@ -572,7 +572,7 @@ pub fn slice_fn(
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::string, statements::let_};
+/// use umbriel::{*, functions::string, statements::let_};
 /// let slice = string::slice!("Alice Smith", 0, 7);
 /// assert_eq!(slice.to_debug_sql(), "string::slice('Alice Smith', 0, 7)");
 ///
@@ -616,7 +616,7 @@ pub fn replace_fn(
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::string, statements::let_};
+/// use umbriel::{*, functions::string, statements::let_};
 /// string::replace!("Alice Smith", "Smith", "Alice");
 ///
 /// let string_field = Field::new("string_field");
@@ -711,7 +711,7 @@ create_fn_with_two_strings_args!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::string, statements::let_};
+    /// use umbriel::{*, functions::string, statements::let_};
     ///
     /// let name = Field::new("name");
     /// let result = string::is::format!(name, "Alice");
@@ -741,7 +741,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::string, statements::let_};
+        /// use umbriel::{*, functions::string, statements::let_};
         ///
         /// let result = string::is::alphanum!("alice1234");
         /// assert_eq!(result.to_debug_sql(), "string::is::alphanum('alice1234')");
@@ -769,7 +769,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::string, statements::let_};
+        /// use umbriel::{*, functions::string, statements::let_};
         ///
         /// let result = string::is::alpha!("alice");
         /// assert_eq!(result.to_debug_sql(), "string::is::alpha('alice')");
@@ -797,7 +797,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::string, statements::let_};
+        /// use umbriel::{*, functions::string, statements::let_};
         ///
         /// let result = string::is::ascii!("alice");
         /// assert_eq!(result.to_debug_sql(), "string::is::ascii('alice')");
@@ -825,7 +825,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::string, statements::let_};
+        /// use umbriel::{*, functions::string, statements::let_};
         ///
         /// let result = string::is::domain!("example.com");
         /// assert_eq!(result.to_debug_sql(), "string::is::domain('example.com')");
@@ -853,7 +853,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::string, statements::let_};
+        /// use umbriel::{*, functions::string, statements::let_};
         ///
         /// let result = string::is::email!("alice@example.com");
         /// assert_eq!(result.to_debug_sql(), "string::is::email('alice@example.com')");
@@ -862,7 +862,7 @@ pub mod is {
         /// let result = string::is::email!(email_field);
         /// assert_eq!(result.to_debug_sql(), "string::is::email(email_field)");
         ///
-        /// let email_param = let_("email_param").equal_to("alice@codebreather").get_param();
+        /// let email_param = let_("email_param").equal_to("alice@exampleco").get_param();
         ///
         /// let result = string::is::email!(email_param);
         /// assert_eq!(result.to_query().unwrap().sql(), "string::is::email($email_param)");
@@ -882,7 +882,7 @@ pub mod is {
             ///
             /// # Example
             /// ```rust
-            /// use aparecium::{*, functions::string, statements::let_};
+            /// use umbriel::{*, functions::string, statements::let_};
             ///
             /// let result = string::is::hexadecimal!("alice");
             /// assert_eq!(result.to_debug_sql(), "string::is::hexadecimal('alice')");
@@ -910,7 +910,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::string, statements::let_};
+        /// use umbriel::{*, functions::string, statements::let_};
         ///
         /// let result = string::is::latitude!("-0.118092");
         /// assert_eq!(result.to_debug_sql(), "string::is::latitude('-0.118092')");
@@ -938,7 +938,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::string, statements::let_};
+        /// use umbriel::{*, functions::string, statements::let_};
         ///
         /// let result = string::is::longitude!("51.509865");
         /// assert_eq!(result.to_debug_sql(), "string::is::longitude('51.509865')");
@@ -966,7 +966,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::string, statements::let_};
+        /// use umbriel::{*, functions::string, statements::let_};
         ///
         /// let result = string::is::numeric!("alice");
         /// assert_eq!(result.to_debug_sql(), "string::is::numeric('alice')");
@@ -994,7 +994,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::string, statements::let_};
+        /// use umbriel::{*, functions::string, statements::let_};
         ///
         /// let result = string::is::semver!("alice");
         /// assert_eq!(result.to_debug_sql(), "string::is::semver('alice')");
@@ -1022,7 +1022,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::string, statements::let_};
+        /// use umbriel::{*, functions::string, statements::let_};
         ///
         /// let result = string::is::uuid!("alice");
         /// assert_eq!(result.to_debug_sql(), "string::is::uuid('alice')");
@@ -1050,7 +1050,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::string, statements::let_};
+        /// use umbriel::{*, functions::string, statements::let_};
         ///
         /// let result = string::is::datetime!("alice");
         /// assert_eq!(result.to_debug_sql(), "string::is::datetime('alice')");
@@ -1081,7 +1081,7 @@ create_fn_with_two_strings_args!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::string, statements::let_};
+    /// use umbriel::{*, functions::string, statements::let_};
     ///
     /// let name = Field::new("name");
     /// let result = string::distance::hamming!(name, "Alice");
@@ -1108,7 +1108,7 @@ create_fn_with_two_strings_args!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::string, statements::let_};
+    /// use umbriel::{*, functions::string, statements::let_};
     ///
     /// let name = Field::new("name");
     /// let result = string::distance::levenshtein!(name, "Alice");
@@ -1141,7 +1141,7 @@ create_fn_with_two_strings_args!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::string, statements::let_};
+    /// use umbriel::{*, functions::string, statements::let_};
     ///
     /// let name = Field::new("name");
     /// let result = string::similarity::fuzzy!(name, "Alice");
@@ -1168,7 +1168,7 @@ create_fn_with_two_strings_args!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::string, statements::let_};
+    /// use umbriel::{*, functions::string, statements::let_};
     ///
     /// let name = Field::new("name");
     /// let result = string::similarity::jaro!(name, "Alice");
@@ -1195,7 +1195,7 @@ create_fn_with_two_strings_args!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::string, statements::let_};
+    /// use umbriel::{*, functions::string, statements::let_};
     ///
     /// let name = Field::new("name");
     /// let result = string::similarity::smithwaterman!(name, "Alice");
