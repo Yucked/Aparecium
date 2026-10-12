@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod add_tests {
-    use aparecium::{functions::array, *};
+    use umbriel::{functions::array, *};
 
     #[test]
     fn test_add_with_values() {
@@ -28,7 +28,7 @@ mod add_tests {
 
 #[cfg(test)]
 mod all_tests {
-    use aparecium::{functions::array, *};
+    use umbriel::{functions::array, *};
 
     #[test]
     fn test_all_with_values() {
@@ -52,7 +52,7 @@ mod all_tests {
 
 #[cfg(test)]
 mod any_tests {
-    use aparecium::{functions::array, *};
+    use umbriel::{functions::array, *};
 
     #[test]
     fn test_any_with_values() {
@@ -76,7 +76,7 @@ mod any_tests {
 
 #[cfg(test)]
 mod append_tests {
-    use aparecium::{functions::array, *};
+    use umbriel::{functions::array, *};
 
     #[test]
     fn test_append_with_values() {
@@ -115,7 +115,7 @@ mod append_tests {
 
 #[cfg(test)]
 mod array_transpose_test {
-    use aparecium::{functions::array, *};
+    use umbriel::{functions::array, *};
 
     #[test]
     fn test_array_transpose() {
@@ -187,7 +187,7 @@ mod array_transpose_test {
 
 #[cfg(test)]
 mod array_at_tests {
-    use aparecium::{functions::array, *};
+    use umbriel::{functions::array, *};
 
     #[test]
     fn test_array_at() {
@@ -229,7 +229,7 @@ mod array_at_tests {
 
 #[cfg(test)]
 mod array_distinct_tests {
-    use aparecium::{functions::array, *};
+    use umbriel::{functions::array, *};
 
     #[test]
     fn test_array_distinct() {
@@ -265,7 +265,7 @@ mod array_distinct_tests {
 
 #[cfg(test)]
 mod array_find_tests {
-    use aparecium::{functions::array, *};
+    use umbriel::{functions::array, *};
 
     #[test]
     fn test_array_find() {
@@ -307,7 +307,7 @@ mod array_find_tests {
 
 #[cfg(test)]
 mod array_find_index_tests {
-    use aparecium::{functions::array, *};
+    use umbriel::{functions::array, *};
 
     #[test]
     fn test_array_find_index() {
@@ -352,7 +352,7 @@ mod array_find_index_tests {
 
 #[cfg(test)]
 mod array_flatten_tests {
-    use aparecium::{functions::array, *};
+    use umbriel::{functions::array, *};
 
     #[test]
     fn test_array_flatten() {
@@ -391,7 +391,7 @@ mod array_flatten_tests {
 
 #[cfg(test)]
 mod array_group_tests {
-    use aparecium::{functions::array, *};
+    use umbriel::{functions::array, *};
 
     #[test]
     fn test_array_group() {
@@ -438,7 +438,7 @@ mod array_group_tests {
 
 #[cfg(test)]
 mod array_insert_tests {
-    use aparecium::{functions::array, *};
+    use umbriel::{functions::array, *};
 
     #[test]
     fn test_array_insert() {
@@ -480,7 +480,7 @@ mod array_insert_tests {
 
 #[cfg(test)]
 mod array_len_tests {
-    use aparecium::{functions::array, *};
+    use umbriel::{functions::array, *};
 
     #[test]
     fn test_array_len() {
@@ -513,7 +513,7 @@ mod array_len_tests {
 
 #[cfg(test)]
 mod array_pop_tests {
-    use aparecium::{functions::array, *};
+    use umbriel::{functions::array, *};
 
     #[test]
     fn test_array_pop() {
@@ -546,7 +546,7 @@ mod array_pop_tests {
 
 #[cfg(test)]
 mod array_prepend_tests {
-    use aparecium::{functions::array, *};
+    use umbriel::{functions::array, *};
 
     #[test]
     fn test_array_prepend() {
@@ -588,7 +588,7 @@ mod array_prepend_tests {
 
 #[cfg(test)]
 mod array_push_tests {
-    use aparecium::{functions::array, *};
+    use umbriel::{functions::array, *};
 
     #[test]
     fn test_array_push() {
@@ -630,7 +630,7 @@ mod array_push_tests {
 
 #[cfg(test)]
 mod array_remove_tests {
-    use aparecium::{functions::array, *};
+    use umbriel::{functions::array, *};
 
     #[test]
     fn test_array_remove() {
@@ -672,7 +672,7 @@ mod array_remove_tests {
 
 #[cfg(test)]
 mod array_reverse_tests {
-    use aparecium::{functions::array, *};
+    use umbriel::{functions::array, *};
 
     #[test]
     fn test_array_reverse() {
@@ -708,7 +708,7 @@ mod array_reverse_tests {
 
 #[cfg(test)]
 mod array_join_tests {
-    use aparecium::{functions::array, *};
+    use umbriel::{functions::array, *};
 
     #[test]
     fn test_array_join() {
@@ -750,8 +750,8 @@ mod array_join_tests {
 
 #[cfg(test)]
 mod tests {
-    use aparecium::*;
-    use aparecium::{functions::array::*, *};
+    use umbriel::*;
+    use umbriel::{functions::array::*, *};
 
     #[test]
     fn test_distinct() {
@@ -797,7 +797,7 @@ mod tests {
     #[test]
     fn test_len_on_diverse_array_custom_array_function() {
         let email = Field::new("email");
-        let arr = arr![1, 21, "4334", "Oyelowo", email];
+        let arr = arr![1, 21, "4334", "Charlie", email];
         let result = len_fn(arr);
         assert_eq!(
             result.fine_tune_params(),
@@ -805,14 +805,14 @@ mod tests {
         );
         assert_eq!(
             result.to_raw().build(),
-            "array::len([1, 21, '4334', 'Oyelowo', email])"
+            "array::len([1, 21, '4334', 'Charlie', email])"
         );
     }
 
     #[test]
     fn test_len_macro_on_diverse_array_custom_array_function() {
         let email = Field::new("email");
-        let arr = arr![1, 21, "4334", "Oyelowo", email];
+        let arr = arr![1, 21, "4334", "Charlie", email];
         let result = len!(arr);
         assert_eq!(
             result.fine_tune_params(),
@@ -820,7 +820,7 @@ mod tests {
         );
         assert_eq!(
             result.to_raw().to_string(),
-            "array::len([1, 21, '4334', 'Oyelowo', email])"
+            "array::len([1, 21, '4334', 'Charlie', email])"
         );
     }
 
@@ -990,12 +990,12 @@ macro_rules! create_fn_with_single_array_arg_tests {
     ($(#[$attr:meta])* => $function_name:expr) => {
         paste::paste! {
             mod [<test_ $function_name>] {
-                use aparecium::{functions::array, *};
+                use umbriel::{functions::array, *};
 
                 #[test]
                 fn [<test $function_name _fn_on_array_macro_on_diverse_array>]() {
                     let age = Field::new("age");
-                    let arr = arr![1, "Oyelowo", age];
+                    let arr = arr![1, "Charlie", age];
                     let result = functions::array::[<$function_name _fn>](arr);
                     assert_eq!(
                         result.fine_tune_params(),
@@ -1003,7 +1003,7 @@ macro_rules! create_fn_with_single_array_arg_tests {
                     );
                     assert_eq!(
                         result.to_raw().build(),
-                        format!("array::{}([1, 'Oyelowo', age])", $function_name)
+                        format!("array::{}([1, 'Charlie', age])", $function_name)
                     );
                 }
 
@@ -1025,7 +1025,7 @@ macro_rules! create_fn_with_single_array_arg_tests {
                 #[test]
                 fn [<test $function_name _macro_on_array_macro_on_diverse_array>]() {
                     let age = Field::new("age");
-                    let arr = arr![1, "Oyelowo", age];
+                    let arr = arr![1, "Charlie", age];
                     let result = array::[<$function_name>]!(arr);
                     assert_eq!(
                         result.fine_tune_params(),
@@ -1033,14 +1033,14 @@ macro_rules! create_fn_with_single_array_arg_tests {
                     );
                     assert_eq!(
                         result.to_raw().build(),
-                        format!("array::{}([1, 'Oyelowo', age])", $function_name)
+                        format!("array::{}([1, 'Charlie', age])", $function_name)
                     );
                 }
 
                 #[test]
                 fn [<test $function_name _macro_on_same_element_types>]() {
-                    let arr = aparecium::arr![1, 2, 3];
-                    let result = aparecium::functions::array::[<$function_name>]!(arr);
+                    let arr = umbriel::arr![1, 2, 3];
+                    let result = umbriel::functions::array::[<$function_name>]!(arr);
                     assert_eq!(
                         result.fine_tune_params(),
                         format!("array::{}([$_param_00000001, $_param_00000002, $_param_00000003])", $function_name)
@@ -1096,13 +1096,13 @@ macro_rules! create_fn_with_two_array_args_tests {
     ($(#[$attr:meta])* => $function_name:expr) => {
         paste::paste! {
             mod [<test_ $function_name>] {
-                use aparecium::{functions::array, *};
+                use umbriel::{functions::array, *};
 
                 #[test]
                 fn [<test $function_name fn_on_array_macro_on_diverse_array>]() {
                     let age = Field::new("age");
-                    let arr1 = arr![1, "Oyelowo", age];
-                    let arr2 = arr![4, "dayo", 6];
+                    let arr1 = arr![1, "Charlie", age];
+                    let arr2 = arr![4, "nett", 6];
                     let result = functions::array::[<$function_name _fn>](arr1, arr2);
                     assert_eq!(
                         result.fine_tune_params(),
@@ -1110,7 +1110,7 @@ macro_rules! create_fn_with_two_array_args_tests {
                     );
                     assert_eq!(
                         result.to_raw().build(),
-                        format!("array::{}([1, 'Oyelowo', age], [4, 'dayo', 6])", $function_name)
+                        format!("array::{}([1, 'Charlie', age], [4, 'nett', 6])", $function_name)
                     );
                 }
 
@@ -1134,8 +1134,8 @@ macro_rules! create_fn_with_two_array_args_tests {
                 #[test]
                 fn [<test $function_name _macro_on_array_macro_on_diverse_array>]() {
                     let age = Field::new("age");
-                    let arr1 = arr![1, "Oyelowo", age];
-                    let arr2 = arr![4, "dayo", 6];
+                    let arr1 = arr![1, "Charlie", age];
+                    let arr2 = arr![4, "nett", 6];
                     let result = array::[<$function_name>]!(arr1, arr2);
                     assert_eq!(
                         result.fine_tune_params(),
@@ -1144,15 +1144,15 @@ macro_rules! create_fn_with_two_array_args_tests {
                     );
                     assert_eq!(
                         result.to_raw().build(),
-                        format!("array::{}([1, 'Oyelowo', age], [4, 'dayo', 6])", $function_name)
+                        format!("array::{}([1, 'Charlie', age], [4, 'nett', 6])", $function_name)
                     );
                 }
 
                 #[test]
                 fn [<test $function_name _macro_on_same_element_types>]() {
-                    let arr1 = aparecium::arr![1, 2, 3];
-                    let arr2 = aparecium::arr![4, 5, 6];
-                    let result = aparecium::functions::array::[<$function_name>]!(arr1, arr2);
+                    let arr1 = umbriel::arr![1, 2, 3];
+                    let arr2 = umbriel::arr![4, 5, 6];
+                    let result = umbriel::functions::array::[<$function_name>]!(arr1, arr2);
                     assert_eq!(
                         result.fine_tune_params(),
                         format!("array::{}([$_param_00000001, $_param_00000002, $_param_00000003], \
