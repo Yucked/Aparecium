@@ -1,9 +1,9 @@
 
-use surrealdb::types::SurrealValue;
+use surrealdb::types::{SurrealValue, Table, Value};
 
 use crate::{
-    Alias, All, E, Edge, Field, Filter, Function, Model, NONE, NULL, Node, Operation, Param,
-    Render, Sql,
+    Alias, All, E, Edge, Field, Filter, Fragment, Function, Model, NONE, NULL, Node, Operation,
+    Param, Render, Renderer, Setter,
     statements::{
         CreateStatement, DeleteStatement, IfElseStatement, InsertStatement, LetStatement,
         RelateStatement, SelectStatement, Subquery, UpdateStatement,
@@ -12,59 +12,82 @@ use crate::{
 
 /// Any SurrealQL expression: a bound value, field, parameter, operation, function call or
 /// subquery.
-#[derive(Debug, Clone, Default, PartialEq)]
-pub struct ValueLike {
-    sql: Sql,
-    /// Built from an operation, so it needs parentheses as an arithmetic operand.
-    operation: bool,
+#[derive(Debug, Clone, PartialEq)]
+pub struct ValueLike(Expr);
+
+/// The common expressions are kept as they are; any other node is shared as a [`Fragment`].
+#[derive(Debug, Clone, PartialEq)]
+enum Expr {
+    Value(Value),
+    /// Fixed syntax, such as `NONE` or `*`; empty for no expression.
+    Syntax(&'static str),
+    Table(Table),
+    Field(Field),
+    Param(Param),
+    Operation(Operation),
+    Node(Fragment),
 }
 
 impl ValueLike {
-    /// Wraps any query fragment.
-    pub fn new(node: impl Render) -> Self {
-        Self {
-            sql: node.to_sql(),
-            operation: false,
-        }
+    /// Wraps any query node.
+    pub fn new(node: impl Render + Send + Sync + 'static) -> Self {
+        Self(Expr::Node(Fragment::new(node)))
     }
 
     /// A value, bound as a parameter when the query is rendered.
     pub fn value(value: impl SurrealValue) -> Self {
-        let mut sql = Sql::new();
-        sql.push_value(value.into_value());
-        Self {
-            sql,
-            operation: false,
-        }
+        Self(Expr::Value(value.into_value()))
+    }
+
+    /// Fixed SurrealQL syntax.
+    pub(crate) const fn syntax(text: &'static str) -> Self {
+        Self(Expr::Syntax(text))
+    }
+
+    /// A table name, written as an identifier rather than bound as a table value.
+    pub(crate) fn table(table: Table) -> Self {
+        Self(Expr::Table(table))
     }
 
     /// Whether the expression renders to nothing.
     pub fn is_empty(&self) -> bool {
-        self.sql.is_empty()
+        matches!(self.0, Expr::Syntax(""))
     }
 
-    /// Renders the expression, parenthesized when it is an operation.
-    pub(crate) fn render_operand(&self, sql: &mut Sql) {
-        if self.operation {
-            sql.push_str("(").push(&self.sql).push_str(")");
+    /// Renders the expression as an arithmetic operand: an operation is parenthesized so it binds
+    /// before the surrounding operator.
+    pub(crate) fn render_operand(&self, out: &mut Renderer) {
+        if let Expr::Operation(operation) = &self.0 {
+            out.push_str("(").push(operation).push_str(")");
         } else {
-            sql.push(&self.sql);
+            self.render(out);
         }
     }
 }
 
 impl Render for ValueLike {
-    fn render(&self, sql: &mut Sql) {
-        sql.push(&self.sql);
+    fn render(&self, out: &mut Renderer) {
+        match &self.0 {
+            Expr::Value(value) => out.push_value(value),
+            Expr::Syntax(text) => out.push_str(text),
+            Expr::Table(table) => out.push(table),
+            Expr::Field(field) => out.push(field),
+            Expr::Param(param) => out.push(param),
+            Expr::Operation(operation) => out.push(operation),
+            Expr::Node(node) => out.push(node),
+        };
     }
 }
 
 impl From<Operation> for ValueLike {
     fn from(value: Operation) -> Self {
-        Self {
-            sql: value.to_sql(),
-            operation: true,
-        }
+        Self(Expr::Operation(value))
+    }
+}
+
+impl From<Setter> for ValueLike {
+    fn from(value: Setter) -> Self {
+        Self(Expr::Operation(value.into()))
     }
 }
 
@@ -74,11 +97,35 @@ impl<T: SurrealValue> From<T> for ValueLike {
     }
 }
 
-/// Implements `From<$source>` by rendering the source as an expression.
-macro_rules! value_like_from_render {
-    ($target:ty: $($source:ty),* $(,)?) => {
+impl From<Field> for ValueLike {
+    fn from(value: Field) -> Self {
+        Self(Expr::Field(value))
+    }
+}
+
+impl From<&Field> for ValueLike {
+    fn from(value: &Field) -> Self {
+        Self(Expr::Field(value.clone()))
+    }
+}
+
+impl From<Param> for ValueLike {
+    fn from(value: Param) -> Self {
+        Self(Expr::Param(value))
+    }
+}
+
+impl From<&Param> for ValueLike {
+    fn from(value: &Param) -> Self {
+        Self(Expr::Param(value.clone()))
+    }
+}
+
+/// Implements `From<$source>` by sharing the source as a node.
+macro_rules! value_like_from_node {
+    ($($source:ty),* $(,)?) => {
         $(
-            impl From<$source> for $target {
+            impl From<$source> for ValueLike {
                 fn from(value: $source) -> Self {
                     Self::new(value)
                 }
@@ -87,41 +134,47 @@ macro_rules! value_like_from_render {
     };
 }
 
-value_like_from_render!(ValueLike: Field, &Field, Param, &Param, Alias, Filter, Function, Subquery);
+value_like_from_node!(Alias, Filter, Function);
+
+impl From<Subquery> for ValueLike {
+    fn from(value: Subquery) -> Self {
+        Self(Expr::Node(value.into_fragment()))
+    }
+}
 
 impl From<LetStatement> for ValueLike {
     fn from(value: LetStatement) -> Self {
-        Self::new(value.get_param())
+        Self(Expr::Param(value.get_param()))
     }
 }
 
 impl From<&LetStatement> for ValueLike {
     fn from(value: &LetStatement) -> Self {
-        Self::new(value.get_param())
+        Self(Expr::Param(value.get_param()))
     }
 }
 
 impl From<All> for ValueLike {
-    fn from(value: All) -> Self {
-        Self::new(value)
+    fn from(_: All) -> Self {
+        Self::syntax("*")
     }
 }
 
 impl From<NULL> for ValueLike {
-    fn from(value: NULL) -> Self {
-        Self::new(value)
+    fn from(_: NULL) -> Self {
+        Self::syntax("NULL")
     }
 }
 
 impl From<NONE> for ValueLike {
-    fn from(value: NONE) -> Self {
-        Self::new(value)
+    fn from(_: NONE) -> Self {
+        Self::syntax("NONE")
     }
 }
 
 impl From<E> for ValueLike {
-    fn from(value: E) -> Self {
-        Self::new(value)
+    fn from(_: E) -> Self {
+        Self::syntax("")
     }
 }
 
@@ -177,7 +230,7 @@ impl<T: Node> From<InsertStatement<T>> for ValueLike {
 /// * `$( $val:expr ),*` - A list of values that can be converted into `ValueLike`
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::{math, count}, types::Duration};
+/// use umbriel::{*, functions::{math, count}, types::Duration};
 /// let country = Field::new("country");
 /// let age = Field::new("age");
 /// let total = AliasName::new("total");
