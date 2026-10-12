@@ -1,10 +1,10 @@
 
-use aparecium::statements::order;
-use aparecium::{
+use umbriel::statements::order;
+use umbriel::{
     statements::{create, select},
     *,
 };
-use aparecium_tests::{Alien, SpaceShip, Weapon, alien, space_ship};
+use umbriel_tests::{Alien, SpaceShip, Weapon, alien, space_ship};
 use chrono::{DateTime, Utc};
 use geo::line_string;
 use geo::point;
@@ -57,18 +57,18 @@ async fn test_create_alien_with_id_specified() -> SurrealOrmResult<()> {
     db.use_ns("test").use_db("test").await.unwrap();
 
     let space_ship = SpaceShip {
-        id: SpaceShip::create_id("oyelowo".into()),
+        id: SpaceShip::create_id("charlie".into()),
         name: "SpaceShip1".to_string(),
         created: Utc::now(),
     };
     // id specified before creation. Will be used by the database.
-    assert_eq!(space_ship.id.to_string(), "space_ship:oyelowo");
+    assert_eq!(space_ship.id.to_string(), "space_ship:charlie");
     let created_ship = create()
         .content(space_ship.clone())
         .get_one(db.clone())
         .await?;
     // Id is generated after creation
-    assert_eq!(created_ship.clone().id.to_string(), "space_ship:oyelowo");
+    assert_eq!(created_ship.clone().id.to_string(), "space_ship:charlie");
     assert_eq!(
         created_ship.clone().id.to_string(),
         space_ship.id.to_string()
@@ -204,7 +204,7 @@ async fn test_create_alien_with_links() -> SurrealOrmResult<()> {
     };
 
     let space_ship3 = SpaceShip {
-        name: "Oyelowo".to_string(),
+        name: "Charlie".to_string(),
         created: Utc::now(),
         ..Default::default()
     };
@@ -260,7 +260,7 @@ async fn test_create_alien_with_links() -> SurrealOrmResult<()> {
     let polygon = polygon![(x: 40.02, y: 116.34), (x: 40.02, y: 116.35), (x: 40.03, y: 116.35), (x: 40.03, y: 116.34), (x: 40.02, y: 116.34)];
     let unsaved_alien = Alien {
         id: Alien::create_simple_id(),
-        name: "Oyelowo".to_string(),
+        name: "Charlie".to_string(),
         age: 20,
         created: Utc::now(),
         line_string: territory,
@@ -335,7 +335,7 @@ async fn test_create_alien_with_links() -> SurrealOrmResult<()> {
         "{ type: 'LineString', coordinates: [[40.02, 116.34], [40.02, 116.35], \
             [40.03, 116.35], [40.03, 116.34], [40.02, 116.34]] }"
     );
-    assert_eq!(created_alien.name, "Oyelowo");
+    assert_eq!(created_alien.name, "Charlie");
 
     Ok(())
 }
@@ -358,7 +358,7 @@ async fn test_create_fetch_record_links() -> SurrealOrmResult<()> {
     };
 
     let space_ship3 = SpaceShip {
-        name: "Oyelowo".to_string(),
+        name: "Charlie".to_string(),
         created: Utc::now(),
         ..Default::default()
     };
@@ -385,7 +385,7 @@ async fn test_create_fetch_record_links() -> SurrealOrmResult<()> {
     let polygon = polygon![(x: 40.02, y: 116.34), (x: 40.02, y: 116.35), (x: 40.03, y: 116.35), (x: 40.03, y: 116.34), (x: 40.02, y: 116.34)];
     let unsaved_alien = Alien {
         id: Alien::create_simple_id(),
-        name: "Oyelowo".to_string(),
+        name: "Charlie".to_string(),
         age: 20,
         created: Utc::now(),
         line_string: territory,
@@ -433,11 +433,11 @@ async fn test_create_fetch_record_links() -> SurrealOrmResult<()> {
 
     let space_ship_names = &space_ship_names.unwrap();
     assert_eq!(space_ship_names.age, 20);
-    assert_eq!(space_ship_names.name, "Oyelowo");
+    assert_eq!(space_ship_names.name, "Charlie");
     assert_eq!(space_ship_names.aliens_spaceships_names_alias.len(), 3);
     assert_eq!(
         space_ship_names.aliens_spaceships_names_alias,
-        vec!["SpaceShip1", "SpaceShip2", "Oyelowo"]
+        vec!["SpaceShip1", "SpaceShip2", "Charlie"]
     );
 
     Ok(())
@@ -461,7 +461,7 @@ async fn test_create_fetch_values_of_one_to_many_record_links() -> SurrealOrmRes
     };
 
     let space_ship3 = SpaceShip {
-        name: "Oyelowo".to_string(),
+        name: "Charlie".to_string(),
         created: Utc::now(),
         ..Default::default()
     };
@@ -488,7 +488,7 @@ async fn test_create_fetch_values_of_one_to_many_record_links() -> SurrealOrmRes
     let polygon = polygon![(x: 40.02, y: 116.34), (x: 40.02, y: 116.35), (x: 40.03, y: 116.35), (x: 40.03, y: 116.34), (x: 40.02, y: 116.34)];
     let unsaved_alien = Alien {
         id: Alien::create_simple_id(),
-        name: "Oyelowo".to_string(),
+        name: "Charlie".to_string(),
         age: 20,
         created: Utc::now(),
         line_string: territory,
@@ -524,11 +524,11 @@ async fn test_create_fetch_values_of_one_to_many_record_links() -> SurrealOrmRes
         3
     );
     assert_eq!(created_alien_with_fetched_links.age, 20);
-    assert_eq!(created_alien_with_fetched_links.name, "Oyelowo");
+    assert_eq!(created_alien_with_fetched_links.name, "Charlie");
     assert_eq!(created_alien_with_fetched_links.space_ships.len(), 3);
     assert_eq!(alien_spaceships[0].unwrap().name, "SpaceShip1");
     assert_eq!(alien_spaceships[1].unwrap().name, "SpaceShip2");
-    assert_eq!(alien_spaceships[2].unwrap().name, "Oyelowo");
+    assert_eq!(alien_spaceships[2].unwrap().name, "Charlie");
 
     Ok(())
 }
@@ -555,7 +555,7 @@ async fn test_create_fetch_values_of_one_to_many_record_links_with_alias() -> Su
 
     let space_ship3 = SpaceShip {
         id: spaceship_id_3,
-        name: "Oyelowo".to_string(),
+        name: "Charlie".to_string(),
         created: Utc::now(),
     };
 
@@ -568,7 +568,7 @@ async fn test_create_fetch_values_of_one_to_many_record_links_with_alias() -> Su
     let polygon = polygon![(x: 40.02, y: 116.34), (x: 40.02, y: 116.35), (x: 40.03, y: 116.35), (x: 40.03, y: 116.34), (x: 40.02, y: 116.34)];
     let unsaved_alien = Alien {
         id: Alien::create_simple_id(),
-        name: "Oyelowo".to_string(),
+        name: "Charlie".to_string(),
         age: 20,
         created: Utc::now(),
         line_string: territory,
@@ -698,7 +698,7 @@ async fn test_create_fetch_values_of_one_to_many_record_links_with_alias() -> Su
     );
     assert_eq!(
         selected_aliens_spaceships_values[2].unwrap().name,
-        "Oyelowo"
+        "Charlie"
     );
     Ok(())
 }
@@ -726,7 +726,7 @@ async fn test_alien_build_output() -> SurrealOrmResult<()> {
 
     let space_ship3 = SpaceShip {
         id: spaceship_id_3,
-        name: "Oyelowo".to_string(),
+        name: "Charlie".to_string(),
         created: Utc::now(),
     };
 
@@ -751,7 +751,7 @@ async fn test_alien_build_output() -> SurrealOrmResult<()> {
     let polygon = polygon![(x: 40.02, y: 116.34), (x: 40.02, y: 116.35), (x: 40.03, y: 116.35), (x: 40.03, y: 116.34), (x: 40.02, y: 116.34)];
     let unsaved_alien = Alien {
         id: Alien::create_simple_id(),
-        name: "Oyelowo".to_string(),
+        name: "Charlie".to_string(),
         age: 20,
         created: DateTime::parse_from_rfc3339("2020-01-01T00:00:00Z")
             .unwrap()
@@ -805,7 +805,7 @@ async fn test_access_array_record_links_with_some_null_links() -> SurrealOrmResu
 
     let space_ship3 = SpaceShip {
         id: spaceship_id_3,
-        name: "Oyelowo".to_string(),
+        name: "Charlie".to_string(),
         created: Utc::now(),
     };
 
@@ -843,7 +843,7 @@ async fn test_access_array_record_links_with_some_null_links() -> SurrealOrmResu
     let polygon = polygon![(x: 40.02, y: 116.34), (x: 40.02, y: 116.35), (x: 40.03, y: 116.35), (x: 40.03, y: 116.34), (x: 40.02, y: 116.34)];
     let unsaved_alien = Alien {
         id: Alien::create_simple_id(),
-        name: "Oyelowo".to_string(),
+        name: "Charlie".to_string(),
         age: 20,
         created: Utc::now(),
         line_string: territory,
@@ -946,7 +946,7 @@ async fn test_return_non_null_links() -> SurrealOrmResult<()> {
 
     let space_ship3 = SpaceShip {
         id: spaceship_id_3,
-        name: "Oyelowo".to_string(),
+        name: "Charlie".to_string(),
         created: Utc::now(),
     };
 
@@ -970,7 +970,7 @@ async fn test_return_non_null_links() -> SurrealOrmResult<()> {
     let polygon = polygon![(x: 40.02, y: 116.34), (x: 40.02, y: 116.35), (x: 40.03, y: 116.35), (x: 40.03, y: 116.34), (x: 40.02, y: 116.34)];
     let unsaved_alien = Alien {
         id: Alien::create_simple_id(),
-        name: "Oyelowo".to_string(),
+        name: "Charlie".to_string(),
         age: 20,
         created: Utc::now(),
         line_string: territory,
