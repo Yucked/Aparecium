@@ -1,4 +1,3 @@
-
 use darling::FromDeriveInput;
 use proc_macro::TokenStream;
 use quote::quote;
@@ -82,7 +81,7 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
 ///
 /// let query = query_raw!("SELECT name, age, * FROM users");
 /// let query = query_raw!("SELECT name, age, * FROM users WHERE name = $1 AND name = 'Charlie'");
-/// let query = query_raw!("SELECT ->purchased->product<-purchased<-person->purchased->product FROM person:tobie PARALLEL");
+/// let query = query_raw!("SELECT ->purchased->product<-purchased<-person->purchased->product FROM person:alice");
 /// ```
 #[proc_macro]
 pub fn query_raw(raw_input: TokenStream) -> TokenStream {

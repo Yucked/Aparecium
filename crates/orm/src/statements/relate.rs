@@ -5,13 +5,12 @@
 // 	]
 // 	[ RETURN [ NONE | BEFORE | AFTER | DIFF | @projections ... ]
 // 	[ TIMEOUT @duration ]
-// 	[ PARALLEL ]
 // ;
 use std::marker::PhantomData;
 
 use crate::{
-    DurationLike, Edge, Field, Renderer, ReturnType, ReturnableDefault, ReturnableStandard,
-    Setter, ValueLike,
+    DurationLike, Edge, Field, Renderer, ReturnType, ReturnableDefault, ReturnableStandard, Setter,
+    ValueLike,
 };
 
 use super::{Statement, impl_statement};
@@ -49,7 +48,6 @@ pub fn relate<T: Edge>(connection: impl Into<Field>) -> RelateStatement<T> {
         data: Data::None,
         return_type: None,
         timeout: None,
-        parallel: false,
         model: PhantomData,
     }
 }
@@ -77,7 +75,6 @@ pub struct RelateStatement<T: Edge> {
     data: Data,
     return_type: Option<ReturnType>,
     timeout: Option<DurationLike>,
-    parallel: bool,
     model: PhantomData<fn() -> T>,
 }
 
@@ -138,12 +135,6 @@ impl<T: Edge> RelateStatement<T> {
         self.timeout = Some(duration.into());
         self
     }
-
-    /// Indicates that the query should be executed in parallel.
-    pub fn parallel(mut self) -> Self {
-        self.parallel = true;
-        self
-    }
 }
 
 impl<T: Edge> Statement for RelateStatement<T> {
@@ -170,10 +161,6 @@ impl<T: Edge> Statement for RelateStatement<T> {
 
         if let Some(timeout) = &self.timeout {
             out.push_str(" TIMEOUT ").push_inlined(timeout);
-        }
-
-        if self.parallel {
-            out.push_str(" PARALLEL");
         }
     }
 }

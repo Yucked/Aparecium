@@ -73,11 +73,6 @@ impl<T: Node> CreateStatementV2<T> {
     pub fn timeout(self, duration: impl Into<DurationLike>) -> Self {
         Self(self.0.timeout(duration))
     }
-
-    /// Indicates that the query should be executed in parallel.
-    pub fn parallel(self) -> Self {
-        Self(self.0.parallel())
-    }
 }
 
 impl<T: Node> Statement for CreateStatementV2<T> {

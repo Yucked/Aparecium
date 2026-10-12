@@ -3,7 +3,6 @@
 //     [ WHERE @condition ]
 //     [ RETURN [ NONE | BEFORE | AFTER | DIFF | @projections ... ]
 //     [ TIMEOUT @duration ]
-//     [ PARALLEL ]
 // ;
 use std::marker::PhantomData;
 
@@ -34,7 +33,6 @@ pub fn delete<T: Model>(targettables: impl Into<TargettablesForUpdate>) -> Delet
         where_: None,
         return_type: None,
         timeout: None,
-        parallel: false,
         model: PhantomData,
     }
 }
@@ -54,7 +52,6 @@ pub struct DeleteStatement<T: Model> {
     where_: Option<Filter>,
     return_type: Option<ReturnType>,
     timeout: Option<DurationLike>,
-    parallel: bool,
     model: PhantomData<fn() -> T>,
 }
 
@@ -87,12 +84,6 @@ impl<T: Model> DeleteStatement<T> {
         self.timeout = Some(duration.into());
         self
     }
-
-    /// Indicates that the query should be executed in parallel.
-    pub fn parallel(mut self) -> Self {
-        self.parallel = true;
-        self
-    }
 }
 
 impl<T: Model> Statement for DeleteStatement<T> {
@@ -113,10 +104,6 @@ impl<T: Model> Statement for DeleteStatement<T> {
 
         if let Some(timeout) = &self.timeout {
             out.push_str(" TIMEOUT ").push_inlined(timeout);
-        }
-
-        if self.parallel {
-            out.push_str(" PARALLEL");
         }
     }
 }

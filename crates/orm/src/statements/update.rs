@@ -8,7 +8,6 @@
 // 	[ WHERE @condition ]
 // 	[ RETURN [ NONE | BEFORE | AFTER | DIFF | @projections ... ]
 // 	[ TIMEOUT @duration ]
-// 	[ PARALLEL ]
 // ;
 use std::marker::PhantomData;
 
@@ -48,7 +47,6 @@ pub fn update<T: Model>(targettables: impl Into<TargettablesForUpdate>) -> Updat
         where_: None,
         return_type: None,
         timeout: None,
-        parallel: false,
         model: PhantomData,
     }
 }
@@ -160,7 +158,6 @@ pub struct UpdateStatementInit<T: Model> {
     where_: Option<Filter>,
     return_type: Option<ReturnType>,
     timeout: Option<DurationLike>,
-    parallel: bool,
     model: PhantomData<fn() -> T>,
 }
 
@@ -286,12 +283,6 @@ impl<T: Model> UpdateStatement<T> {
         self.0.timeout = Some(duration.into());
         self
     }
-
-    /// Indicates that the query should be executed in parallel.
-    pub fn parallel(mut self) -> Self {
-        self.0.parallel = true;
-        self
-    }
 }
 
 impl<T: Model> Statement for UpdateStatement<T> {
@@ -332,10 +323,6 @@ impl<T: Model> Statement for UpdateStatement<T> {
 
         if let Some(timeout) = &statement.timeout {
             out.push_str(" TIMEOUT ").push_inlined(timeout);
-        }
-
-        if statement.parallel {
-            out.push_str(" PARALLEL");
         }
     }
 }

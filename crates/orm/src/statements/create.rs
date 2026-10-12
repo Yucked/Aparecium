@@ -23,7 +23,6 @@ pub fn create<T: Node>() -> CreateStatementInit<T> {
         data: Data::None,
         return_type: None,
         timeout: None,
-        parallel: false,
         model: PhantomData,
     }
 }
@@ -49,7 +48,6 @@ pub struct CreateStatementInit<T: Node> {
     data: Data,
     return_type: Option<ReturnType>,
     timeout: Option<DurationLike>,
-    parallel: bool,
     model: PhantomData<fn() -> T>,
 }
 
@@ -92,12 +90,6 @@ impl<T: Node> CreateStatement<T> {
         self.0.timeout = Some(duration.into());
         self
     }
-
-    /// Indicates that the query should be executed in parallel.
-    pub fn parallel(mut self) -> Self {
-        self.0.parallel = true;
-        self
-    }
 }
 
 impl<T: Node> Statement for CreateStatement<T> {
@@ -125,10 +117,6 @@ impl<T: Node> Statement for CreateStatement<T> {
 
         if let Some(timeout) = &statement.timeout {
             out.push_str(" TIMEOUT ").push_inlined(timeout);
-        }
-
-        if statement.parallel {
-            out.push_str(" PARALLEL");
         }
     }
 }
