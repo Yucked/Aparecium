@@ -1,6 +1,6 @@
 use surrealdb::types::Table;
 
-use crate::{Sql, TableIndex};
+use crate::{Renderer, TableIndex};
 
 use super::{Statement, impl_definition};
 
@@ -11,7 +11,7 @@ use super::{Statement, impl_definition};
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, statements::remove_index};
+/// use umbriel::{*, statements::remove_index};
 /// # let user = Table::new("user");
 /// # let party = TableIndex::new("party");
 ///
@@ -40,10 +40,10 @@ impl RemoveIndexStatement {
 }
 
 impl Statement for RemoveIndexStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("REMOVE INDEX ").push(&self.index);
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("REMOVE INDEX ").push(&self.index);
         if let Some(table) = &self.table {
-            sql.push_str(" ON TABLE ").push(table);
+            out.push_str(" ON TABLE ").push(table);
         }
     }
 }
