@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use crate::{Ident, Render, Sql, StrandLike, statements::Permissions};
+use crate::{Ident, Render, Renderer, StrandLike, statements::Permissions};
 
 use super::{Statement, for_permission::PermissionsClause, impl_definition};
 
@@ -33,8 +33,8 @@ impl<T: Into<Cow<'static, str>>> From<T> for ModelVersion {
 }
 
 impl Render for ModelVersion {
-    fn render(&self, sql: &mut Sql) {
-        sql.push_str(&self.0);
+    fn render(&self, out: &mut Renderer) {
+        out.push_str(&self.0);
     }
 }
 
@@ -42,7 +42,7 @@ impl Render for ModelVersion {
 /// The DEFINE MODEL statement allows you to define a machine learning model in the database.
 ///
 /// ```rust
-/// use aparecium::{*, statements::{define_model, for_permission}};
+/// use umbriel::{*, statements::{define_model, for_permission}};
 /// use CrudType::*;
 ///
 /// # let name = Field::new("name");
@@ -104,18 +104,18 @@ impl DefineModelStatement {
 }
 
 impl Statement for DefineModelStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("DEFINE MODEL ml::").push(&self.model_name);
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("DEFINE MODEL ml::").push(&self.model_name);
 
         if let Some(version) = &self.version {
-            sql.push_str("<").push(version).push_str(">");
+            out.push_str("<").push(version).push_str(">");
         }
 
         if let Some(comment) = &self.comment {
-            sql.push_str("\nCOMMENT ").push(comment);
+            out.push_str("\nCOMMENT ").push(comment);
         }
 
-        sql.push(&self.permissions);
+        out.push(&self.permissions);
     }
 }
 
