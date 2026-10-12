@@ -112,7 +112,7 @@ impl Migration {
         checksum_up: &Checksum,
         checksum_down: Option<&Checksum>,
     ) -> Raw {
-        let migration::Schema {
+        let MigrationSchema {
             id: _id_field,
             name: name_field,
             timestamp: timestamp_field,
@@ -171,7 +171,7 @@ impl Migration {
     }
 
     pub fn define_fields(migration_type: MigrationFlag) -> Vec<Raw> {
-        let migration::Schema {
+        let MigrationSchema {
             id,
             name,
             timestamp,
@@ -199,7 +199,7 @@ impl Migration {
     }
 
     pub async fn get_latest(db: Surreal<Any>) -> Option<Self> {
-        let migration::Schema { timestamp, .. } = Self::schema();
+        let MigrationSchema { timestamp, .. } = Self::schema();
 
         select(All)
             .from(Self::table())
@@ -211,7 +211,7 @@ impl Migration {
     }
 
     pub async fn get_by_filename(db: Surreal<Any>, filename: &MigrationFilename) -> Option<Self> {
-        let migration::Schema { name, .. } = Self::schema();
+        let MigrationSchema { name, .. } = Self::schema();
 
         select(All)
             .from(Self::table())
@@ -222,7 +222,7 @@ impl Migration {
     }
 
     pub async fn get_all_desc(db: Surreal<Any>) -> Vec<Self> {
-        let migration::Schema { timestamp, .. } = Self::schema();
+        let MigrationSchema { timestamp, .. } = Self::schema();
 
         select(All)
             .from(Self::table())
@@ -232,9 +232,3 @@ impl Migration {
             .expect("Failed to get migrations")
     }
 }
-
-pub mod migration {
-    pub type Schema = super::MigrationSchema;
-}
-
-impl Migration {}

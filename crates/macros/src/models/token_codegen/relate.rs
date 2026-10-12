@@ -1,4 +1,3 @@
-
 use std::{
     collections::{HashMap, hash_map::Entry},
     fmt::Display,
@@ -42,11 +41,9 @@ impl Codegen<'_> {
     fn relate(&mut self, relate: &Relate) -> ExtractorResult<()> {
         let crate_name = get_crate_name(false);
         let table_derive_attributes = &self.table_derive_attributes();
-        let field_receiver = self.field_receiver();
         let VariablesModelMacro {
             __________connect, ..
         } = VariablesModelMacro::new();
-        let field_type = &field_receiver.ty();
         let edge_type = &relate.edge_type;
         let RelateAttribute {
             edge_direction,
@@ -55,65 +52,32 @@ impl Codegen<'_> {
         } = &RelateAttribute::try_from(relate)?;
         let arrow = &ArrowTokenStream::from(edge_direction);
         let destination_node_table_str = &foreign_node_table.to_string();
-        let binding = field_type.get_generics_from_current_struct(table_derive_attributes)?;
-        let (_edge_impl_generics, edge_ty_generics, _edge_where_clause) = binding.split_for_impl();
 
         let edge_name_with_direction_as_method_ident =
             &(|| Self::add_direction_indication_to_ident(edge_table, edge_direction));
 
-        let foreign_node_schema_ident = ForeignNodeSchemaIdent::from_node_table(foreign_node_table);
-        let foreign_node_schema_type_alias_with_generics =
-            ForeignNodeTypeAliasWithGenerics(quote!(#foreign_node_schema_ident #edge_ty_generics));
-
-        let foreign_node_schema_type_alias_with_generics_turbofishized =
-            if edge_ty_generics.is_empty() {
-                quote!(#foreign_node_schema_ident)
-            } else {
-                // NOTE: This may  not really be needed as the return type
-                // should help to auto-infer the type or generics as we call the
-                // connect method on the struct.
-                quote!(#foreign_node_schema_ident :: #edge_ty_generics)
-            };
-        let foreign_node_schema_type_alias_with_generics_turbofishized =
-            ForeignNodeTypeAliasWithGenerics(
-                foreign_node_schema_type_alias_with_generics_turbofishized,
-            );
-
-        // Meant to represent the variable of struct model(node) itself.
-        // Within edge generics, there is usually In and Out associated types, this is used to
-        // access those
+        // The edge's `In` or `Out` node, whichever is at the far end of this relation.
         let foreign_node_in_or_out = ForeignNodeAssociatedTypeInOrOut(match edge_direction {
             EdgeDirection::Out => format_ident!("Out"),
             EdgeDirection::In => format_ident!("In"),
         });
-        // We use super twice because we're trying to access the relation model struct name from
-        // the outer outer module because all edge related functionalities are nested
-        let foreign_node_schema_one = || {
-            ForeignNodeSchema(quote!(
-                type #foreign_node_schema_type_alias_with_generics =
-                            <<super::super::#edge_type as #crate_name::Edge>::#foreign_node_in_or_out
-                        as #crate_name::SchemaGetter>::Schema;
-            ))
-        };
+        // Named through the edge where the model is declared: no alias or module is needed.
+        let foreign_node_schema = quote!(
+            <<#edge_type as #crate_name::Edge>::#foreign_node_in_or_out as #crate_name::SchemaGetter>::Schema
+        );
 
         // i.e Edge to foreign Node
-        let edge_to_foreign_node_connection_method = || {
-            EdgeToForeignNodeMethod(quote!(
-                pub fn #foreign_node_table(self, clause: impl ::std::convert::Into<#crate_name::NodeClause>) -> #foreign_node_schema_type_alias_with_generics {
-                    let clause: #crate_name::NodeClause = clause.into();
-                    let clause = clause.with_arrow(#arrow).with_table(#destination_node_table_str);
+        let edge_to_foreign_node_connection_method = EdgeToForeignNodeMethod(quote!(
+            pub fn #foreign_node_table(self, clause: impl ::std::convert::Into<#crate_name::NodeClause>) -> #foreign_node_schema {
+                let clause: #crate_name::NodeClause = clause.into();
+                let clause = clause.with_arrow(#arrow).with_table(#destination_node_table_str);
 
-                    #foreign_node_schema_type_alias_with_generics_turbofishized::#__________connect(
-                        &self.0,
-                        clause.into_inner(),
-                    )
-                }
-            ))
-        };
-
-        // let imports =|| quote!(use super::StudentWritesBook;);
-        let edge_type_name = edge_type.type_name()?;
-        let import = || EdgeImport(quote!(use super::#edge_type_name;));
+                <#foreign_node_schema>::#__________connect(
+                    &self.0,
+                    clause.into_inner(),
+                )
+            }
+        ));
 
         let node_edge_meta = NodeEdgeMetadata {
             edge_table: edge_table.to_owned(),
@@ -121,15 +85,13 @@ impl Codegen<'_> {
             // because we want to allow the use of generics in edge.
             edge_types: vec![edge_type.to_owned()],
             direction: *edge_direction,
-            foreign_node_schema: vec![foreign_node_schema_one()],
-            edge_to_foreign_node_connection_method: vec![edge_to_foreign_node_connection_method()],
+            edge_to_foreign_node_connection_method: vec![edge_to_foreign_node_connection_method],
             table_derive_attributes,
             edge_name_as_method_ident: format_ident!(
                 "{}",
                 edge_name_with_direction_as_method_ident().to_string()
             )
             .into(),
-            imports: vec![import()],
             edge_relation_model_selected_ident: edge_type.type_name()?.into(),
         };
 
@@ -139,17 +101,13 @@ impl Codegen<'_> {
             .entry(edge_name_with_direction_as_method_ident())
         {
             Entry::Occupied(o) => {
-                let node_edge_meta = o.into_mut();
+                let existing = o.into_mut();
                 // Get all the Edge types(with direction) aliased types, so
                 // we can find a common denomator types between them all.
-                node_edge_meta.edge_types.push(edge_type.to_owned());
-                node_edge_meta
-                    .foreign_node_schema
-                    .push(foreign_node_schema_one());
-                node_edge_meta
+                existing.edge_types.extend(node_edge_meta.edge_types);
+                existing
                     .edge_to_foreign_node_connection_method
-                    .push(edge_to_foreign_node_connection_method());
-                node_edge_meta.imports.push(import());
+                    .extend(node_edge_meta.edge_to_foreign_node_connection_method);
             }
             Entry::Vacant(v) => {
                 v.insert(node_edge_meta);
@@ -285,25 +243,10 @@ impl ToTokens for EdgeTableNameStr {
 create_ident_wrapper!(EdgeNameAsMethodIdent);
 create_ident_wrapper!(EdgeRelationModelSelectedIdent);
 
-create_tokenstream_wrapper!(=>ForeignNodeSchema);
-create_tokenstream_wrapper!(=>EdgeImport);
-create_tokenstream_wrapper!(=>ForeignNodeTypeAliasWithGenerics);
 create_tokenstream_wrapper!(=>EdgeToForeignNodeMethod);
 create_tokenstream_wrapper!(=>DestinationNodeSchemaOne);
 create_ident_wrapper!(ForeignNodeAssociatedTypeInOrOut);
 create_ident_wrapper!(EdgeNameAsStructOriginalIdent);
-create_ident_wrapper!(EdgeNameAsStructWithDirectionIdent);
-create_ident_wrapper!(EdgeInnerModuleName);
-create_ident_wrapper!(ForeignNodeSchemaIdent);
-
-impl ForeignNodeSchemaIdent {
-    /// represents the schema but aliased as the pascal case of the destination table name
-    pub fn from_node_table(node_table: &NodeTableName) -> Self {
-        let node_table = node_table.to_string();
-        let node_table = format_ident!("{}", node_table.to_upper_camel_case());
-        Self(node_table)
-    }
-}
 
 #[derive(Clone, Debug)]
 pub struct NodeEdgeMetadata<'a> {
@@ -328,29 +271,6 @@ pub struct NodeEdgeMetadata<'a> {
     /// So we can do
     /// type Writes = <StudentWritesBook as Edge>::Schema;
     edge_relation_model_selected_ident: EdgeRelationModelSelectedIdent,
-    /// Example Generated:
-    /// ```rust, ignore
-    ///   type BookModel = <StudentWritesBook as surreal_macros::Edge>::Out;
-    ///   type Book = <BookModel as surreal_macros::Node>::Schema;
-    ///
-    ///   type BlogModel = <StudentWritesBlog as surreal_macros::Edge>::Out;
-    ///   type Blog = <BlogModel as surreal_macros::Node>::Schema;
-    /// ```
-    ///
-    /// Example Value:
-    /// ```rust, ignore
-    /// vec![
-    ///    quote!(
-    ///       type BookModel = <StudentWritesBook as surreal_macros::Edge>::Out;
-    ///       type Book = <BookModel as surreal_macros::Node>::Schema;
-    ///     ),
-    ///     quote!(
-    ///       type BlogModel = <StudentWritesBlog as surreal_macros::Edge>::Out;
-    ///       type Blog = <BlogModel as surreal_macros::Node>::Schema;
-    ///     ),
-    /// ],
-    /// ```
-    foreign_node_schema: Vec<ForeignNodeSchema>,
     /// Example Generated:
     ///
     /// ```rust, ignore
@@ -393,8 +313,6 @@ pub struct NodeEdgeMetadata<'a> {
     ///    ]
     /// ```
     edge_to_foreign_node_connection_method: Vec<EdgeToForeignNodeMethod>,
-    // static_assertions: Vec<StaticAssertionToken>,
-    imports: Vec<EdgeImport>,
     edge_name_as_method_ident: EdgeNameAsMethodIdent,
 }
 
@@ -444,12 +362,9 @@ impl ToTokens for NodeEdgeMetadata<'_> {
         } = VariablesModelMacro::new();
         let value = self;
         let Self {
-            // current_struct_ident,
             direction,
             edge_relation_model_selected_ident,
-            foreign_node_schema,
             edge_to_foreign_node_connection_method,
-            imports,
             edge_name_as_method_ident,
             edge_table,
             edge_types,
@@ -457,6 +372,7 @@ impl ToTokens for NodeEdgeMetadata<'_> {
             ..
         }: &NodeEdgeMetadata = value;
         let current_struct_ident = value.table_derive_attributes.ident();
+        let current_schema = current_struct_ident.schema_ident();
         let (struct_impl_generics, struct_ty_generics, struct_where_clause) =
             value.table_derive_attributes.generics().split_for_impl();
         let arrow = ArrowTokenStream::from(direction);
@@ -477,106 +393,85 @@ impl ToTokens for NodeEdgeMetadata<'_> {
         let (edge_type_impl_generics, edge_type_ty_generics, edge_type_where_clause) =
             binding.split_for_impl();
 
-        let edge_name_as_struct_with_direction_ident =
-            EdgeNameAsStructWithDirectionIdent(format_ident!(
-                "{}",
-                Codegen::add_direction_indication_to_ident_capitalize(
-                    // edge_name_as_struct_original_ident.deref(),
-                    edge_table, direction,
-                )
-                .to_string()
-            ));
-        // TODO: Remove if no good purpose served
-        // let edge_type_with_direction = CustomType::from(syn::parse2::<Type>(
-        //     quote!(#edge_name_as_struct_with_direction_ident #edge_type_ty_generics),
-        // ));
-        // .expect("Failed to parse edge type");
-        let edge_inner_module_name = EdgeInnerModuleName(format_ident!(
-            "{}_schema________________",
-            edge_name_as_struct_with_direction_ident
-                .to_string()
-                .to_lowercase()
-        ));
+        // Hidden items next to the model, named after it and the edge with its direction (e.g.
+        // `__StudentWrites__Edge` for `->writes`), so several models' edges never collide.
+        let direction_name =
+            Codegen::add_direction_indication_to_ident_capitalize(edge_table, direction)
+                .to_string();
+        let edge_wrapper = current_struct_ident.hidden_ident(format_args!("{direction_name}Edge"));
+        let edge_schema =
+            current_struct_ident.hidden_ident(format_args!("{direction_name}EdgeSchema"));
 
         tokens.extend(quote!(
-            #( #imports) *
-
-            // Edge to Node
-            impl #struct_impl_generics #current_struct_ident #struct_ty_generics #struct_where_clause {
+            // Node to Edge
+            impl #struct_impl_generics #current_schema #struct_ty_generics #struct_where_clause {
                 pub fn #edge_name_as_method_ident(
                     &self,
                     clause: impl ::std::convert::Into<#crate_name::EdgeClause>,
-                ) -> #edge_inner_module_name::#edge_name_as_struct_with_direction_ident {
+                ) -> #edge_wrapper {
                     let clause: #crate_name::EdgeClause = clause.into();
                     let clause = clause.with_arrow(#arrow).with_table(#edge_table_str);
 
-                    // i.e Node to Edge
-                    #edge_inner_module_name::#edge_name_as_struct_original_ident::#__________connect(
+                    #edge_schema::#__________connect(
                         self,
                         clause.into_inner(),
                     ).into()
                 }
             }
 
-            mod #edge_inner_module_name {
-                #( #imports) *
+            // The edge's schema, through the edge model selected for this direction.
+            #[doc(hidden)]
+            #[allow(non_camel_case_types)]
+            pub type #edge_schema #edge_type_ty_generics = <#edge_relation_model_selected_ident #edge_type_ty_generics as #crate_name::SchemaGetter>::Schema;
 
-                #( #foreign_node_schema) *
+            #[doc(hidden)]
+            #[allow(non_camel_case_types)]
+            pub struct #edge_wrapper #edge_type_ty_generics(#edge_schema #edge_type_ty_generics);
 
-         // Add generics here and use in the ___connect edge method above
-                pub type #edge_name_as_struct_original_ident #edge_type_ty_generics = <super::super::#edge_relation_model_selected_ident #edge_type_ty_generics as #crate_name::SchemaGetter>::Schema;
-
-                pub struct #edge_name_as_struct_with_direction_ident #edge_type_ty_generics(#edge_name_as_struct_original_ident #edge_type_ty_generics);
-
-
-                impl #edge_type_impl_generics ::std::convert::From<#edge_name_as_struct_original_ident #edge_type_ty_generics> for #edge_name_as_struct_with_direction_ident #edge_type_ty_generics #edge_type_where_clause {
-                    fn from(value: #edge_name_as_struct_original_ident #edge_type_ty_generics) -> Self {
-                        Self(value)
-                    }
-                }
-
-                impl #edge_type_impl_generics #crate_name::Render for #edge_name_as_struct_with_direction_ident #edge_type_ty_generics #edge_type_where_clause {
-                    fn render(&self, out: &mut #crate_name::Renderer) {
-                        #crate_name::Render::render(&self.0, out);
-                    }
-                }
-
-                impl #edge_type_impl_generics ::std::convert::From<&#edge_name_as_struct_with_direction_ident #edge_type_ty_generics> for #crate_name::Field #edge_type_where_clause {
-                    fn from(edge: &#edge_name_as_struct_with_direction_ident #edge_type_ty_generics) -> Self {
-                        #crate_name::Field::from(&edge.0)
-                    }
-                }
-
-                impl #edge_type_impl_generics ::std::ops::Deref for #edge_name_as_struct_with_direction_ident #edge_type_ty_generics #edge_type_where_clause {
-                    type Target = #edge_name_as_struct_original_ident #edge_type_ty_generics;
-
-                    fn deref(&self) -> &Self::Target {
-                        &self.0
-                    }
-                }
-
-                impl #edge_type_impl_generics #edge_name_as_struct_with_direction_ident #edge_type_ty_generics #edge_type_where_clause {
-                    #( #edge_to_foreign_node_connection_method) *
-
-                     // This is for recurive edge traversal which is supported by surrealdb: e.g ->knows(..)->knows(..)->knows(..)
-                    // -- Select all 1st, 2nd, and 3rd level people who this specific person record knows, or likes, as separate outputs
-                    // SELECT ->knows->(? AS f1)->knows->(? AS f2)->(knows, likes AS e3 WHERE influencer = true)->(? AS f3) FROM person:tobie;
-                    pub fn #edge_name_as_method_ident(
-                        &self,
-                        clause: impl ::std::convert::Into<#crate_name::EdgeClause>,
-                    ) -> #edge_name_as_struct_with_direction_ident #edge_type_ty_generics {
-                        let clause: #crate_name::EdgeClause = clause.into();
-                        let clause = clause.with_arrow(#arrow).with_table(#edge_table_str);
-
-                        // i.e Edge to Edge
-                        #edge_name_as_struct_original_ident::#__________connect(
-                            &self.0,
-                            clause.into_inner(),
-                        ).into()
-                    }
+            impl #edge_type_impl_generics ::std::convert::From<#edge_schema #edge_type_ty_generics> for #edge_wrapper #edge_type_ty_generics #edge_type_where_clause {
+                fn from(value: #edge_schema #edge_type_ty_generics) -> Self {
+                    Self(value)
                 }
             }
 
+            impl #edge_type_impl_generics #crate_name::Render for #edge_wrapper #edge_type_ty_generics #edge_type_where_clause {
+                fn render(&self, out: &mut #crate_name::Renderer) {
+                    #crate_name::Render::render(&self.0, out);
+                }
+            }
+
+            impl #edge_type_impl_generics ::std::convert::From<&#edge_wrapper #edge_type_ty_generics> for #crate_name::Field #edge_type_where_clause {
+                fn from(edge: &#edge_wrapper #edge_type_ty_generics) -> Self {
+                    #crate_name::Field::from(&edge.0)
+                }
+            }
+
+            impl #edge_type_impl_generics ::std::ops::Deref for #edge_wrapper #edge_type_ty_generics #edge_type_where_clause {
+                type Target = #edge_schema #edge_type_ty_generics;
+
+                fn deref(&self) -> &Self::Target {
+                    &self.0
+                }
+            }
+
+            impl #edge_type_impl_generics #edge_wrapper #edge_type_ty_generics #edge_type_where_clause {
+                #( #edge_to_foreign_node_connection_method) *
+
+                // Recursive edge traversal, e.g. `->knows->(? AS f1)->knows->(? AS f2)`.
+                pub fn #edge_name_as_method_ident(
+                    &self,
+                    clause: impl ::std::convert::Into<#crate_name::EdgeClause>,
+                ) -> #edge_wrapper #edge_type_ty_generics {
+                    let clause: #crate_name::EdgeClause = clause.into();
+                    let clause = clause.with_arrow(#arrow).with_table(#edge_table_str);
+
+                    // i.e Edge to Edge
+                    #edge_schema::#__________connect(
+                        &self.0,
+                        clause.into_inner(),
+                    ).into()
+                }
+            }
         ))
     }
 }

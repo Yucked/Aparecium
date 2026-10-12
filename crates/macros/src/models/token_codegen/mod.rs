@@ -1,4 +1,3 @@
-
 mod aliases;
 mod define_statement;
 mod field_connection_build;
@@ -12,32 +11,32 @@ mod relate;
 mod serialized_field_fmts;
 mod simple;
 
-use heck::ToSnakeCase;
+use heck::ToShoutySnakeCase;
 use quote::format_ident;
-use std::collections::HashSet;
 
 use crate::models::*;
 
 use self::{
-    field_value_setter::FieldSetterImplTokens,
-    link_methods::{ForeignNodeSchemaImport, LinkFieldTraversalMethodToken},
+    field_value_setter::FieldSetterImplTokens, link_methods::LinkFieldTraversalMethodToken,
     relate::NodeEdgeMetadataLookupTable,
 };
 
-create_ident_wrapper!(ModuleNameInternalIdent);
-create_ident_wrapper!(ModuleNameRexportedIdent);
 create_ident_wrapper!(AliasesStructNameIdent);
 create_ident_wrapper!(TestFunctionNameIdent);
-create_ident_wrapper!(SchemaDefIdent);
 create_ident_wrapper!(StructWithRenamedSerializedFields);
 
+/// The names of the items generated next to a model. None of them is inside a module, so a model
+/// declared in a function can name them.
 pub(crate) struct CommonIdents {
-    pub module_name_internal: ModuleNameInternalIdent,
-    pub module_name_rexported: ModuleNameRexportedIdent,
+    /// `<Model>Schema`
+    pub schema: syn::Ident,
+    /// The model's stored names, a constant that never names the model's generic parameters.
+    pub stored_fields: syn::Ident,
+    /// The struct `assert_fields!` checks relations against: one field named after the table.
+    pub table_name_checker: syn::Ident,
     pub aliases_struct_name: AliasesStructNameIdent,
     pub test_function_name: TestFunctionNameIdent,
     pub struct_with_renamed_serialized_fields: StructWithRenamedSerializedFields,
-    pub _____schema_def: SchemaDefIdent,
 }
 
 #[derive(Default, Clone)]
@@ -60,21 +59,14 @@ pub struct Codegen<'a> {
     /// Generated example: pub timeWritten: Field,
     /// key(normalized_field_name)-value(Field) e.g pub out: Field, of field name and Field type
     /// to build up struct for generating fields of a Schema of the Edge
-    /// The full thing can look like:
+    /// The full thing can look like, next to the model (no module):
     /// ```rust,ignore
-    /// mod _______field_module {
-    ///     pub struct Id(pub(super) Field);
-    ///     pub struct In(pub(super) Field);
-    ///     pub struct Out(pub(super) Field);
-    ///     pub struct TimeWritten(pub(super) Field);
-    /// }
+    /// pub struct __WritesIdField(pub Field);
+    /// pub struct __WritesTimeWrittenField(pub Field);
     ///
-    /// #[derive(Debug, Default)]
-    /// pub struct Writes<Model: ::serde::Serialize + Default> {
-    ///     pub id: #_____field_module::Id,
-    ///     pub r#in: #_____field_module::In,
-    ///     pub out: #_____field_module::Out,
-    ///     pub timeWritten: #_____field_module::TimeWritten,
+    /// pub struct WritesSchema<In, Out> {
+    ///     pub id: __WritesIdField,
+    ///     pub timeWritten: __WritesTimeWrittenField,
     /// }
     /// ```
     pub schema_struct_fields_types_kv: Vec<SchemaStructFieldsTypesKv>,
@@ -135,15 +127,6 @@ pub struct Codegen<'a> {
     /// Perform all necessary static checks
     pub static_assertions: Vec<StaticAssertionToken>,
 
-    /// Generated example:
-    /// ```rust,ignore
-    /// type Book = <super::Book as Node>::Schema;
-    /// ```
-    /// We need imports to be unique, hence the hashset
-    /// Used when you use a Node in field e.g: favourite_book: LinkOne<Book>,
-    /// e.g: type Book = <super::Book as Node>::Schema;
-    pub imports_referenced_node_schema: HashSet<ForeignNodeSchemaImport>,
-
     /// When a field references another model as Link, we want to generate a method for that
     /// to be able to access the foreign fields
     /// Generated Example for e.g field with best_student: <Student>
@@ -195,24 +178,22 @@ impl<'a> Codegen<'a> {
     }
 
     pub(crate) fn common_idents(&self) -> CommonIdents {
-        let struct_name_ident = self.table_derive_attributes().ident().to_string();
-        let struct_name_ident_snake = struct_name_ident.to_snake_case();
-        let module_name_internal =
-            format_ident!("________internal_{struct_name_ident_snake}_schema");
+        let model = self.table_derive_attributes().ident();
+        let struct_name_ident = model.to_string();
 
         CommonIdents {
-            test_function_name: format_ident!(
-                "_________test_{module_name_internal}_static_funcs_name__________"
-            )
-            .into(),
-            module_name_internal: module_name_internal.into(),
-            module_name_rexported: format_ident!("{struct_name_ident_snake}").into(),
+            schema: model.schema_ident(),
+            stored_fields: format_ident!(
+                "__{}_STORED_FIELDS",
+                struct_name_ident.to_shouty_snake_case()
+            ),
+            table_name_checker: model.hidden_ident("TableNameChecker"),
+            test_function_name: model.hidden_ident("StaticAssertions").into(),
             aliases_struct_name: format_ident!("{struct_name_ident}Aliases").into(),
             struct_with_renamed_serialized_fields: format_ident!(
                 "{struct_name_ident}RenamedCreator"
             )
             .into(),
-            _____schema_def: format_ident!("_____schema_def").into(),
         }
     }
 

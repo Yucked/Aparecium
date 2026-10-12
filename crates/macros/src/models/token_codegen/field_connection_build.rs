@@ -9,9 +9,7 @@ impl Codegen<'_> {
         let table_derive_attrs = self.table_derive_attributes();
         let field_receiver = self.field_receiver();
         let VariablesModelMacro {
-            _____field_names,
-            ___________path,
-            ..
+            ___________path, ..
         } = VariablesModelMacro::new();
 
         if field_receiver
@@ -26,11 +24,10 @@ impl Codegen<'_> {
         let casing = table_derive_attrs.casing()?;
         let field_ident_normalized = field_receiver.field_ident_normalized(&casing)?;
         let field_name_serialized = field_receiver.db_field_name(&casing)?;
-        let field_name_pascalized = field_receiver.field_name_pascalized(&casing)?;
+        let field_name_pascalized = field_receiver.field_name_pascalized(table_derive_attrs)?;
 
-        self.schema_struct_fields_types_kv.push(
-            quote!(pub #field_ident_normalized: #_____field_names::#field_name_pascalized, ).into(),
-        );
+        self.schema_struct_fields_types_kv
+            .push(quote!(pub #field_ident_normalized: #field_name_pascalized, ).into());
 
         // The field's path is the model's path followed by its stored name.
         self.schema_struct_fields_names_kv.push(

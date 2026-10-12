@@ -1,7 +1,5 @@
-
 use crate::models::*;
 use heck::ToUpperCamelCase;
-use quote::format_ident;
 
 use super::{FieldIdentNormalized, FieldNamePascalized, MyFieldReceiver};
 
@@ -26,21 +24,22 @@ impl MyFieldReceiver {
         Ok(self.ident_meta(struct_casing)?.1)
     }
 
+    /// The type of this field in the model's schema, `__<Model><Field>Field`. It is generated
+    /// next to the model, so the model's name keeps it apart from other models' fields.
     pub fn field_name_pascalized(
         &self,
-        struct_casing: &StructLevelCasing,
+        model_attributes: &ModelAttributes,
     ) -> ExtractorResult<FieldNamePascalized> {
-        let field_name_normalized = self.field_ident_normalized(struct_casing)?;
+        let field_name_normalized = self.field_ident_normalized(&model_attributes.casing()?)?;
+        let field_name = field_name_normalized
+            .to_string()
+            .trim_start_matches("r#")
+            .to_upper_camel_case();
 
-        let field_name_pascalized = format_ident!(
-            "__{}__",
-            field_name_normalized
-                .to_string()
-                .trim_start_matches("r#")
-                .to_upper_camel_case()
-        );
-
-        Ok(field_name_pascalized.into())
+        Ok(model_attributes
+            .ident()
+            .hidden_ident(format_args!("{field_name}Field"))
+            .into())
     }
 
     fn ident_meta(

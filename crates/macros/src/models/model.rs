@@ -69,16 +69,27 @@ fn expand_model_attribute(args: TokenStream, item: TokenStream) -> syn::Result<T
     let table = table.map(|table| quote!(, table = #table));
 
     // `SurrealValue` names its runtime through the consumer's own path to Umbriel, so a
-    // renamed dependency works without a direct `surrealdb` dependency.
-    let surreal_value = (!manual_value).then(|| {
+    // renamed dependency works without a direct `surrealdb` dependency. The derive writes
+    // `impl SurrealValue for …` unqualified, so the trait is brought into scope through a glob:
+    // an explicit import of it shadows the glob, and repeated globs name the same trait.
+    let (surreal_value_scope, surreal_value) = if manual_value {
+        (None, None)
+    } else {
         let types_path = quote!(#crate_name::types).to_string();
-        quote!(
-            #[derive(#crate_name::types::SurrealValue)]
-            #[surreal(crate = #types_path)]
+        (
+            Some(quote!(
+                #[allow(unused_imports)]
+                use #crate_name::__private::surreal_value::*;
+            )),
+            Some(quote!(
+                #[derive(#crate_name::types::SurrealValue)]
+                #[surreal(crate = #types_path)]
+            )),
         )
-    });
+    };
 
     Ok(quote!(
+        #surreal_value_scope
         #surreal_value
         #[derive(#crate_name::__private::ModelCodegen)]
         #[orm(#kind #table)]
@@ -107,7 +118,6 @@ impl ModelReceiver {
         let VariablesModelMacro {
             ___________path,
             __________connect,
-            _____field_names,
             _____struct_marker_ident,
             _____table,
         } = VariablesModelMacro::new();
@@ -118,7 +128,6 @@ impl ModelReceiver {
             schema_struct_fields_names_kv,
             field_wrapper_type_custom_implementations,
             static_assertions,
-            imports_referenced_node_schema,
             record_link_fields_methods,
             serialized_fmt_db_field_names_instance: own_stored_fields,
             flattened_objects,
@@ -126,13 +135,12 @@ impl ModelReceiver {
             schema_field_idents,
             ..
         } = &code_gen;
-        let imports_referenced_node_schema = imports_referenced_node_schema.iter();
 
         let CommonIdents {
-            module_name_internal,
-            module_name_rexported,
+            schema,
+            stored_fields,
+            table_name_checker,
             test_function_name,
-            _____schema_def,
             ..
         } = code_gen.common_idents();
 
@@ -146,7 +154,7 @@ impl ModelReceiver {
             DataType::Edge => self.edge_tokens(&code_gen)?,
             DataType::Object => quote!(
                 impl #impl_generics #crate_name::Object for #struct_name_ident #ty_generics #where_clause {
-                    const STORED_FIELDS: #crate_name::StoredFields = #module_name_internal::STORED_FIELDS;
+                    const STORED_FIELDS: #crate_name::StoredFields = #stored_fields;
 
                     fn field_meta_on(#_____table: #crate_name::Table) -> ::std::vec::Vec<#crate_name::FieldMetadata> {
                         ::std::iter::IntoIterator::into_iter([#( #field_metadata ),*])
@@ -160,18 +168,20 @@ impl ModelReceiver {
         // The stored names are string literals and the flattened objects are concrete types, so
         // these constants never name the model's generic parameters and the check is evaluated
         // for every model, used or not.
-        let stored_fields = quote!(
-            pub(super) const STORED_FIELDS: #crate_name::StoredFields = #crate_name::StoredFields::new(
+        let stored_fields_definition = quote!(
+            #[doc(hidden)]
+            const #stored_fields: #crate_name::StoredFields = #crate_name::StoredFields::new(
                 &[#( #own_stored_fields ),*],
                 &[#( &<#flattened_objects as #crate_name::Object>::STORED_FIELDS ),*],
             );
-            const _: () = STORED_FIELDS.assert_valid();
+            const _: () = #stored_fields.assert_valid();
         );
 
         // Lets `assert_fields!` check that relations name a real node or edge table.
-        let table_name_checker = model_attributes.table()?.map(|table| {
+        let table_name_checker_definition = model_attributes.table()?.map(|table| {
             quote!(
-                pub struct TableNameStaticChecker {
+                #[doc(hidden)]
+                pub struct #table_name_checker {
                     pub #table: ::std::string::String,
                 }
             )
@@ -203,16 +213,18 @@ impl ModelReceiver {
             )
         });
 
+        // Everything is generated next to the model, outside any module: a module cannot see
+        // items declared in a function, so a model declared there could not be named from one.
         Ok(quote!(
             impl #impl_generics #crate_name::SchemaGetter for #struct_name_ident #ty_generics #where_clause {
-                type Schema = #module_name_rexported::Schema #ty_generics;
+                type Schema = #schema #ty_generics;
 
                 fn schema() -> Self::Schema {
-                    #module_name_rexported::Schema #explicit_generics ::new()
+                    #schema #explicit_generics ::new()
                 }
 
                 fn schema_prefixed(prefix: impl ::std::convert::Into<#crate_name::Field>) -> Self::Schema {
-                    #module_name_rexported::Schema #explicit_generics ::new_prefixed(prefix)
+                    #schema #explicit_generics ::new_prefixed(prefix)
                 }
             }
 
@@ -220,125 +232,101 @@ impl ModelReceiver {
 
             #record_model
 
+            #stored_fields_definition
+
+            #table_name_checker_definition
+
+            #( #field_wrapper_type_custom_implementations) *
+
+            /// Paths to the model's fields, from the query root or a graph traversal.
             #[allow(non_snake_case)]
-            pub mod #module_name_rexported {
-                pub use super::#module_name_internal::#_____schema_def::__Schema__ as Schema;
+            pub struct #schema #ty_generics #where_clause {
+               #( #schema_struct_fields_types_kv) *
+                #___________path: #crate_name::Field,
+                #_____struct_marker_ident: #struct_marker,
             }
 
-            #[allow(non_snake_case)]
-            mod #module_name_internal {
-                #![allow(clippy::builtin_type_shadow)]
-
-                use super::*;
-
-                #stored_fields
-
-                #table_name_checker
-
-                #( #imports_referenced_node_schema) *
-
-                pub(super) mod #_____field_names {
-                    use super::super::*;
-
-                    #( #field_wrapper_type_custom_implementations) *
+            // Fieldwise and hand-written: derives would require the model's generics, and the
+            // type arguments of flattened objects, to be `Debug`/`Clone`. Every field is a field
+            // wrapper or another schema, which implement both without bounds.
+            impl #impl_generics ::std::fmt::Debug for #schema #ty_generics #where_clause {
+                fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                    f.debug_struct(::std::stringify!(#schema))
+                        #( .field(stringify!(#schema_field_idents), &self.#schema_field_idents) )*
+                        .field("path", &self.#___________path)
+                        .finish()
                 }
-
-                pub mod #_____schema_def {
-                    use super::#_____field_names;
-                    use super::super::*;
-
-                    /// Paths to the model's fields, from the query root or a graph traversal.
-                    #[allow(non_snake_case)]
-                    pub struct __Schema__ #ty_generics #where_clause {
-                       #( #schema_struct_fields_types_kv) *
-                        pub(super) #___________path: #crate_name::Field,
-                        pub(super) #_____struct_marker_ident: #struct_marker,
-                    }
-                }
-                pub type #struct_name_ident #ty_generics = #_____schema_def::__Schema__ #ty_generics;
-
-                // Fieldwise and hand-written: derives would require the model's generics, and the
-                // type arguments of flattened objects, to be `Debug`/`Clone`. Every field is a
-                // field wrapper or another schema, which implement both without bounds.
-                impl #impl_generics ::std::fmt::Debug for #struct_name_ident #ty_generics #where_clause {
-                    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
-                        f.debug_struct("Schema")
-                            #( .field(stringify!(#schema_field_idents), &self.#schema_field_idents) )*
-                            .field("path", &self.#___________path)
-                            .finish()
-                    }
-                }
-
-                // A clone keeps fields the caller reassigned.
-                impl #impl_generics ::std::clone::Clone for #struct_name_ident #ty_generics #where_clause {
-                    fn clone(&self) -> Self {
-                        Self {
-                            #( #schema_field_idents: ::std::clone::Clone::clone(&self.#schema_field_idents), )*
-                            #___________path: ::std::clone::Clone::clone(&self.#___________path),
-                            #_____struct_marker_ident: ::std::marker::PhantomData,
-                        }
-                    }
-                }
-
-                impl #impl_generics #crate_name::Render for #struct_name_ident #ty_generics #where_clause {
-                    fn render(&self, out: &mut #crate_name::Renderer) {
-                        out.push(&self.#___________path);
-                    }
-                }
-
-                impl #impl_generics #crate_name::Aliasable for #struct_name_ident #ty_generics #where_clause {}
-
-                impl #impl_generics ::std::convert::From<&#struct_name_ident #ty_generics> for #crate_name::Field #where_clause {
-                    fn from(schema: &#struct_name_ident #ty_generics) -> Self {
-                        schema.#___________path.clone()
-                    }
-                }
-
-                impl #impl_generics ::std::convert::From<#struct_name_ident #ty_generics> for #crate_name::Field #where_clause {
-                    fn from(schema: #struct_name_ident #ty_generics) -> Self {
-                        schema.#___________path
-                    }
-                }
-
-                impl #impl_generics ::std::convert::From<#struct_name_ident #ty_generics> for #crate_name::ValueLike #where_clause {
-                    fn from(schema: #struct_name_ident #ty_generics) -> Self {
-                        #crate_name::ValueLike::from(schema.#___________path)
-                    }
-                }
-
-                impl #impl_generics #struct_name_ident #ty_generics #where_clause {
-                    pub fn new() -> Self {
-                        Self::___________with_path(#crate_name::Field::default())
-                    }
-
-                    pub fn new_prefixed(prefix: impl ::std::convert::Into<#crate_name::Field>) -> Self {
-                        Self::___________with_path(prefix.into())
-                    }
-
-                    /// The schema at the end of `path` extended by `clause`.
-                    #[doc(hidden)]
-                    pub fn #__________connect(
-                        path: impl ::std::convert::Into<#crate_name::Field>,
-                        clause: #crate_name::Clause,
-                    ) -> Self {
-                        let mut path = path.into();
-                        path.push_clause(clause);
-                        Self::___________with_path(path)
-                    }
-
-                    fn ___________with_path(#___________path: #crate_name::Field) -> Self {
-                        Self {
-                           #( #schema_struct_fields_names_kv) *
-                            #___________path,
-                            #_____struct_marker_ident: ::std::marker::PhantomData,
-                        }
-                    }
-
-                    #( #record_link_fields_methods) *
-                }
-
-                #node_only
             }
+
+            // A clone keeps fields the caller reassigned.
+            impl #impl_generics ::std::clone::Clone for #schema #ty_generics #where_clause {
+                fn clone(&self) -> Self {
+                    Self {
+                        #( #schema_field_idents: ::std::clone::Clone::clone(&self.#schema_field_idents), )*
+                        #___________path: ::std::clone::Clone::clone(&self.#___________path),
+                        #_____struct_marker_ident: ::std::marker::PhantomData,
+                    }
+                }
+            }
+
+            impl #impl_generics #crate_name::Render for #schema #ty_generics #where_clause {
+                fn render(&self, out: &mut #crate_name::Renderer) {
+                    out.push(&self.#___________path);
+                }
+            }
+
+            impl #impl_generics #crate_name::Aliasable for #schema #ty_generics #where_clause {}
+
+            impl #impl_generics ::std::convert::From<&#schema #ty_generics> for #crate_name::Field #where_clause {
+                fn from(schema: &#schema #ty_generics) -> Self {
+                    schema.#___________path.clone()
+                }
+            }
+
+            impl #impl_generics ::std::convert::From<#schema #ty_generics> for #crate_name::Field #where_clause {
+                fn from(schema: #schema #ty_generics) -> Self {
+                    schema.#___________path
+                }
+            }
+
+            impl #impl_generics ::std::convert::From<#schema #ty_generics> for #crate_name::ValueLike #where_clause {
+                fn from(schema: #schema #ty_generics) -> Self {
+                    #crate_name::ValueLike::from(schema.#___________path)
+                }
+            }
+
+            impl #impl_generics #schema #ty_generics #where_clause {
+                pub fn new() -> Self {
+                    Self::___________with_path(#crate_name::Field::default())
+                }
+
+                pub fn new_prefixed(prefix: impl ::std::convert::Into<#crate_name::Field>) -> Self {
+                    Self::___________with_path(prefix.into())
+                }
+
+                /// The schema at the end of `path` extended by `clause`.
+                #[doc(hidden)]
+                pub fn #__________connect(
+                    path: impl ::std::convert::Into<#crate_name::Field>,
+                    clause: #crate_name::Clause,
+                ) -> Self {
+                    let mut path = path.into();
+                    path.push_clause(clause);
+                    Self::___________with_path(path)
+                }
+
+                fn ___________with_path(#___________path: #crate_name::Field) -> Self {
+                    Self {
+                       #( #schema_struct_fields_names_kv) *
+                        #___________path,
+                        #_____struct_marker_ident: ::std::marker::PhantomData,
+                    }
+                }
+
+                #( #record_link_fields_methods) *
+            }
+
+            #node_only
 
             #[allow(non_snake_case, unreachable_code, dead_code)]
             fn #test_function_name #impl_generics() #where_clause {
@@ -384,7 +372,7 @@ impl ModelReceiver {
         } = code_gen;
         let CommonIdents {
             struct_with_renamed_serialized_fields,
-            module_name_internal,
+            stored_fields,
             ..
         } = code_gen.common_idents();
         let object_keys_count = serializable_fields.len() + flattened_field_keys.len();
@@ -428,7 +416,7 @@ impl ModelReceiver {
 
                 fn get_serializable_fields() -> ::std::vec::Vec<#crate_name::Field> {
                     let mut fields = ::std::vec::Vec::new();
-                    #module_name_internal::STORED_FIELDS.for_each(&mut |name| fields.push(#crate_name::Field::ident(name)));
+                    #stored_fields.for_each(&mut |name| fields.push(#crate_name::Field::ident(name)));
                     fields
                 }
 
@@ -505,16 +493,15 @@ impl ModelReceiver {
         let crate_name = get_crate_name(false);
         let struct_name_ident = &self.ident();
         let (impl_generics, ty_generics, where_clause) = self.generics().split_for_impl();
-        let table = self
-            .table()?
-            .expect("a node has a table")
-            .as_string();
-        let explicit_generics = ModelAttributes::new(self)?.explicit_fully_qualified_generics_path();
+        let table = self.table()?.expect("a node has a table").as_string();
+        let explicit_generics =
+            ModelAttributes::new(self)?.explicit_fully_qualified_generics_path();
         let VariablesModelMacro {
             __________connect, ..
         } = VariablesModelMacro::new();
         let CommonIdents {
-            module_name_internal,
+            schema,
+            table_name_checker,
             aliases_struct_name,
             ..
         } = code_gen.common_idents();
@@ -522,19 +509,19 @@ impl ModelReceiver {
 
         Ok(quote!(
             impl #impl_generics #crate_name::Node for #struct_name_ident #ty_generics #where_clause {
-                type TableNameChecker = #module_name_internal::TableNameStaticChecker;
-                type Aliases = #module_name_internal::#aliases_struct_name;
+                type TableNameChecker = #table_name_checker;
+                type Aliases = #aliases_struct_name;
 
                 fn with(clause: impl ::std::convert::Into<#crate_name::NodeClause>) -> <Self as #crate_name::SchemaGetter>::Schema {
                     let clause: #crate_name::NodeClause = clause.into();
-                    #module_name_internal::#struct_name_ident #explicit_generics ::#__________connect(
+                    #schema #explicit_generics ::#__________connect(
                         #crate_name::Field::default(),
                         clause.with_table(#table).into_inner(),
                     )
                 }
 
                 fn aliases() -> Self::Aliases {
-                    #module_name_internal::#aliases_struct_name::new()
+                    #aliases_struct_name::new()
                 }
 
                 fn get_table() -> #crate_name::Table {
@@ -552,13 +539,9 @@ impl ModelReceiver {
         let crate_name = get_crate_name(false);
         let struct_name_ident = &self.ident();
         let (impl_generics, ty_generics, where_clause) = self.generics().split_for_impl();
-        let table = self
-            .table()?
-            .expect("an edge has a table")
-            .as_string();
+        let table = self.table()?.expect("an edge has a table").as_string();
         let CommonIdents {
-            module_name_internal,
-            ..
+            table_name_checker, ..
         } = code_gen.common_idents();
 
         let has_in_and_out_fields = code_gen
@@ -580,7 +563,7 @@ impl ModelReceiver {
             impl #impl_generics #crate_name::Edge for #struct_name_ident #ty_generics #where_clause {
                 type In = In;
                 type Out = Out;
-                type TableNameChecker = #module_name_internal::TableNameStaticChecker;
+                type TableNameChecker = #table_name_checker;
 
                 fn get_table() -> #crate_name::Table {
                     #crate_name::Table::new(#table)

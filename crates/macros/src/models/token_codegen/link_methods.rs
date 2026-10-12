@@ -1,4 +1,4 @@
-
+use proc_macro2::TokenStream;
 use quote::quote;
 
 use crate::models::*;
@@ -10,6 +10,13 @@ ListSimpleTraversalMethod
 );
 
 use super::{Codegen, RelationType};
+
+/// The schema type of a model, named through `SchemaGetter` where the model is declared, so no
+/// alias or module is needed to reach it.
+fn schema_of(model: &impl quote::ToTokens) -> TokenStream {
+    let crate_name = get_crate_name(false);
+    quote!(<#model as #crate_name::SchemaGetter>::Schema)
+}
 
 impl Codegen<'_> {
     pub fn is_in_or_out_edge_node(&self) -> ExtractorResult<bool> {
@@ -64,13 +71,11 @@ impl Codegen<'_> {
         }
 
         for meta in metas {
-            // We dont want to import generics In and Out nodes in the edge table
-            // as they are not concrete types
+            // The `in` and `out` fields of an edge link its generic node types, which get no
+            // traversal methods of their own.
             if self.is_in_or_out_edge_node()? {
                 continue;
             }
-            self.imports_referenced_node_schema
-                .insert(meta.foreign_node_schema_import);
 
             self.record_link_fields_methods.push(meta.link_field_method);
 
@@ -98,40 +103,27 @@ impl Codegen<'_> {
             }
         );
 
-        // Ok(record_link_default_alias_as_method.into())
         Ok(LinkMethodMeta {
-            foreign_node_schema_import: quote!().into(),
             foreign_node_type_validator: quote!().into(),
-            link_field_method: record_link_default_alias_as_method.to_token_stream().into(),
+            link_field_method: record_link_default_alias_as_method.into(),
         })
     }
 
     fn link_one(&self, link_one: LinkOneAttrType) -> ExtractorResult<LinkMethodMeta> {
         let crate_name = get_crate_name(false);
-        // TODO: Cross-check if not replacing self here is more ergonomic/correct
-        // let link_one = &link_one.replace_self_with_current_struct_concrete_type(table_def);
         let table_derive_attrs = self.table_derive_attributes();
-        let current_struct = table_derive_attrs.ident();
         let struct_casing = table_derive_attrs.casing()?;
         let field_receiver = self.field_receiver();
         let db_field_name = field_receiver.db_field_name(&struct_casing)?;
         let field_ident_normalized = field_receiver.field_ident_normalized(&struct_casing)?;
-        let link_one_turbo_fished = link_one.turbo_fishize()?;
         let VariablesModelMacro {
             __________connect, ..
         } = VariablesModelMacro::new();
-
-        let foreign_node_schema_import =
-            if current_struct.is_same_name(link_one.clone().into_inner())? {
-                // Dont import for current struct since that already exists in scope
-                quote!()
-            } else {
-                quote!(type #link_one = <super::#link_one as #crate_name::SchemaGetter>::Schema;)
-            };
+        let schema = schema_of(&link_one);
 
         let record_link_default_alias_as_method = quote!(
-            pub fn #field_ident_normalized(&self) -> #link_one {
-                #link_one_turbo_fished::#__________connect(
+            pub fn #field_ident_normalized(&self) -> #schema {
+                <#schema>::#__________connect(
                     self,
                     #crate_name::Clause::from(#crate_name::Empty).with_field(#db_field_name),
                 )
@@ -139,7 +131,6 @@ impl Codegen<'_> {
         );
 
         Ok(LinkMethodMeta {
-            foreign_node_schema_import: foreign_node_schema_import.into(),
             foreign_node_type_validator: quote!(
                 #crate_name::validators::assert_impl_one!(#link_one: #crate_name::Node);
             )
@@ -151,29 +142,19 @@ impl Codegen<'_> {
     fn link_many(&self, link_many_node_type: &LinkManyAttrType) -> ExtractorResult<LinkMethodMeta> {
         let crate_name = get_crate_name(false);
         let table_derive_attrs = self.table_derive_attributes();
-        let current_struct_ident = &table_derive_attrs.ident();
         let field_attr = self.field_receiver();
         let struct_casing = table_derive_attrs.casing()?;
         let field_ident_normalized = field_attr.field_ident_normalized(&struct_casing)?;
         let db_field_name = field_attr.db_field_name(&struct_casing)?;
-        let link_many_node_type_turbo_fished = link_many_node_type.turbo_fishize()?;
         let VariablesModelMacro {
             __________connect, ..
         } = VariablesModelMacro::new();
-
-        let foreign_node_schema_import = if current_struct_ident
-            .is_same_name(link_many_node_type.clone().into_inner())?
-        {
-            // Dont import for current struct since that already exists in scope
-            quote!()
-        } else {
-            quote!(type #link_many_node_type = <super::#link_many_node_type as #crate_name::SchemaGetter>::Schema;)
-        };
+        let schema = schema_of(link_many_node_type);
 
         let link_field_method = quote!(
-            pub fn #field_ident_normalized(&self, clause: impl ::std::convert::Into<#crate_name::NodeAliasClause>) -> #link_many_node_type {
+            pub fn #field_ident_normalized(&self, clause: impl ::std::convert::Into<#crate_name::NodeAliasClause>) -> #schema {
                 let clause: #crate_name::NodeAliasClause = clause.into();
-                #link_many_node_type_turbo_fished::#__________connect(
+                <#schema>::#__________connect(
                     self,
                     clause.into_inner().with_field(#db_field_name),
                 )
@@ -181,7 +162,6 @@ impl Codegen<'_> {
         );
 
         Ok(LinkMethodMeta {
-            foreign_node_schema_import: foreign_node_schema_import.into(),
             link_field_method: link_field_method.into(),
             foreign_node_type_validator: quote!(
                 #crate_name::validators::assert_impl_one!(#link_many_node_type: #crate_name::Node);
@@ -196,30 +176,18 @@ impl Codegen<'_> {
     ) -> ExtractorResult<LinkMethodMeta> {
         let crate_name = get_crate_name(false);
         let table_derive_attrs = self.table_derive_attributes();
-        let current_struct_ident = &table_derive_attrs.ident();
         let struct_casing = table_derive_attrs.casing()?;
         let field_receiver = self.field_receiver();
         let field_ident_normalized = field_receiver.field_ident_normalized(&struct_casing)?;
         let db_field_name = field_receiver.db_field_name(&struct_casing)?;
-        let embedded_object_turbo_fished = embedded_object.turbo_fishize()?;
         let VariablesModelMacro {
             __________connect, ..
         } = VariablesModelMacro::new();
-
-        let foreign_node_schema_import = if current_struct_ident
-            .is_same_name(embedded_object.clone().into_inner())?
-        {
-            // Dont import for current struct since that already exists in scope
-            quote!()
-        } else {
-            // e.g type Book = <super::Book as SchemaGetter>::Schema;
-            // type Book<'a, 'b, T, U: Clone + Default, V: Node> = <super::Book<'a, 'b, T, U, V> as SchemaGetter>::Schema;
-            quote!(type #embedded_object = <super::#embedded_object as #crate_name::SchemaGetter>::Schema;)
-        };
+        let schema = schema_of(embedded_object);
 
         let connect_object_field_method = quote!(
-            pub fn #field_ident_normalized(&self) -> #embedded_object {
-                #embedded_object_turbo_fished::#__________connect(
+            pub fn #field_ident_normalized(&self) -> #schema {
+                <#schema>::#__________connect(
                     self,
                     #crate_name::Clause::from(#crate_name::Empty).with_field(#db_field_name),
                 )
@@ -227,7 +195,6 @@ impl Codegen<'_> {
         );
 
         Ok(LinkMethodMeta {
-            foreign_node_schema_import: foreign_node_schema_import.into(),
             foreign_node_type_validator: quote!(
                 #crate_name::validators::assert_impl_one!(#embedded_object: #crate_name::Object);
             )
@@ -239,34 +206,22 @@ impl Codegen<'_> {
     pub fn nest_array(&self, nested_array: &NestArrayAttrType) -> ExtractorResult<LinkMethodMeta> {
         let crate_name = get_crate_name(false);
         let table_derive_attrs = self.table_derive_attributes();
-        let current_struct_ident = &table_derive_attrs.ident();
         let struct_casing = table_derive_attrs.casing()?;
         let field_receiver = self.field_receiver();
         let field_ident_normalized = field_receiver.field_ident_normalized(&struct_casing)?;
         let db_field_name = field_receiver.db_field_name(&struct_casing)?;
-        let nest_array_turbo_fished = nested_array.turbo_fishize()?;
         let VariablesModelMacro {
             __________connect, ..
         } = VariablesModelMacro::new();
-
-        let foreign_node_schema_import = if current_struct_ident
-            .is_same_name(nested_array.clone().into_inner())?
-        {
-            // Dont import for current struct since that already exists in scope
-            quote!()
-        } else {
-            // e.g type Book = <super::Book as SchemaGetter>::Schema;
-            // type Book<'a, 'b, T, U: Clone + Default, V: Node> = <super::Book<'a, 'b, T, U, V> as SchemaGetter>::Schema;
-            quote!(type #nested_array = <super::#nested_array as #crate_name::SchemaGetter>::Schema;)
-        };
+        let schema = schema_of(nested_array);
 
         let record_link_default_alias_as_method = quote!(
             pub fn #field_ident_normalized(
                 &self,
                 clause: impl ::std::convert::Into<#crate_name::ObjectClause>
-            ) -> #nested_array {
+            ) -> #schema {
                 let clause: #crate_name::ObjectClause = clause.into();
-                #nest_array_turbo_fished::#__________connect(
+                <#schema>::#__________connect(
                     self,
                     clause.into_inner().with_field(#db_field_name),
                 )
@@ -274,7 +229,6 @@ impl Codegen<'_> {
         );
 
         Ok(LinkMethodMeta {
-            foreign_node_schema_import: foreign_node_schema_import.into(),
             foreign_node_type_validator: quote!(
                 #crate_name::validators::assert_impl_one!(#nested_array: #crate_name::Object);
             )
@@ -284,23 +238,6 @@ impl Codegen<'_> {
     }
 }
 
-create_tokenstream_wrapper!(
-    /// imports for specific schema from the trait Generic Associated types e.g
-    /// Example:
-    ///
-    /// ```rust, ignore
-    /// Generated example:
-    ///
-    /// type Book = <super::Book as Node>::Schema;
-    /// We need imports to be unique, hence the hashset
-    /// Used when you use a Node in field e.g: favourite_book: LinkOne<Book>,
-    /// e.g: type Book = <super::Book as Node>::Schema;
-    /// e.g type Book = <super::Book as SchemaGetter>::Schema;
-    /// type Book<'a, 'b, T, U: Clone + Default, V: Node> = <super::Book<'a, 'b, T, U, V> as SchemaGetter>::Schema;
-    /// ```
-    =>
-    ForeignNodeSchemaImport
-);
 create_tokenstream_wrapper!(
 /// Contains static assertions for foreign node type
 =>
@@ -325,7 +262,6 @@ LinkFieldTraversalMethodToken
 );
 
 pub struct LinkMethodMeta {
-    foreign_node_schema_import: ForeignNodeSchemaImport,
     foreign_node_type_validator: ForeignNodeTypeValidator,
     link_field_method: LinkFieldTraversalMethodToken,
 }
@@ -336,8 +272,7 @@ impl LinkSelfAttrType {
         table_derive_attrs: &ModelAttributes,
     ) -> ExtractorResult<LinkOneAttrType> {
         Ok(LinkOneAttrType(
-            self.inner()
-                .replace_self_with_current_struct_concrete_type(table_derive_attrs)?
+            self.replace_self_with_current_struct_concrete_type(table_derive_attrs)?
                 .into_inner(),
         ))
     }
