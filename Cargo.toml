@@ -7,7 +7,7 @@ version = "0.1.0"
 edition = "2024"
 # Only the latest stable toolchain is supported; older compilers are not tested.
 rust-version = "1.99"
-authors = ["Oyelowo Oyedayo"]
+authors = ["Yucked"]
 description = "A pure Rust ORM for SurrealDB."
 
 [workspace.lints.rust]
@@ -19,10 +19,10 @@ match_wildcard_for_single_variants = "deny"
 redundant_closure_for_method_calls = "deny"
 
 [workspace.dependencies]
-aparecium = { path = "crates/orm" }
-aparecium-macros = { path = "crates/macros" }
+umbriel = { path = "crates/orm" }
+umbriel-macros = { path = "crates/macros" }
 
-# Engines, transports, TLS and scripting are opted into through `aparecium` features.
+# Engines, transports, TLS and scripting are opted into through `umbriel` features.
 surrealdb = { version = "3.3.3", default-features = false }
 # SurrealDB's internal parser (no SemVer guarantee); keep the same requirement as `surrealdb`.
 surrealdb-syn = "3.3.3"
@@ -35,7 +35,8 @@ darling = "0.24.1"
 proc-macro2 = "1.0.107"
 proc-macro-crate = "3.5.0"
 nom = "8.0.0"
-convert_case = "0.12.0"
+# The casing the SDK's `SurrealValue` derive applies to `rename_all`; the macros must match it.
+heck = "0.5.0"
 strum = "0.28.0"
 strum_macros = "0.28.0"
 regex = "1.13.1"
