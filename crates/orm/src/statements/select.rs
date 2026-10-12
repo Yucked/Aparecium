@@ -1,4 +1,3 @@
-
 /*
  * Syntax from specs:https://surrealdb.com/docs/surrealql/statements/select
  * SELECT @projections
@@ -7,17 +6,13 @@
     [ SPLIT [ AT ] @field ... ]
     [ GROUP [ BY ] @field ... ]
     [ ORDER [ BY ]
-        @field [
-            RAND()
-            | COLLATE
-            | NUMERIC
-        ] [ ASC | DESC ] ...
-    ] ]
+        RAND()
+        | @field [ COLLATE ] [ NUMERIC ] [ ASC | DESC ] ...
+    ]
     [ LIMIT [ BY ] @limit ]
     [ START [ AT ] @start ]
     [ FETCH @field ... ]
     [ TIMEOUT @duration ]
-    [ PARALLEL ]
 ; */
 use std::marker::PhantomData;
 
@@ -57,7 +52,7 @@ use super::{Statement, Subquery, impl_statement};
 /// # let name = Field::new("name");
 ///
 /// order(age).numeric().asc();
-/// order(score).rand().desc();
+/// order(score).desc();
 /// order(name).collate().desc();
 /// ```
 pub fn order(field: impl Into<Field>) -> Order {
@@ -124,12 +119,6 @@ impl Order {
         self
     }
 
-    /// Sets the ordering option to random.
-    pub fn rand(mut self) -> Self {
-        self.option = Some(OrderOption::Rand);
-        self
-    }
-
     /// Sets the ordering option to collate.
     pub fn collate(mut self) -> Self {
         self.option = Some(OrderOption::Collate);
@@ -148,7 +137,6 @@ impl Render for Order {
         out.push(&self.field);
         if let Some(option) = self.option {
             out.push_str(match option {
-                OrderOption::Rand => " RAND()",
                 OrderOption::Collate => " COLLATE",
                 OrderOption::Numeric => " NUMERIC",
             });
@@ -174,11 +162,6 @@ pub trait CanOrder: Into<Field> + Clone {
         order(self.clone()).desc()
     }
 
-    /// Sets the ordering option to random.
-    fn rand(&self) -> Order {
-        order(self.clone()).rand()
-    }
-
     /// Sets the ordering option to collate.
     fn collate(&self) -> Order {
         order(self.clone()).collate()
@@ -200,7 +183,6 @@ enum OrderDirection {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum OrderOption {
-    Rand,
     Collate,
     Numeric,
 }
@@ -541,13 +523,13 @@ pub struct SelectStatementInit {
     group_by: Vec<Field>,
     group_all: bool,
     order_by: Vec<Order>,
+    order_rand: bool,
     limit: Option<NumberLike>,
     start: Option<NumberLike>,
     fetch: Vec<Field>,
     omitted_fields: Vec<Field>,
     with_index_type: Option<WithIndexType>,
     timeout: Option<DurationLike>,
-    parallel: bool,
     explain_mode: Option<ExplainMode>,
 }
 
@@ -577,29 +559,27 @@ impl Conditional for SelectStatement {}
 ///     .from(fake_id)
 ///     .where_(cond(city.is("Prince Edward Island"))
 ///                 .and(city.is("NewFoundland"))
-///                 .or(city.like("Toronto"))
+///                 .or(city.is("Toronto"))
 ///     )
 ///     .order_by(order(&age).numeric())
 ///     .limit(153)
-///     .start(10)
-///     .parallel();
+///     .start(10);
 ///
 ///  // Using cond! macro
 ///  select(All)
 ///     .from(fake_id)
 ///     .where_(
-///         cond!((city IS "Prince Edward Island") AND (city IS "NewFoundland") OR (city ~ "Toronto"))
+///         cond!((city IS "Prince Edward Island") AND (city IS "NewFoundland") OR (city IS "Toronto"))
 ///     )
 ///     .order_by(order(&age).numeric())
 ///     .limit(153)
-///     .start(10)
-///     .parallel();
+///     .start(10);
 ///
 ///  // You can even mix using cond! macro with the builder operation
 ///  select(All)
 ///     .from(fake_id)
 ///     .where_(
-///         cond!((city.is("Prince Edward Island")) AND (city IS "NewFoundland") OR (city ~ "Toronto"))
+///         cond!((city.is("Prince Edward Island")) AND (city IS "NewFoundland") OR (city IS "Toronto"))
 ///     );
 ///
 ///  select(All)
@@ -656,6 +636,7 @@ pub fn select(selectables: impl Into<Selectables>) -> SelectStatementInit {
         group_by: vec![],
         group_all: false,
         order_by: vec![],
+        order_rand: false,
         limit: None,
         with_index_type: None,
         explain_mode: None,
@@ -663,7 +644,6 @@ pub fn select(selectables: impl Into<Selectables>) -> SelectStatementInit {
         fetch: vec![],
         omitted_fields: vec![],
         timeout: None,
-        parallel: false,
     }
 }
 
@@ -769,7 +749,7 @@ impl SelectStatement {
     /// # let select1 = select(All).from(fake_id2)
     ///                     .where_(cond(city.is("Prince Edward Island"))
     ///                     .and(city.is("NewFoundland"))
-    ///                     .or(city.like("Toronto"))
+    ///                     .or(city.is("Toronto"))
     ///                 );
     pub fn where_(mut self, condition: impl Conditional + Clone) -> Self {
         self.0.where_ = Some(Filter::new(condition));
@@ -887,7 +867,9 @@ impl SelectStatement {
     ///     .group_by(settings.published);
     /// ```
     pub fn group_by(mut self, groupables: impl Into<Groupables>) -> Self {
-        self.0.group_by.extend(Vec::<Field>::from(groupables.into()));
+        self.0
+            .group_by
+            .extend(Vec::<Field>::from(groupables.into()));
         self
     }
 
@@ -931,7 +913,7 @@ impl SelectStatement {
     /// // Order by multiple fields by using a list. Vector and `!` helper also work
     /// select(All)
     ///     .from(user)
-    ///     .order_by(&[order(age).numeric().desc(), order(city).rand().asc()]);
+    ///     .order_by(&[order(age).numeric().desc(), order(city).asc()]);
     ///
     /// # let user = Table::new("user");
     /// # let age = Field::new("age");
@@ -942,7 +924,24 @@ impl SelectStatement {
     ///     .order_by(order(state).collate().asc());
     /// ```
     pub fn order_by(mut self, orderables: impl Into<Orderables>) -> Self {
-        self.0.order_by.extend(Vec::<Order>::from(orderables.into()));
+        self.0
+            .order_by
+            .extend(Vec::<Order>::from(orderables.into()));
+        self
+    }
+
+    /// Orders the results randomly: `ORDER BY RAND()`. Random order is the whole clause, so it
+    /// cannot be combined with [`order_by`](Self::order_by).
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use umbriel::{*, statements::select};
+    /// let query = select(All).from(Table::new("user")).order_rand().limit(3);
+    /// assert_eq!(query.to_debug_sql(), "SELECT * FROM user ORDER BY RAND() LIMIT 3;");
+    /// ```
+    pub fn order_rand(mut self) -> Self {
+        self.0.order_rand = true;
         self
     }
 
@@ -1063,12 +1062,6 @@ impl SelectStatement {
         self
     }
 
-    /// Indicates that the query should be executed in parallel.
-    pub fn parallel(mut self) -> Self {
-        self.0.parallel = true;
-        self
-    }
-
     /// Indicates that the query should be explained.
     pub fn explain(mut self) -> Self {
         self.0.explain_mode = Some(ExplainMode::Simple);
@@ -1106,7 +1099,7 @@ impl Statement for SelectStatement {
 
         match &statement.with_index_type {
             Some(WithIndexType::NoIndex) => {
-                out.push_str(" WITH NO INDEX");
+                out.push_str(" WITH NOINDEX");
             }
             Some(WithIndexType::Indexes(indexes)) => {
                 out.push_str(" WITH INDEX ").push(indexes);
@@ -1118,7 +1111,13 @@ impl Statement for SelectStatement {
             out.push_str(" WHERE ").push(condition);
         }
 
+        let grouped = !statement.group_by.is_empty() || statement.group_all;
         if !statement.split.is_empty() {
+            if grouped {
+                out.push_error(
+                    "SPLIT and GROUP cannot be combined in one SELECT; split or group in a subquery",
+                );
+            }
             out.push_str(" SPLIT ").push(&statement.split);
         }
 
@@ -1128,7 +1127,12 @@ impl Statement for SelectStatement {
             out.push_str(" GROUP ALL");
         }
 
-        if !statement.order_by.is_empty() {
+        if statement.order_rand {
+            if !statement.order_by.is_empty() {
+                out.push_error("ORDER BY RAND() cannot be combined with ordering by fields");
+            }
+            out.push_str(" ORDER BY RAND()");
+        } else if !statement.order_by.is_empty() {
             out.push_str(" ORDER BY ").push(&statement.order_by);
         }
 
@@ -1146,10 +1150,6 @@ impl Statement for SelectStatement {
 
         if let Some(timeout) = &statement.timeout {
             out.push_str(" TIMEOUT ").push_inlined(timeout);
-        }
-
-        if statement.parallel {
-            out.push_str(" PARALLEL");
         }
 
         match statement.explain_mode {
@@ -1189,9 +1189,9 @@ impl<T: Model> SelectStatementMini<T> {
         self
     }
 
-    /// Parallelizes the query
-    pub fn parallel(mut self) -> Self {
-        self.0 = self.0.parallel();
+    /// Orders the results randomly: `ORDER BY RAND()`.
+    pub fn order_rand(mut self) -> Self {
+        self.0 = self.0.order_rand();
         self
     }
 }
