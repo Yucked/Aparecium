@@ -1,11 +1,10 @@
-
+use pretty_assertions::assert_eq;
+use surrealdb::{Surreal, engine::local::Mem};
 use umbriel::*;
 use umbriel_tests::{
     Alien, AlienWithExplicitAttributes, StudentWithDefineAttr, StudentWithDefineFnAttr,
     StudentWithGranularAttributes,
 };
-use pretty_assertions::assert_eq;
-use surrealdb::{Surreal, engine::local::Mem};
 
 #[tokio::test]
 async fn test_node_type_atttribute_auto_inferred() -> SurrealOrmResult<()> {

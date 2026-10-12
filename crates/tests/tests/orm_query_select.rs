@@ -1,12 +1,11 @@
-
+use chrono::Utc;
+use pretty_assertions::assert_eq;
+use surrealdb::{Surreal, engine::local::Mem};
 use umbriel::{
     statements::{insert, order, select, select_value},
     *,
 };
 use umbriel_tests::{SpaceShip, Weapon, weapon};
-use chrono::Utc;
-use pretty_assertions::assert_eq;
-use surrealdb::{Surreal, engine::local::Mem};
 
 #[tokio::test]
 async fn test_subquery_in_select_statement() -> SurrealOrmResult<()> {

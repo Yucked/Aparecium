@@ -1,4 +1,3 @@
-
 // Parse functions
 // These functions can be used when parsing email addresses and URL web addresses.
 //

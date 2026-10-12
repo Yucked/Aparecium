@@ -1,8 +1,7 @@
-
 use std::fmt::Display;
 
-use umbriel::Object;
 use serde::{Deserialize, Serialize};
+use umbriel::Object;
 
 // Configuration
 #[derive(Object, Serialize, Deserialize, Debug, Clone, Default)]

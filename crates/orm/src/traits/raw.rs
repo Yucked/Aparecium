@@ -1,4 +1,3 @@
-
 use std::fmt::{Display, Formatter};
 
 use crate::{Fragment, Queryable, Render, Renderer, render::render_inline};

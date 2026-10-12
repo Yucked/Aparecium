@@ -1,4 +1,3 @@
-
 use super::ident::{FieldAttribute, FieldIdentNormalizedDeserialized};
 use crate::models::{ExtractorResult, StructGenerics, StructLevelCasing, struct_casing};
 

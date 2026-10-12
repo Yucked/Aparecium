@@ -1,4 +1,3 @@
-
 // Math functions
 // These functions can be used when analysing numeric data and numeric collections.
 //

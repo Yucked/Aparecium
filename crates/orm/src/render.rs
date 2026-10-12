@@ -258,7 +258,9 @@ impl Render for Fragment {
 
 impl fmt::Debug for Fragment {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("Fragment").field(&self.to_debug_sql()).finish()
+        f.debug_tuple("Fragment")
+            .field(&self.to_debug_sql())
+            .finish()
     }
 }
 

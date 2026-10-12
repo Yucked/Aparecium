@@ -1,4 +1,3 @@
-
 use crate::{Field, Render, Table};
 use thiserror::Error;
 

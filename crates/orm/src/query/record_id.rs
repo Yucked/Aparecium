@@ -141,12 +141,11 @@ impl<T: Model> TryFrom<types::RecordId> for RecordId<T> {
                 id,
                 model: PhantomData,
             }),
-            Err(context) => Err(ConversionError::from_value(
-                Self::kind_of(),
-                &Value::RecordId(id),
-            )
-            .with_context(context)
-            .into()),
+            Err(context) => Err(
+                ConversionError::from_value(Self::kind_of(), &Value::RecordId(id))
+                    .with_context(context)
+                    .into(),
+            ),
         }
     }
 }
@@ -273,9 +272,7 @@ fn key_of<T>(id: &impl Borrow<RecordId<T>>) -> RecordIdKey {
 
 impl<T: Model> Render for RecordRange<T> {
     fn render(&self, out: &mut Renderer) {
-        let is_range = |bound: &Bound<RecordIdKey>| {
-            matches!(bound, Bound::Included(key) | Bound::Excluded(key) if key.is_range())
-        };
+        let is_range = |bound: &Bound<RecordIdKey>| matches!(bound, Bound::Included(key) | Bound::Excluded(key) if key.is_range());
         if is_range(&self.range.start) || is_range(&self.range.end) {
             out.push_error("record range bounds must be single keys");
         }

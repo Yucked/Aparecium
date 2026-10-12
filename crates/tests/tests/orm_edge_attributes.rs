@@ -1,10 +1,9 @@
-
+use pretty_assertions::assert_eq;
+use surrealdb::{Surreal, engine::local::Mem};
 use umbriel::*;
 use umbriel_tests::{
     AlienVisitsPlanet, AlienVisitsPlanetExplicit, AlienVisitsPlanetWithExplicitAttributes,
 };
-use pretty_assertions::assert_eq;
-use surrealdb::{Surreal, engine::local::Mem};
 
 #[tokio::test]
 async fn test_node_atttributes_auto_inferred() -> SurrealOrmResult<()> {

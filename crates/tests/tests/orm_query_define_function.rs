@@ -1,13 +1,13 @@
 // -- Define a global function which can be used in any query
 
+use chrono::TimeZone;
+use pretty_assertions::assert_eq;
 use umbriel::{
     All, Buildable, Field, Model, NONE, Operatable, Param, SchemaGetter, SetterAssignable, ToRaw,
     cond, define_function, object,
     statements::{create, if_, select},
 };
 use umbriel_tests::SpaceShip;
-use chrono::TimeZone;
-use pretty_assertions::assert_eq;
 
 define_function!(get_or_create_spaceship(
     first_arg: string,

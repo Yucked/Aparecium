@@ -1,4 +1,3 @@
-
 /// Macro to generate a SurrealDB native parameter structure and associated function.
 ///
 /// SurrealDB employs a set of predefined variables. While these variables can be utilized

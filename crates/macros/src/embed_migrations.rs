@@ -1,4 +1,3 @@
-
 use std::{env, fs, path::PathBuf};
 
 use proc_macro2::{Span, TokenStream};

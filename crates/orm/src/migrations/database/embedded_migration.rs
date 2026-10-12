@@ -1,4 +1,3 @@
-
 use std::marker::PhantomData;
 
 use surrealdb::{Surreal, engine::any::Any};

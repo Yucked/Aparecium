@@ -1,4 +1,3 @@
-
 use std::collections::{BTreeMap, HashMap};
 
 use surrealdb::types::{self, SurrealValue};

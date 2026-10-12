@@ -1,4 +1,3 @@
-
 use crate::Table;
 
 use crate::migrations::*;

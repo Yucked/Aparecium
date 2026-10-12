@@ -1,4 +1,3 @@
-
 use crate::helpers::get_crate_name;
 use crate::kind::kind_tokens;
 use crate::surql;

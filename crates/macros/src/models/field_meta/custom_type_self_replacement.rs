@@ -1,4 +1,3 @@
-
 use syn::{
     AngleBracketedGenericArguments, ExprPath, GenericArgument, Ident, Path, PathArguments,
     PathSegment, Type, TypePath, parse_quote,

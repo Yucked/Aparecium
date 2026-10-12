@@ -1,4 +1,3 @@
-
 use quote::quote;
 
 use crate::models::*;

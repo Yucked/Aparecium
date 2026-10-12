@@ -1,4 +1,3 @@
-
 use super::up::{FastForwardDelta, Up};
 use crate::DbResources;
 use crate::migrations::*;

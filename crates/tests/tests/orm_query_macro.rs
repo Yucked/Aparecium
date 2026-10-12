@@ -1,5 +1,5 @@
-use umbriel::{query, query_raw};
 use surrealdb::{Surreal, engine::local::Mem};
+use umbriel::{query, query_raw};
 
 #[tokio::test]
 async fn test_query_macro_with_bindigns() {

@@ -1,4 +1,3 @@
-
 use surrealdb::types::{self, SurrealValue, Value};
 
 use super::Field;

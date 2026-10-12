@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use umbriel::{statements::*, *};
     use pretty_assertions::assert_eq;
+    use umbriel::{statements::*, *};
 
     #[test]
     fn test_remove_scope() {

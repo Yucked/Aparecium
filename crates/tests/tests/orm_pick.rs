@@ -1,5 +1,5 @@
-use umbriel::{Pickable, pick};
 use serde::Serialize;
+use umbriel::{Pickable, pick};
 
 #[derive(Pickable, Debug, Serialize)]
 struct Person<'a, T: 'a, U: 'a> {

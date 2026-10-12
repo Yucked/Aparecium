@@ -1,14 +1,13 @@
-
-use umbriel::{
-    statements::{delete, insert},
-    *,
-};
-use umbriel_tests::{Weapon, weapon};
 use pretty_assertions::assert_eq;
 use surrealdb::{
     Surreal,
     engine::local::{Db, Mem},
 };
+use umbriel::{
+    statements::{delete, insert},
+    *,
+};
+use umbriel_tests::{Weapon, weapon};
 
 async fn create_test_data(db: Surreal<Db>) -> Vec<Weapon> {
     let space_ships = (0..1000)

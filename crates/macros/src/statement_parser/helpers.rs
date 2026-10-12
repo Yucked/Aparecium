@@ -1,4 +1,3 @@
-
 use crate::helpers::get_crate_name;
 use quote::format_ident;
 use syn::Ident;

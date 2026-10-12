@@ -1,7 +1,7 @@
-use umbriel::migrations::{FastForwardDelta, MigrationFilename, Mode, RollbackStrategyStruct};
-use umbriel_tests::migrator_support::{AssertionArg, TestConfig, current_function};
 use tempfile::tempdir;
 use test_case::test_case;
+use umbriel::migrations::{FastForwardDelta, MigrationFilename, Mode, RollbackStrategyStruct};
+use umbriel_tests::migrator_support::{AssertionArg, TestConfig, current_function};
 
 #[test_case(Mode::Strict; "Reversible Strict")]
 #[test_case(Mode::Lax; "Reversible Lax")]

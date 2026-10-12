@@ -1,4 +1,3 @@
-
 use surrealdb::types::SurrealValue;
 
 use crate::{NumberLike, Operator, Render, Renderer, Setter, ValueLike};
@@ -25,10 +24,7 @@ impl Render for Updater {
     fn render(&self, out: &mut Renderer) {
         out.push(&self.field);
         if let Some((operator, value)) = &self.update {
-            out.push_str(" ")
-                .push(operator)
-                .push_str(" ")
-                .push(value);
+            out.push_str(" ").push(operator).push_str(" ").push(value);
         }
     }
 }

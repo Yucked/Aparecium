@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod tests {
     use ::geo::{point, polygon};
+    use functions::geo;
     use umbriel::*;
     use umbriel::{functions::geo::*, *};
-    use functions::geo;
 
     #[test]
     fn test_area_with_field() {

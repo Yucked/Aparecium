@@ -1,4 +1,3 @@
-
 use syn::{
     Ident, Result as SynResult, Token,
     parse::{Parse, ParseStream},

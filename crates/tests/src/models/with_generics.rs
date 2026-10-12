@@ -1,6 +1,6 @@
-use umbriel::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+use umbriel::*;
 
 #[derive(Node, Serialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]

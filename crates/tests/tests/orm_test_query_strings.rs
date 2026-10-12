@@ -1,13 +1,12 @@
-
+use pretty_assertions::assert_eq;
+use std::time::Duration;
+use surrealdb::sql::{Thing, thing};
 use umbriel::{
     cond,
     statements::{order, relate, select},
     *,
 };
 use umbriel_tests::{Book, Student, StudentWritesBook, book, student};
-use pretty_assertions::assert_eq;
-use std::time::Duration;
-use surrealdb::sql::{Thing, thing};
 
 #[test]
 fn multiplication_tests1() {

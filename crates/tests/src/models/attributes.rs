@@ -1,6 +1,8 @@
-
 // use super::studentwithgranularattributes;
 use CrudType::*;
+use serde::{Deserialize, Serialize};
+use std::time::Duration;
+use typed_builder::TypedBuilder;
 use umbriel::{
     sql,
     statements::{
@@ -9,9 +11,6 @@ use umbriel::{
     },
     *,
 };
-use serde::{Deserialize, Serialize};
-use std::time::Duration;
-use typed_builder::TypedBuilder;
 
 fn age_permissions() -> Permissions {
     let student_with_granular_attributes::Schema {

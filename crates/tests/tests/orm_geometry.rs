@@ -1,6 +1,5 @@
 #![allow(clippy::type_complexity)]
 
-
 use geo::LineString;
 use geo::MultiLineString;
 use geo::MultiPoint;
@@ -8,12 +7,6 @@ use geo::MultiPolygon;
 use geo::Point;
 use geo::Polygon;
 
-use umbriel::Buildable;
-use umbriel::{
-    All, Model, Node, Object, Operatable, ReturnableSelect, ReturnableStandard, SchemaGetter,
-    SurrealId, SurrealSimpleId, ToRaw,
-    statements::{insert, select},
-};
 use geo::point;
 use geo::polygon;
 use serde::Deserialize;
@@ -21,6 +14,12 @@ use serde::Serialize;
 use std::time::Duration;
 use surrealdb::Surreal;
 use surrealdb::engine::local::Mem;
+use umbriel::Buildable;
+use umbriel::{
+    All, Model, Node, Object, Operatable, ReturnableSelect, ReturnableStandard, SchemaGetter,
+    SurrealId, SurrealSimpleId, ToRaw,
+    statements::{insert, select},
+};
 
 use geo::Coord;
 

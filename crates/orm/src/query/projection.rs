@@ -1,4 +1,3 @@
-
 use crate::{Alias, Field, Function, Param, Render, Renderer, ValueLike};
 
 /// Used to represent a list of projections to access fields of a table or

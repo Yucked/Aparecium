@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use umbriel::*;
     use surrealdb::sql::Uuid;
+    use umbriel::*;
 
     #[test]
     fn test_create_id_with_model() {

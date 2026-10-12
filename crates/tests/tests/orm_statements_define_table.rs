@@ -3,11 +3,11 @@ mod tests {
     use umbriel::{statements::*, *};
 
     use CrudType::*;
+    use surrealdb::sql;
     use umbriel::{
         statements::{for_permission, select},
         *,
     };
-    use surrealdb::sql;
 
     #[test]
     fn test_define_statement_schemaless_permissions_none() {

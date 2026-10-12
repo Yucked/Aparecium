@@ -1,11 +1,10 @@
-
+use pretty_assertions::assert_eq;
+use surrealdb::{Surreal, engine::local::Mem};
 use umbriel::{
     statements::{begin_transaction, create_only, select, update},
     *,
 };
 use umbriel_tests::{Account, Balance};
-use pretty_assertions::assert_eq;
-use surrealdb::{Surreal, engine::local::Mem};
 // CREATE account:one SET balance = 135,605.16;
 // CREATE account:two SET balance = 91,031.31;
 // -- Move money

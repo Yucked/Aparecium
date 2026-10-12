@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod tests {
+    use pretty_assertions::assert_eq;
     use umbriel::{CrudType::*, statements::for_permission};
     use umbriel::{Field, Operatable, ToRaw};
     use umbriel::{statements::*, *};
-    use pretty_assertions::assert_eq;
 
     #[test]
     fn test_define_model_statement_full() {

@@ -1,4 +1,3 @@
-
 use crate::migrations::{
     table_events::ComparisonEvents, table_fields::ComparisonFields,
     table_indexes::ComparisonIndexes, *,

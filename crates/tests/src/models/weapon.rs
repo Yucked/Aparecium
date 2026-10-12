@@ -1,7 +1,6 @@
-
-use umbriel::{Node, Object, SurrealId, SurrealSimpleId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use umbriel::{Node, Object, SurrealId, SurrealSimpleId};
 
 // Weapon
 #[derive(Node, Serialize, Deserialize, Debug, Clone, Default)]

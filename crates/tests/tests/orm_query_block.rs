@@ -1,12 +1,11 @@
-
+use pretty_assertions::assert_eq;
+use surrealdb::{Surreal, engine::local::Mem};
 use umbriel::{
     functions::{array, math},
     statements::{create, insert, select_value},
     *,
 };
 use umbriel_tests::{Weapon, WeaponStats, weapon};
-use pretty_assertions::assert_eq;
-use surrealdb::{Surreal, engine::local::Mem};
 
 #[tokio::test]
 async fn test_complex_code_block_with_sweet_macro_block_and_object_partial_and_arithementic_ops()

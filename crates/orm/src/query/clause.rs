@@ -1,4 +1,3 @@
-
 use surrealdb::types::{self, Table, ToSql};
 
 use crate::{

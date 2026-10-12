@@ -1,4 +1,3 @@
-
 use surrealdb::types::{SurrealValue, Table, Value};
 
 use crate::{

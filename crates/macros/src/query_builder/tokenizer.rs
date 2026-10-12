@@ -1,4 +1,3 @@
-
 use crate::helpers::get_crate_name;
 use crate::statement_parser::query_chain::{GeneratedCode, QueriesChainParser};
 use quote::quote;

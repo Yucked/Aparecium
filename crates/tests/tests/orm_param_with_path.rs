@@ -1,7 +1,6 @@
-
+use pretty_assertions::assert_eq;
 use umbriel::{All, Buildable, E, Operatable, SchemaGetter, ToRaw, index, this, value, where_};
 use umbriel_tests::{Student, student};
-use pretty_assertions::assert_eq;
 
 #[test]
 fn test_param_with_path() {

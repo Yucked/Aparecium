@@ -15,8 +15,10 @@ impl Codegen<'_> {
             self.aliases_struct_fields_types_kv
                 .push(quote!(pub #field_ident_normalized: #crate_name::AliasName, ).into());
 
-            self.aliases_struct_fields_names_kv
-                .push(quote!(#field_ident_normalized: #crate_name::AliasName::new(#db_field_name),).into());
+            self.aliases_struct_fields_names_kv.push(
+                quote!(#field_ident_normalized: #crate_name::AliasName::new(#db_field_name),)
+                    .into(),
+            );
         }
         Ok(())
     }

@@ -1,7 +1,6 @@
-
-use umbriel::{Node, SurrealSimpleId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use umbriel::{Node, SurrealSimpleId};
 
 // NOTE: Make PartialBuilder trait separate from Node, so it can be optional
 // Planet

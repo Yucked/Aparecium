@@ -1,6 +1,7 @@
-
 use std::ops::Deref;
 
+use chrono::Utc;
+use serde::{Deserialize, Serialize};
 use umbriel::{
     SurrealCrudNode, arr, cond, create_table_resources,
     functions::crypto,
@@ -10,8 +11,6 @@ use umbriel::{
     },
     *,
 };
-use chrono::Utc;
-use serde::{Deserialize, Serialize};
 
 use snake_cases::{AnimalSnakeCase, AnimalSnakeCaseEatsCrop};
 

@@ -1,4 +1,3 @@
-
 use crate::migrations::*;
 use crate::*;
 
@@ -139,8 +138,9 @@ impl<'a, R: DbResources> ComparisonFields<'a, R> {
         // Field name change defs
         acc.add_comment_to_up(format!("Rename field {old_name_sql} to {new_name_sql}"));
         acc.add_up(QueryType::Define(new_field_def.clone()));
-        let copy_old_to_new =
-            UpdateStatementRaw::from(format!("UPDATE {table_sql} SET {new_name_sql} = {old_name_sql}"));
+        let copy_old_to_new = UpdateStatementRaw::from(format!(
+            "UPDATE {table_sql} SET {new_name_sql} = {old_name_sql}"
+        ));
         acc.add_up(QueryType::Update(copy_old_to_new));
         acc.add_up(QueryType::Remove(old_field_def.as_remove_statement()?));
         acc.add_comment_to_up("Rename field ending");
@@ -150,8 +150,9 @@ impl<'a, R: DbResources> ComparisonFields<'a, R> {
             "Revert field name change. Change field {new_name_sql} back to {old_name_sql}"
         ));
         acc.add_down(QueryType::Define(old_field_def.clone()));
-        let copy_new_to_old =
-            UpdateStatementRaw::from(format!("UPDATE {table_sql} SET {old_name_sql} = {new_name_sql}"));
+        let copy_new_to_old = UpdateStatementRaw::from(format!(
+            "UPDATE {table_sql} SET {old_name_sql} = {new_name_sql}"
+        ));
         acc.add_down(QueryType::Update(copy_new_to_old));
         acc.add_down(QueryType::Remove(new_field_def.as_remove_statement()?));
         acc.add_comment_to_down("Revert field name change ending");

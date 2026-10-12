@@ -1,7 +1,6 @@
-
+use pretty_assertions::assert_eq;
 use umbriel::*;
 use umbriel_tests::{Rocket, rocket};
-use pretty_assertions::assert_eq;
 
 #[test]
 fn test_rocket_add_field_to_real_number_complex() {

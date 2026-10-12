@@ -1,4 +1,3 @@
-
 use quote::{ToTokens, quote};
 use syn::{
     Expr, Ident, Result as SynResult, Token,

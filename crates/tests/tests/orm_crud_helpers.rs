@@ -1,13 +1,12 @@
-
+use surrealdb::{
+    Surreal,
+    engine::local::{Db, Mem},
+};
 use umbriel::{
     statements::{insert, select, select_value},
     *,
 };
 use umbriel_tests::{SpaceShip, Weapon, space_ship, weapon};
-use surrealdb::{
-    Surreal,
-    engine::local::{Db, Mem},
-};
 
 async fn create_test_data(db: Surreal<Db>) {
     let space_ships = (0..1000)

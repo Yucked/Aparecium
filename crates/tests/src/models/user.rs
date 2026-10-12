@@ -1,7 +1,7 @@
-use umbriel::{Edge, LinkMany, LinkOne, Model, Node, Object, Relate, SurrealId, SurrealSimpleId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use surrealdb::sql;
+use umbriel::{Edge, LinkMany, LinkOne, Model, Node, Object, Relate, SurrealId, SurrealSimpleId};
 
 #[derive(Node, Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]

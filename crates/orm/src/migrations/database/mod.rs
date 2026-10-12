@@ -1,4 +1,3 @@
-
 mod checksum;
 mod db_left_mig_dir;
 mod db_right_codebase;

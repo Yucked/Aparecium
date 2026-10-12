@@ -84,9 +84,8 @@ impl Codegen<'_> {
         );
 
         // The object's schema starts at this model's path: its fields are this model's.
-        self.schema_struct_fields_types_kv.push(
-            quote!(pub #ident: <#ty as #crate_name::SchemaGetter>::Schema,).into(),
-        );
+        self.schema_struct_fields_types_kv
+            .push(quote!(pub #ident: <#ty as #crate_name::SchemaGetter>::Schema,).into());
         self.schema_struct_fields_names_kv.push(
             quote!(#ident: <#ty as #crate_name::SchemaGetter>::schema_prefixed(#___________path.clone()),)
                 .into(),

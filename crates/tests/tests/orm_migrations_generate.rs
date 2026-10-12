@@ -1,4 +1,5 @@
-
+use tempfile::tempdir;
+use test_case::test_case;
 use umbriel::{
     DbResources, create_table_resources,
     migrations::{Generate, Init, MockPrompter, Mode, RenameOrDelete},
@@ -7,8 +8,6 @@ use umbriel_tests::migrations::{
     Animal, AnimalV2, Planet, PlanetV2, Resources, ResourcesV2, invalid_cases,
 };
 use umbriel_tests::migrator_support::{AssertionArg, TestConfig, current_function};
-use tempfile::tempdir;
-use test_case::test_case;
 
 #[test_case(Mode::Strict; "Strict")]
 #[test_case(Mode::Lax; "Lax")]

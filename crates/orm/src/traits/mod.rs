@@ -1,4 +1,3 @@
-
 pub(crate) mod db_resources;
 pub(crate) mod general;
 pub(crate) mod model;

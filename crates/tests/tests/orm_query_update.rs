@@ -1,14 +1,13 @@
-
-use umbriel::{
-    statements::{create, insert, select, update},
-    *,
-};
-use umbriel_tests::{Alien, Rocket, SpaceShip, Weapon, WeaponOld, alien, weapon, weapon_old};
 use chrono::Utc;
 use geo::{line_string, point, polygon};
 use pretty_assertions::assert_eq;
 use std::time::Duration;
 use surrealdb::{Surreal, engine::local::Mem};
+use umbriel::{
+    statements::{create, insert, select, update},
+    *,
+};
+use umbriel_tests::{Alien, Rocket, SpaceShip, Weapon, WeaponOld, alien, weapon, weapon_old};
 
 fn create_test_alien(age: u8, name: String) -> Alien {
     let point = point! {

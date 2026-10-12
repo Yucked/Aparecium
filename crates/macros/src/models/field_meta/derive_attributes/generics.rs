@@ -1,4 +1,3 @@
-
 use super::MyFieldReceiver;
 
 impl MyFieldReceiver {

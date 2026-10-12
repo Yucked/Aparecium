@@ -1,4 +1,3 @@
-
 use std::ops::Deref;
 
 use crate::{statements::begin_transaction, *};
@@ -74,12 +73,7 @@ impl RightDatabase {
             .unwrap_or(&vec![])
             .clone()
             .into_iter()
-            .filter(|field_meta| {
-                field_meta
-                    .old_name
-                    .clone()
-                    .is_some_and(|o| !o.is_empty())
-            })
+            .filter(|field_meta| field_meta.old_name.clone().is_some_and(|o| !o.is_empty()))
             .find(|f| match &by {
                 By::NewName(new_name) => f.name.to_debug_sql() == new_name.to_debug_sql(),
                 By::OldName(old_name) => f

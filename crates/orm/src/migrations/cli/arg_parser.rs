@@ -1,4 +1,3 @@
-
 use crate::migrations::MigrationFilename;
 
 pub fn mig_name_parser(s: &str) -> Result<MigrationFilename, String> {

@@ -1,11 +1,10 @@
-
+use tempfile::tempdir;
+use test_case::test_case;
 use umbriel::migrations::{
     FastForwardDelta, Init, Migration, MigrationFilename, MockPrompter, Mode, Reset,
 };
 use umbriel_tests::migrations::{Resources, ResourcesV3};
 use umbriel_tests::migrator_support::{AssertionArg, TestConfig, current_function};
-use tempfile::tempdir;
-use test_case::test_case;
 
 #[test_case(true,Mode::Strict,  true; "Reversible Strict Run")]
 #[test_case(true,Mode::Lax,  false; "Reversible Lax No Run")]

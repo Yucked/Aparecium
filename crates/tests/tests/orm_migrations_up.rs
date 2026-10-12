@@ -1,11 +1,11 @@
+use pretty_assertions::assert_eq;
+use tempfile::tempdir;
+use test_case::test_case;
 use umbriel::migrations::{
     FastForwardDelta, Informational, Init, MigrationFilename, MockPrompter, Mode,
 };
 use umbriel_tests::migrations::Resources;
 use umbriel_tests::migrator_support::{AssertionArg, TestConfig, current_function};
-use pretty_assertions::assert_eq;
-use tempfile::tempdir;
-use test_case::test_case;
 
 #[test_case(Mode::Strict; "Strict")]
 #[test_case(Mode::Lax; "Lax")]

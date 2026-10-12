@@ -1,11 +1,5 @@
 // TODO: Validate in Node and Edge if id, skip_serializing_if = "Option::is_none" must be
 // set and if relate, skip_serializing
-use umbriel::statements::order;
-use umbriel::{
-    statements::{create_v2, select},
-    *,
-};
-use umbriel_tests::{Alien, SpaceShip, Weapon, alien, space_ship};
 use chrono::{DateTime, Utc};
 use geo::line_string;
 use geo::point;
@@ -15,6 +9,12 @@ use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use surrealdb::Surreal;
 use surrealdb::engine::local::Mem;
+use umbriel::statements::order;
+use umbriel::{
+    statements::{create_v2, select},
+    *,
+};
+use umbriel_tests::{Alien, SpaceShip, Weapon, alien, space_ship};
 
 #[tokio::test]
 async fn test_create_alien_with_id_not_specified_but_generated_by_the_database()

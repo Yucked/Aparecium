@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use umbriel::{All, Buildable, Field, Operatable, ToRaw, chain, cond, statements::select};
     use insta::assert_snapshot;
     use select::CanOrder;
     use surrealdb::sql;
+    use umbriel::{All, Buildable, Field, Operatable, ToRaw, chain, cond, statements::select};
 
     #[test]
     fn test_chaining() {

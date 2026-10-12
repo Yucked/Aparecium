@@ -1,11 +1,11 @@
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
     use umbriel::{
         functions::crypto,
         statements::{define_scope, select},
         *,
     };
-    use std::time::Duration;
 
     #[test]
     fn test_define_scope_statement_on_namespace() {

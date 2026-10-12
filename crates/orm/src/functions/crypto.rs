@@ -1,4 +1,3 @@
-
 // Crypto functions
 // These functions can be used when hashing data, encrypting data, and for securely authenticating users into the database.
 //

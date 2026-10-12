@@ -1,4 +1,3 @@
-
 use proc_macro_crate::{FoundCrate, crate_name};
 use proc_macro2::{Span, TokenStream, TokenTree};
 use quote::quote;

@@ -1,9 +1,8 @@
-
+use pretty_assertions::assert_eq;
 use umbriel::{
     All, AllGetter, Buildable, Last, Operatable, SchemaGetter, ToRaw, index, this, where_,
 };
 use umbriel_tests::Alien;
-use pretty_assertions::assert_eq;
 
 #[test]
 fn test_simple_array_element_access_with_last() {

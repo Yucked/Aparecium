@@ -27,7 +27,9 @@ impl PatchOp {
 
 impl Render for PatchOp {
     fn render(&self, out: &mut Renderer) {
-        out.push_str("{ op: '").push_str(self.op).push_str("', path: ");
+        out.push_str("{ op: '")
+            .push_str(self.op)
+            .push_str("', path: ");
         match &self.path {
             Some(pointer) => out.push_value(pointer),
             None => out.push_error(INVALID_PATH).push_value(&Value::None),

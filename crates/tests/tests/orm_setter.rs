@@ -1,7 +1,6 @@
-
+use pretty_assertions::assert_eq;
 use umbriel::{Buildable, Field, SchemaGetter, SetterAssignable, ToRaw};
 use umbriel_tests::Organization;
-use pretty_assertions::assert_eq;
 
 #[test]
 fn test_setter() {

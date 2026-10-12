@@ -1,4 +1,3 @@
-
 // array::add() Adds an item to an array if it doesn't exist
 // array::all() Checks whether all array values are truthy
 // array::any() Checks whether any array value is truthy
@@ -53,7 +52,9 @@ use crate::{ArrayLike, Function, NumberLike, ValueLike};
 /// SELECT * FROM array::add(["one", "two"], "three");
 /// ["one", "two", "three"]
 pub fn add_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -> Function {
-    Function::new("array::add").arg(arr.into()).arg(value.into())
+    Function::new("array::add")
+        .arg(arr.into())
+        .arg(value.into())
 }
 
 /// The array::add function adds an item to an array only if it doesn't exist.
@@ -362,7 +363,9 @@ fn create_two_array_args_helper(
     arr2: impl Into<ArrayLike>,
     function_name: &'static str,
 ) -> Function {
-    Function::new(function_name).arg(arr1.into()).arg(arr2.into())
+    Function::new(function_name)
+        .arg(arr1.into())
+        .arg(arr2.into())
 }
 
 macro_rules! create_fn_with_two_array_args {
@@ -864,7 +867,9 @@ pub use array_distinct as distinct;
 
 /// The array::find function returns the first value in an array which matches the given value.
 pub fn find_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -> Function {
-    Function::new("array::find").arg(arr.into()).arg(value.into())
+    Function::new("array::find")
+        .arg(arr.into())
+        .arg(value.into())
 }
 
 /// The array::find function returns the first value in an array which matches the given value.
@@ -1214,7 +1219,9 @@ pub use array_prepend as prepend;
 /// [1,2,3,4,5]
 /// The ordering of the array.
 pub fn push_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -> Function {
-    Function::new("array::push").arg(arr.into()).arg(value.into())
+    Function::new("array::push")
+        .arg(arr.into())
+        .arg(value.into())
 }
 
 /// The array::push function appends a value to the end of an array.

@@ -1,11 +1,10 @@
-
+use pretty_assertions::assert_eq;
+use surrealdb::{Surreal, engine::local::Mem};
 use umbriel::{
     statements::{create, create_only, select, update},
     *,
 };
 use umbriel_tests::{Account, Balance, account};
-use pretty_assertions::assert_eq;
-use surrealdb::{Surreal, engine::local::Mem};
 
 #[test]
 fn test_duplicate_variable_name_properly_chain_bound_in_query_chain() {

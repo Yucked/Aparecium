@@ -1,4 +1,3 @@
-
 use surrealdb_types::Kind;
 
 use crate::models::*;

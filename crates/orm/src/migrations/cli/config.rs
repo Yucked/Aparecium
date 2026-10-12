@@ -1,4 +1,3 @@
-
 use clap::Args;
 use std::fmt::Display;
 use std::str::FromStr;

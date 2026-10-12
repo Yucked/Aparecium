@@ -1,4 +1,3 @@
-
 #![allow(dead_code)]
 #![allow(non_upper_case_globals)]
 #![allow(non_snake_case)]
@@ -15,6 +14,7 @@ use surrealdb::{
 };
 // use surreal_derive::{Edge, Node};
 
+use std::fmt::{Debug, Display};
 use umbriel::{
     functions::*,
     statements::{
@@ -23,7 +23,6 @@ use umbriel::{
     },
     *,
 };
-use std::fmt::{Debug, Display};
 
 use typed_builder::TypedBuilder;
 

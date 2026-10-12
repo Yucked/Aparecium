@@ -1,17 +1,16 @@
-
 #![allow(non_snake_case)]
 use chrono::DateTime;
 
+use pretty_assertions::assert_eq;
+use std::time::Duration;
+use surrealdb::sql;
+use surrealdb::{Surreal, engine::local::Mem};
 use umbriel::statements::{create, insert, order, relate, select, select_value};
 use umbriel::*;
 use umbriel_tests::{
     AlienVisitsPlanet, Blog, Book, Company, CompanyLikeUser, Student, StudentLiksBook,
     StudentWritesBlog, StudentWritesBook, User, company, like, user, writes,
 };
-use pretty_assertions::assert_eq;
-use std::time::Duration;
-use surrealdb::sql;
-use surrealdb::{Surreal, engine::local::Mem};
 
 #[test]
 fn can_get_structs_relations() {

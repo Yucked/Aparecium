@@ -1,7 +1,6 @@
-
-use umbriel::{Model, Node, SurrealId, sql};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use umbriel::{Model, Node, SurrealId, sql};
 
 // #[derive(Serialize, Deserialize)]
 // struct SpaceShipId(SurrealId<SpaceShip, String>);
