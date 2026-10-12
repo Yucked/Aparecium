@@ -1,4 +1,4 @@
-use crate::{Queryable, Render, Sql};
+use crate::{Fragment, Queryable, Render, Renderer};
 
 /// Creates a Transaction statement starting with BEGIN TRANSACTION and ends with COMMIT
 /// TRANSACTION or CANCEL TRANSACTION.
@@ -10,7 +10,7 @@ use crate::{Queryable, Render, Sql};
 /// Example
 ///
 /// ```rust
-/// use aparecium::{*, statements::{begin_transaction, order, select}, types::RecordId};
+/// use umbriel::{*, statements::{begin_transaction, order, select}, types::RecordId};
 /// # let name = Field::new("name");
 /// # let age = Field::new("age");
 /// # let country = Field::new("country");
@@ -93,13 +93,13 @@ pub use transaction_deprecated;
 
 /// A transaction collecting its statements.
 pub struct QueryTransaction {
-    queries: Vec<Sql>,
+    queries: Vec<Fragment>,
 }
 
 impl QueryTransaction {
     /// Adds a statement to the transaction.
     pub fn query(mut self, query: impl Queryable) -> Self {
-        self.queries.push(query.to_sql());
+        self.queries.push(query.into_fragment());
         self
     }
 
@@ -129,21 +129,25 @@ enum Completion {
 /// Completed Transaction statements. Either COMMIT or CANCEL Transaction.
 #[derive(Debug, Clone)]
 pub struct TransactionCompletion {
-    queries: Vec<Sql>,
+    queries: Vec<Fragment>,
     completion: Completion,
 }
 
 impl Render for TransactionCompletion {
-    fn render(&self, sql: &mut Sql) {
-        sql.push_str("BEGIN TRANSACTION;\n");
+    fn render(&self, out: &mut Renderer) {
+        out.push_str("BEGIN TRANSACTION;\n");
         for query in &self.queries {
-            sql.push_str("\n").push(query).push_str("\n");
+            out.push_str("\n").push(query).push_str("\n");
         }
-        sql.push_str(match self.completion {
+        out.push_str(match self.completion {
             Completion::Commit => "\nCOMMIT TRANSACTION;\n\t",
             Completion::Cancel => "\nCANCEL TRANSACTION;\n\t",
         });
     }
 }
 
-impl Queryable for TransactionCompletion {}
+impl Queryable for TransactionCompletion {
+    fn into_fragment(self) -> Fragment {
+        Fragment::new(self)
+    }
+}
