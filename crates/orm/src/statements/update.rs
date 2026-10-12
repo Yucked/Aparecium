@@ -15,8 +15,8 @@ use std::marker::PhantomData;
 use surrealdb::types::{self, SurrealValue, Table, ToSql};
 
 use crate::{
-    Conditional, DurationLike, Filter, Model, PatchOp, RecordId, ReturnType,
-    ReturnableDefault, ReturnableStandard, Setter, Sql, ValueLike,
+    Conditional, DurationLike, Filter, Model, PatchOp, RecordId, Renderer, ReturnType,
+    ReturnableDefault, ReturnableStandard, Setter, ValueLike, render::Checked,
 };
 
 use super::{Statement, impl_statement};
@@ -27,7 +27,7 @@ use super::{Statement, impl_statement};
 /// # Examples
 ///
 /// ```rust, ignore
-/// use aparecium::{*, statements::update};
+/// use umbriel::{*, statements::update};
 ///
 /// // Update using set method
 /// update::<User>(user)
@@ -71,33 +71,31 @@ pub enum TargettablesForUpdate {
 }
 
 impl TargettablesForUpdate {
-    /// Renders the target, recording an error when it does not belong to `T`'s table.
-    pub(crate) fn checked<T: Model>(self) -> Sql {
+    /// The target, with an error when it does not belong to `T`'s table.
+    pub(crate) fn checked<T: Model>(self) -> Checked<ValueLike> {
         let table = T::table();
-        let mut sql = Sql::new();
         match self {
             Self::Table(target) => {
-                if target != table {
-                    sql.push_error(format!(
+                let error = (target != table).then(|| {
+                    format!(
                         "table `{}` is not the table `{}` of the model",
                         target.as_str(),
                         table.as_str()
-                    ));
-                }
-                sql.push(&target);
+                    )
+                });
+                Checked::new(ValueLike::table(target), error)
             }
             Self::Record(id) => {
-                if id.table != table {
-                    sql.push_error(format!(
+                let error = (id.table != table).then(|| {
+                    format!(
                         "record `{}` does not belong to the model's table `{}`",
                         id.to_sql(),
                         table.as_str()
-                    ));
-                }
-                sql.push_value(id.into_value());
+                    )
+                });
+                Checked::new(ValueLike::value(id), error)
             }
         }
-        sql
     }
 }
 
@@ -156,14 +154,14 @@ enum Data {
 /// Update statement initializer
 #[derive(Debug, Clone)]
 pub struct UpdateStatementInit<T: Model> {
-    target: Sql,
+    target: Checked<ValueLike>,
     is_only: bool,
     data: Data,
     where_: Option<Filter>,
     return_type: Option<ReturnType>,
     timeout: Option<DurationLike>,
     parallel: bool,
-    model: PhantomData<T>,
+    model: PhantomData<fn() -> T>,
 }
 
 impl<T: Model> UpdateStatementInit<T> {
@@ -251,6 +249,7 @@ impl<T: Model> UpdateStatementInit<T> {
 }
 
 /// A builder for update statements.
+#[derive(Debug, Clone)]
 pub struct UpdateStatement<T: Model>(UpdateStatementInit<T>);
 
 impl<T: Model> From<UpdateStatementInit<T>> for UpdateStatement<T> {
@@ -296,47 +295,47 @@ impl<T: Model> UpdateStatement<T> {
 }
 
 impl<T: Model> Statement for UpdateStatement<T> {
-    fn render_body(&self, sql: &mut Sql) {
+    fn render_body(&self, out: &mut Renderer) {
         let statement = &self.0;
-        sql.push_str("UPDATE ");
+        out.push_str("UPDATE ");
         if statement.is_only {
-            sql.push_str("ONLY ");
+            out.push_str("ONLY ");
         }
-        sql.push(&statement.target);
+        out.push(&statement.target);
 
         match &statement.data {
             Data::None => {}
             Data::Content(content) => {
-                sql.push_str(" CONTENT ").push(content);
+                out.push_str(" CONTENT ").push(content);
             }
             Data::Merge(merge) => {
-                sql.push_str(" MERGE ").push(merge);
+                out.push_str(" MERGE ").push(merge);
             }
             Data::Replace(replacement) => {
-                sql.push_str(" REPLACE ").push(replacement);
+                out.push_str(" REPLACE ").push(replacement);
             }
             Data::Set(setters) => {
-                sql.push_str(" SET ").push(setters);
+                out.push_str(" SET ").push(setters);
             }
             Data::Patch(ops) => {
-                sql.push_str(" PATCH [").push(ops).push_str("]");
+                out.push_str(" PATCH [").push(ops).push_str("]");
             }
         }
 
         if let Some(condition) = &statement.where_ {
-            sql.push_str(" WHERE ").push(condition);
+            out.push_str(" WHERE ").push(condition);
         }
 
         if let Some(return_type) = &statement.return_type {
-            sql.push_str(" ").push(return_type);
+            out.push_str(" ").push(return_type);
         }
 
         if let Some(timeout) = &statement.timeout {
-            sql.push_str(" TIMEOUT ").push_inlined(timeout);
+            out.push_str(" TIMEOUT ").push_inlined(timeout);
         }
 
         if statement.parallel {
-            sql.push_str(" PARALLEL");
+            out.push_str(" PARALLEL");
         }
     }
 }
