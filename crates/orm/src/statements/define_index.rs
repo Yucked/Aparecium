@@ -7,7 +7,7 @@
 
 use surrealdb::types::Table;
 
-use crate::{Field, Ident, NumberLike, Render, Sql, TableIndex, ValueLike};
+use crate::{Field, Ident, NumberLike, Render, Renderer, TableIndex, ValueLike};
 
 use super::{Statement, impl_definition};
 
@@ -17,7 +17,7 @@ use super::{Statement, impl_definition};
 ///
 /// Example:
 /// ```rust
-/// use aparecium::{*, statements::{define_index}};
+/// use umbriel::{*, statements::{define_index}};
 /// # let alien = Table::from("alien");
 /// # let name = Field::new("name");
 /// # let age = Field::new("age");
@@ -144,25 +144,25 @@ impl DefineIndexStatement {
 }
 
 impl Statement for DefineIndexStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("DEFINE INDEX ").push(&self.index_name);
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("DEFINE INDEX ").push(&self.index_name);
 
         if let Some(table) = &self.table {
-            sql.push_str(" ON TABLE ").push(table);
+            out.push_str(" ON TABLE ").push(table);
         }
 
         if !self.fields.is_empty() {
-            sql.push_str(" FIELDS ").push(&self.fields);
+            out.push_str(" FIELDS ").push(&self.fields);
         }
 
         if !self.columns.is_empty() {
-            sql.push_str(" COLUMNS ").push(&self.columns);
+            out.push_str(" COLUMNS ").push(&self.columns);
         }
 
         if self.unique {
-            sql.push_str(" UNIQUE");
+            out.push_str(" UNIQUE");
         } else if let Some(search_analyzer) = &self.search_analyzer {
-            sql.push_str(" ").push(search_analyzer);
+            out.push_str(" ").push(search_analyzer);
         }
     }
 }
@@ -178,13 +178,13 @@ pub enum Scoring {
 }
 
 impl Render for Scoring {
-    fn render(&self, sql: &mut Sql) {
+    fn render(&self, out: &mut Renderer) {
         match self {
             Scoring::Bm25(k1, b) => {
-                sql.push_str("BM25 ").push(k1).push_str(" ").push(b);
+                out.push_str("BM25 ").push(k1).push_str(" ").push(b);
             }
             Scoring::Vs => {
-                sql.push_str("VS");
+                out.push_str("VS");
             }
         }
     }
@@ -246,15 +246,15 @@ impl SearchAnalyzer {
 }
 
 impl Render for SearchAnalyzer {
-    fn render(&self, sql: &mut Sql) {
-        sql.push_str("SEARCH ANALYZER ").push(&self.analyzer);
+    fn render(&self, out: &mut Renderer) {
+        out.push_str("SEARCH ANALYZER ").push(&self.analyzer);
 
         if self.highlight {
-            sql.push_str(" HIGHLIGHTS");
+            out.push_str(" HIGHLIGHTS");
         }
 
         if let Some(scoring) = &self.scoring {
-            sql.push_str(" ").push(scoring);
+            out.push_str(" ").push(scoring);
         }
 
         let orders = [
@@ -265,7 +265,7 @@ impl Render for SearchAnalyzer {
         ];
         for (keyword, order) in orders {
             if let Some(order) = order {
-                sql.push_str(keyword).push(order);
+                out.push_str(keyword).push(order);
             }
         }
     }
@@ -274,7 +274,7 @@ impl Render for SearchAnalyzer {
 /// Function to start building a SearchParams object with an analyzer
 ///
 /// ```rust
-/// use aparecium::{statements::search_analyzer};
+/// use umbriel::{statements::search_analyzer};
 ///
 /// search_analyzer("my_analyzer")
 ///    .highlight()
