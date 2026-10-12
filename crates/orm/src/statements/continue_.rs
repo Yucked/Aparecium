@@ -1,4 +1,4 @@
-use crate::Sql;
+use crate::Renderer;
 
 use super::{Statement, impl_statement};
 
@@ -6,7 +6,7 @@ use super::{Statement, impl_statement};
 ///
 /// Examples
 /// ```rust
-/// use aparecium::{*, statements::continue_};
+/// use umbriel::{*, statements::continue_};
 ///
 /// assert_eq!(continue_().to_debug_sql(), "CONTINUE;");
 /// ```
@@ -18,8 +18,8 @@ pub fn continue_() -> ContinueStatement {
 pub struct ContinueStatement;
 
 impl Statement for ContinueStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("CONTINUE");
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("CONTINUE");
     }
 }
 
