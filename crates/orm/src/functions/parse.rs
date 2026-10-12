@@ -55,8 +55,8 @@ pub mod email {
         /// parse::email::host(string) -> value
         /// The following example shows this function, and its output, when used in a select statement:
         /// ```sql
-        /// SELECT * FROM parse::email::host("oyelowo@codebreather.com");
-        /// codebreather.com
+
+        /// example.com
         /// ```
         /// 
         /// # Arguments
@@ -66,9 +66,9 @@ pub mod email {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::parse};
+        /// use umbriel::{*, functions::parse};
         ///
-        /// parse::email::host!("oyelowo@codebreather.com");
+
         ///
         /// # let email_field = Field::new("email_field");
         /// parse::email::host!(email_field);
@@ -76,7 +76,7 @@ pub mod email {
         /// # let email_param = Param::new("email_param");
         /// parse::email::host!(email_param);
         /// ```
-        => "email", "host", "oyelowo@codebreather.com");
+        => "email", "host", "charlie@example.com");
 
     create_test_for_fn_with_single_arg!(
         /// The parse::email::user function parses and returns and email username from a valid email address.
@@ -85,8 +85,8 @@ pub mod email {
         /// parse::email::user(string) -> value
         /// The following example shows this function, and its output, when used in a select statement:
         /// ```sql
-        /// SELECT * FROM parse::email::user("oyelowo@codebreather.com");
-        /// oyelowo
+
+        /// charlie
         ///
         /// # Arguments
         ///
@@ -95,9 +95,9 @@ pub mod email {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::parse};
+        /// use umbriel::{*, functions::parse};
         ///
-        /// parse::email::user!("oyelowo@codebreather.com");
+
         ///
         /// # let email_field = Field::new("email_field");
         /// parse::email::user!(email_field);
@@ -106,7 +106,7 @@ pub mod email {
         /// parse::email::user!(email_param);
         /// ```
         =>
-        "email", "user", "oyelowo@codebreather.com");
+        "email", "user", "charlie@example.com");
 }
 
 /// This module contains functions for parsing URLs
@@ -120,8 +120,8 @@ pub mod url {
         /// parse::url::domain(string) -> value
         /// The following example shows this function, and its output, when used in a select statement:
         /// ```sql
-        /// SELECT * FROM parse::url::domain("https://codebreather.com:443/topics?arg=value#fragment");
-        /// codebreather.com
+        /// SELECT * FROM parse::url::domain("https://example.com:443/topics?arg=value#fragment");
+        /// example.com
         /// ```
         ///
         /// # Arguments
@@ -129,8 +129,8 @@ pub mod url {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::parse};
-        /// parse::url::domain!("https://codebreather.com:443/topics?arg=value#fragment");
+        /// use umbriel::{*, functions::parse};
+        /// parse::url::domain!("https://example.com:443/topics?arg=value#fragment");
         /// # let url_field = Field::new("url_field");
         /// parse::url::domain!(url_field);
         /// # let url_param = Param::new("url_param");
@@ -139,7 +139,7 @@ pub mod url {
         =>
         "url",
         "domain",
-        "https://codebreather.com:443/topics?arg=value#fragment"
+        "https://example.com:443/topics?arg=value#fragment"
     );
 
     create_test_for_fn_with_single_arg!(
@@ -149,7 +149,7 @@ pub mod url {
         /// parse::url::fragment(string) -> value
         /// The following example shows this function, and its output, when used in a select statement:
         /// ```sql
-        /// SELECT * FROM parse::url::fragment("https://codebreather.com:443/topics?arg=value#fragment");
+        /// SELECT * FROM parse::url::fragment("https://example.com:443/topics?arg=value#fragment");
         /// fragment
         /// ```
         ///
@@ -158,8 +158,8 @@ pub mod url {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::parse};
-        /// parse::url::fragment!("https://codebreather.com:443/topics?arg=value#fragment");
+        /// use umbriel::{*, functions::parse};
+        /// parse::url::fragment!("https://example.com:443/topics?arg=value#fragment");
         /// # let url_field = Field::new("url_field");
         /// parse::url::fragment!(url_field);
         /// # let url_param = Param::new("url_param");
@@ -168,7 +168,7 @@ pub mod url {
         =>
         "url",
         "fragment",
-        "https://codebreather.com:443/topics?arg=value#fragment"
+        "https://example.com:443/topics?arg=value#fragment"
     );
 
     create_test_for_fn_with_single_arg!(
@@ -178,8 +178,8 @@ pub mod url {
         /// parse::url::host(string) -> value
         /// The following example shows this function, and its output, when used in a select statement:
         /// ```sql
-        /// SELECT * FROM parse::url::host("https://codebreather.com:443/topics?arg=value#fragment");
-        /// codebreather.com
+        /// SELECT * FROM parse::url::host("https://example.com:443/topics?arg=value#fragment");
+        /// example.com
         /// ```
         /// # Arguments
         ///
@@ -187,8 +187,8 @@ pub mod url {
         /// # Example
         ///
         /// ```rust
-        /// use aparecium::{*, functions::parse};
-        /// parse::url::host!("https://codebreather.com:443/topics?arg=value#fragment");
+        /// use umbriel::{*, functions::parse};
+        /// parse::url::host!("https://example.com:443/topics?arg=value#fragment");
         /// # let url_field = Field::new("url_field");
         /// parse::url::host!(url_field);
         /// # let url_param = Param::new("url_param");
@@ -197,7 +197,7 @@ pub mod url {
         =>
         "url",
         "host",
-        "https://codebreather.com:443/topics?arg=value#fragment"
+        "https://example.com:443/topics?arg=value#fragment"
     );
     create_test_for_fn_with_single_arg!(
         /// The parse::url::path function parses and returns the path from a valid URL.
@@ -205,7 +205,7 @@ pub mod url {
         /// parse::url::path(string) -> value
         /// The following example shows this function, and its output, when used in a select statement:
         /// ```sql
-        /// SELECT * FROM parse::url::path("https://codebreather.com:443/topics?arg=value#fragment");
+        /// SELECT * FROM parse::url::path("https://example.com:443/topics?arg=value#fragment");
         /// /topics
         /// ```
         /// # Arguments
@@ -215,8 +215,8 @@ pub mod url {
         /// # Example
         ///
         /// ```rust
-        /// use aparecium::{*, functions::parse};
-        /// parse::url::path!("https://codebreather.com:443/topics?arg=value#fragment");
+        /// use umbriel::{*, functions::parse};
+        /// parse::url::path!("https://example.com:443/topics?arg=value#fragment");
         /// # let url_field = Field::new("url_field");
         /// parse::url::path!(url_field);
         /// # let url_param = Param::new("url_param");
@@ -225,7 +225,7 @@ pub mod url {
         =>
         "url",
         "path",
-        "https://codebreather.com:443/topics?arg=value#fragment"
+        "https://example.com:443/topics?arg=value#fragment"
     );
 
     create_test_for_fn_with_single_arg!(
@@ -234,7 +234,7 @@ pub mod url {
         /// parse::url::port(string) -> value
         /// The following example shows this function, and its output, when used in a select statement:
         /// ```sql
-        /// SELECT * FROM parse::url::port("https://codebreather.com:443/topics?arg=value#fragment");
+        /// SELECT * FROM parse::url::port("https://example.com:443/topics?arg=value#fragment");
         /// 443
         /// ```
         /// # Arguments
@@ -243,8 +243,8 @@ pub mod url {
         /// # Example
         ///
         /// ```rust
-        /// use aparecium::{*, functions::parse};
-        /// parse::url::port!("https://codebreather.com:443/topics?arg=value#fragment");
+        /// use umbriel::{*, functions::parse};
+        /// parse::url::port!("https://example.com:443/topics?arg=value#fragment");
         /// # let url_field = Field::new("url_field");
         /// parse::url::port!(url_field);
         /// # let url_param = Param::new("url_param");
@@ -253,7 +253,7 @@ pub mod url {
         =>
         "url",
         "port",
-        "https://codebreather.com:443/topics?arg=value#fragment"
+        "https://example.com:443/topics?arg=value#fragment"
     );
 
     create_test_for_fn_with_single_arg!(
@@ -262,7 +262,7 @@ pub mod url {
         /// parse::url::protocol(string) -> value
         /// The following example shows this function, and its output, when used in a select statement:
         /// ```sql
-        /// SELECT * FROM parse::url::query("https://codebreather.com:443/topics?arg=value#fragment");
+        /// SELECT * FROM parse::url::query("https://example.com:443/topics?arg=value#fragment");
         /// arg=value
         /// ```
         /// # Arguments
@@ -271,8 +271,8 @@ pub mod url {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::parse};
-        /// parse::url::query!("https://codebreather.com:443/topics?arg=value#fragment");
+        /// use umbriel::{*, functions::parse};
+        /// parse::url::query!("https://example.com:443/topics?arg=value#fragment");
         /// # let url_field = Field::new("url_field");
         /// parse::url::query!(url_field);
         /// # let url_param = Param::new("url_param");
@@ -281,6 +281,6 @@ pub mod url {
         =>
         "url",
         "query",
-        "https://codebreather.com:443/topics?arg=value#fragment"
+        "https://example.com:443/topics?arg=value#fragment"
     );
 }
