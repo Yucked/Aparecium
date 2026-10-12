@@ -1,6 +1,6 @@
 use surrealdb::types::Table;
 
-use crate::Sql;
+use crate::Renderer;
 
 use super::{Statement, impl_definition};
 
@@ -12,7 +12,7 @@ use super::{Statement, impl_definition};
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, statements::remove_table};
+/// use umbriel::{*, statements::remove_table};
 /// # let table = Table::new("user");
 /// let statement = remove_table(table);
 /// assert_eq!(statement.to_debug_sql(), "REMOVE TABLE user;");
@@ -29,8 +29,8 @@ pub struct RemoveTableStatement {
 }
 
 impl Statement for RemoveTableStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("REMOVE TABLE ").push(&self.table);
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("REMOVE TABLE ").push(&self.table);
     }
 }
 
