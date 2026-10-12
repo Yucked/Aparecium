@@ -3,12 +3,12 @@ mod tests {
     use insta::assert_snapshot;
     use surrealdb::sql;
 
-    use aparecium::{
+    use umbriel::{
         statements::{order, select},
         *,
     };
 
-    use aparecium::{statements::*, *};
+    use umbriel::{statements::*, *};
 
     #[test]
     fn test_if_statement_primitive() {
@@ -63,7 +63,7 @@ mod tests {
 
         let if_statement = if_(cond(age.gte(18)).and(age.lte(120)))
             .then(select(All).from(user_table))
-            .else_if(name.like("Oyelowo Oyedayo"))
+            .else_if(name.like("Charlie Bennett"))
             .then(select(All).from(book_table))
             .end();
 
@@ -83,7 +83,7 @@ mod tests {
 
         let if_statement4 = if_(age.greater_than_or_equal(18).less_than_or_equal(120))
             .then(select(All).from(user_table))
-            .else_if(name.like("Oyelowo Oyedayo"))
+            .else_if(name.like("Charlie Bennett"))
             .then(select(All).from(book_table))
             .else_(select(All).from(fruit_table))
             .end();
@@ -105,7 +105,7 @@ mod tests {
 
         let if_statement5 = if_(age.greater_than_or_equal(18).less_than_or_equal(120))
             .then(select(All).from(user_table.clone()))
-            .else_if(name.like("Oyelowo Oyedayo"))
+            .else_if(name.like("Charlie Bennett"))
             .then(select(All).from(book_table))
             .else_if(cond(country.is("Canada")).or(country.is("Norway")))
             .then(select(All).from(fruit_table))
@@ -123,8 +123,8 @@ mod tests {
         let age = Field::new("age");
         let country = Field::new("country");
         let city = Field::new("city");
-        let fake_id = sql::Thing::from(("user".to_string(), "oyelowo".to_string()));
-        let fake_id2 = sql::Thing::from(("user".to_string(), "oyedayo".to_string()));
+        let fake_id = sql::Thing::from(("user".to_string(), "charlie".to_string()));
+        let fake_id2 = sql::Thing::from(("user".to_string(), "bennett".to_string()));
 
         let statement1 = select(All)
             .from(fake_id)
@@ -150,7 +150,7 @@ mod tests {
 
         let if_statement5 = if_(age.greater_than_or_equal(18).less_than_or_equal(120))
             .then(statement1)
-            .else_if(name.like("Oyelowo Oyedayo"))
+            .else_if(name.like("Charlie Bennett"))
             .then(statement2)
             .else_if(cond(country.is("Canada")).or(country.is("Norway")))
             .then(select(All).from(fruit_table))
