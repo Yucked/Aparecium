@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::functions::type_;
-    use aparecium::*;
+    use umbriel::functions::type_;
+    use umbriel::*;
 
     #[test]
     fn test_bool_with_macro_with_plain_number() {
@@ -81,13 +81,13 @@ mod tests {
     #[test]
     fn test_thing_macro_with_plain_values() {
         let user = Table::from("user");
-        let id = "oyelowo";
+        let id = "charlie";
         let result = type_::thing!(user, id);
         assert_eq!(
             result.fine_tune_params(),
             "type::thing($_param_00000001, $_param_00000002)"
         );
-        assert_eq!(result.to_raw().build(), "type::thing(user, 'oyelowo')");
+        assert_eq!(result.to_raw().build(), "type::thing(user, 'charlie')");
     }
 
     #[test]
@@ -108,9 +108,9 @@ macro_rules! create_type_tests {
     ($(#[$attr:meta])* => $function_name:expr, $value_type: ty, $test_data_input:expr, $test_stringified_data_output: expr) => {
         paste::paste! {
             mod [<test_ $function_name>] {
-                use aparecium::functions::type_::*;
-                use aparecium::*;
-                use aparecium::functions::type_;
+                use umbriel::functions::type_::*;
+                use umbriel::*;
+                use umbriel::functions::type_;
 
                 #[test]
                 fn [<test_ $function_name _with_field>]() {
@@ -185,9 +185,9 @@ macro_rules! create_is_function_tests {
     ($(#[$attr:meta])* => $function_name:expr, $value_type: ty, $test_data_input:expr, $test_stringified_data_output: expr) => {
         paste::paste! {
             mod [<test_is_ $function_name>] {
-                use aparecium::functions::type_::is::*;
-                use aparecium::*;
-                use aparecium::functions::type_;
+                use umbriel::functions::type_::is::*;
+                use umbriel::*;
+                use umbriel::functions::type_;
 
                 #[test]
                 fn [<test_is_ $function_name _with_field>]() {
@@ -261,15 +261,15 @@ mod is {
     );
     create_is_function_tests!(
         =>
-        "string", StrandLike, "Oyelowo", "'Oyelowo'"
+        "string", StrandLike, "Charlie", "'Charlie'"
     );
     create_is_function_tests!(
         =>
-        "geometry", aparecium::GeometryLike, geo::point!(x: 51.509865, y: -0.118092), "(51.509865, -0.118092)"
+        "geometry", umbriel::GeometryLike, geo::point!(x: 51.509865, y: -0.118092), "(51.509865, -0.118092)"
     );
     create_is_function_tests!(
         =>
-        "line", aparecium::GeometryLike, geo::LineString(vec![
+        "line", umbriel::GeometryLike, geo::LineString(vec![
         geo::Coord {
             x: -122.33583,
             y: 47.60621,
@@ -294,11 +294,11 @@ mod is {
     );
     create_is_function_tests!(
         =>
-        "multiline", aparecium::GeometryLike, geo::MultiLineString(vec![]), "{ type: 'MultiLineString', coordinates: [] }"
+        "multiline", umbriel::GeometryLike, geo::MultiLineString(vec![]), "{ type: 'MultiLineString', coordinates: [] }"
     );
     create_is_function_tests!(
         =>
-        "multipoint", aparecium::GeometryLike, geo::MultiPoint(vec![
+        "multipoint", umbriel::GeometryLike, geo::MultiPoint(vec![
         geo::Point::new(0.0, 0.0),
         geo::Point::new(1.0, 1.0),
         (2.0, 35.0).into(),
@@ -306,15 +306,15 @@ mod is {
     );
     create_is_function_tests!(
     =>
-    "multipolygon", aparecium::GeometryLike, geo::MultiPolygon(vec![]), "{ type: 'MultiPolygon', coordinates: [] }"
+    "multipolygon", umbriel::GeometryLike, geo::MultiPolygon(vec![]), "{ type: 'MultiPolygon', coordinates: [] }"
     );
     create_is_function_tests!(
         =>
-        "point", aparecium::GeometryLike, geo::Point::new(0.0, 0.0), "(0, 0)"
+        "point", umbriel::GeometryLike, geo::Point::new(0.0, 0.0), "(0, 0)"
     );
     create_is_function_tests!(
     =>
-    "polygon", aparecium::GeometryLike, geo::Polygon::new(
+    "polygon", umbriel::GeometryLike, geo::Polygon::new(
         geo::LineString(vec![
             geo::Coord {
                 x: -122.33583,
