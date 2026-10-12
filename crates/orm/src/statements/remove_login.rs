@@ -1,4 +1,4 @@
-use crate::{Login, Sql};
+use crate::{Login, Renderer};
 
 use super::{NamespaceOrDatabase, Statement, impl_definition};
 
@@ -10,7 +10,7 @@ use super::{NamespaceOrDatabase, Statement, impl_definition};
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, statements::remove_login};
+/// use umbriel::{*, statements::remove_login};
 /// # let username = Login::new("alice");
 /// let statement = remove_login(username).on_namespace();
 /// assert_eq!(statement.to_debug_sql(), "REMOVE LOGIN alice ON NAMESPACE;");
@@ -51,8 +51,8 @@ pub struct RemoveLoginStatement {
 }
 
 impl Statement for RemoveLoginStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("REMOVE LOGIN ")
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("REMOVE LOGIN ")
             .push(&self.login)
             .push_str(" ON ")
             .push(&self.on);
