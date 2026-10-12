@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use crate::{Clause, Conditional, Expression, Operatable, Param, Renderer, SchemaGetter};
 
 use super::{Statement, impl_statement};
@@ -17,9 +19,11 @@ use super::{Statement, impl_statement};
 /// // and even a select statement
 /// let_("users").equal_to(select(All).from(user));
 /// ```
-pub fn let_(parameter: impl Into<Param>) -> LetStatement {
+///
+/// An invalid name (see [`Param::check`]) fails when the query is rendered.
+pub fn let_(name: impl Into<Cow<'static, str>>) -> LetStatement {
     LetStatement {
-        parameter: parameter.into(),
+        parameter: Param::new(name),
         value: None,
     }
 }
