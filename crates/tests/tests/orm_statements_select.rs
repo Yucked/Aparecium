@@ -1,14 +1,14 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::*;
-    use aparecium::{statements::*, *};
+    use umbriel::*;
+    use umbriel::{statements::*, *};
 
     #[test]
     fn test_statement_with_alias() {
         let canadian_cities = AliasName::new("legal_age");
         let age = &Field::new("age");
         let city = &Field::new("city");
-        let fake_id = sql::Thing::from(("user".to_string(), "oyelowo".to_string()));
+        let fake_id = sql::Thing::from(("user".to_string(), "charlie".to_string()));
         let ft_city = IndexName::new("ft_city");
 
         let statement = select(All)
@@ -41,7 +41,7 @@ mod tests {
         );
         assert_eq!(
             statement_aliased.to_raw().to_string(),
-            "(SELECT * OMIT age, city FROM user:oyelowo WITH INDEX ft_city WHERE (city IS 'Prince Edward Island') \
+            "(SELECT * OMIT age, city FROM user:charlie WITH INDEX ft_city WHERE (city IS 'Prince Edward Island') \
                     AND (city IS 'NewFoundland') OR (city ~ 'Toronto') \
                     ORDER BY age NUMERIC DESC, city ASC LIMIT 153 START AT 10 PARALLEL EXPLAIN FULL) AS legal_age"
         );
