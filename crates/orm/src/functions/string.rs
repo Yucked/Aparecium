@@ -1,4 +1,3 @@
-
 // String functions
 // These functions can be used when working with and manipulating text and string values.
 //
@@ -24,19 +23,19 @@
 // string::similarity::fuzzy
 // string::similarity::jaro
 // string::similarity::smithwaterman
-// string::is::alphanum()	Checks whether a value has only alphanumeric characters
-// string::is::alpha()	Checks whether a value has only alpha characters
-// string::is::ascii()	Checks whether a value has only ascii characters
-// string::is::datetime() Checks whether a value matches a datetime format
-// string::is::domain()	Checks whether a value is a domain
-// string::is::email()	Checks whether a value is an email
-// string::is::hexadecimal()	Checks whether a value is hexadecimal
-// string::is::latitude()	Checks whether a value is a latitude value
-// string::is::longitude()	Checks whether a value is a longitude value
-// string::is::numeric()	Checks whether a value has only numeric characters
-// string::is::semver()	Checks whether a value matches a semver version
-// string::is::url() Checks whether a value is a valid URL
-// string::is::uuid()	Checks whether a value is a UUID
+// string::is_alphanum()	Checks whether a value has only alphanumeric characters
+// string::is_alpha()	Checks whether a value has only alpha characters
+// string::is_ascii()	Checks whether a value has only ascii characters
+// string::is_datetime() Checks whether a value matches a datetime format
+// string::is_domain()	Checks whether a value is a domain
+// string::is_email()	Checks whether a value is an email
+// string::is_hexadecimal()	Checks whether a value is hexadecimal
+// string::is_latitude()	Checks whether a value is a latitude value
+// string::is_longitude()	Checks whether a value is a longitude value
+// string::is_numeric()	Checks whether a value has only numeric characters
+// string::is_semver()	Checks whether a value matches a semver version
+// string::is_url() Checks whether a value is a valid URL
+// string::is_uuid()	Checks whether a value is a UUID
 
 use crate::{ArgsList, Function, NumberLike, StrandLike, ValueLike};
 
@@ -49,7 +48,7 @@ fn create_fn_with_single_string_arg(
 
 /// Returns length of a string
 pub fn len_fn(string: impl Into<StrandLike>) -> Function {
-    create_fn_with_single_string_arg(string, "string::length")
+    create_fn_with_single_string_arg(string, "string::len")
 }
 
 /// Returns length of a string.
@@ -62,15 +61,15 @@ pub fn len_fn(string: impl Into<StrandLike>) -> Function {
 /// ```rust
 /// use umbriel::{*, functions::string, statements::let_};
 /// let len = string::len!("Alice Smith");
-/// assert_eq!(len.to_debug_sql(), "string::length('Alice Smith')");
+/// assert_eq!(len.to_debug_sql(), "string::len('Alice Smith')");
 ///
 /// let string_field = Field::new("string_field");
 /// let len = string::len!(string_field);
-/// assert_eq!(len.to_debug_sql(), "string::length(string_field)");
+/// assert_eq!(len.to_debug_sql(), "string::len(string_field)");
 ///
 /// let string_param = let_("string_param").equal_to("Alice Smith").get_param();
 /// let len = string::len!(string_param);
-/// assert_eq!(len.to_debug_sql(), "string::length($string_param)");
+/// assert_eq!(len.to_debug_sql(), "string::len($string_param)");
 /// ```
 #[macro_export]
 macro_rules! string_len {
@@ -647,19 +646,19 @@ macro_rules! create_validation_with_tests {
     ($(#[$attr:meta])* => $function_name: expr) => {
         paste::paste! {
             $(#[$attr])*
-            pub fn [<$function_name _fn>](value: impl Into<$crate::ValueLike>) -> $crate::Function {
+            pub fn [<is_ $function_name _fn>](value: impl Into<$crate::ValueLike>) -> $crate::Function {
                 // Pathed: this module exports its own `concat` macro (`string::concat`).
-                super::create_string_validation_function(value, ::core::concat!("string::is::", $function_name))
+                create_string_validation_function(value, ::core::concat!("string::is_", $function_name))
             }
 
             $(#[$attr])*
             #[macro_export]
-            macro_rules!  [<string_validation_is_ $function_name>]{
-                ( $geometry:expr ) => {
-                    $crate::functions::string::is::[<$function_name _fn>]($geometry)
+            macro_rules!  [<string_is_ $function_name>]{
+                ( $value:expr ) => {
+                    $crate::functions::string::[<is_ $function_name _fn>]($value)
                 };
             }
-            pub use [<string_validation_is_ $function_name>] as [<$function_name>];
+            pub use [<string_is_ $function_name>] as [<is_ $function_name>];
 
 
         }
@@ -698,375 +697,343 @@ macro_rules! create_fn_with_two_strings_args {
     };
 }
 
-create_fn_with_two_strings_args!(
-    /// The string::is::format function checks whether a value matches a format.
-    /// Also aliased as `string_is_format!`
+// Validation functions (`string::is_*`).
+create_validation_with_tests!(
+    /// The string::is_alphanum function checks whether a value has only alphanumeric characters.
+    /// Also aliased as `string_is_alphanum!`
     ///
     /// # Arguments
     ///
     /// * `value` - The value to check. Could be a field or a parameter that represents the
-    /// value.
-    /// * `format` - The format to check against. Could be a field or a parameter that represents the
     /// value.
     ///
     /// # Example
     /// ```rust
     /// use umbriel::{*, functions::string, statements::let_};
     ///
-    /// let name = Field::new("name");
-    /// let result = string::is::format!(name, "Alice");
-    /// assert_eq!(result.to_debug_sql(), "string::is::format(name, 'Alice')");
+    /// let result = string::is_alphanum!("alice1234");
+    /// assert_eq!(result.to_debug_sql(), "string::is_alphanum('alice1234')");
     ///
-    /// let result = string::is::format!("Alice", "Smith");
-    /// assert_eq!(result.to_debug_sql(), "string::is::format('Alice', 'Smith')");
+    /// let alphanum_field = Field::new("alphanum_field");
+    /// let result = string::is_alphanum!(alphanum_field);
+    /// assert_eq!(result.to_debug_sql(), "string::is_alphanum(alphanum_field)");
+    ///
+    /// let alphanum_param = let_("alphanum_param").equal_to("alice1234").get_param();
+    /// let result = string::is_alphanum!(alphanum_param);
+    /// assert_eq!(result.to_query().unwrap().sql(), "string::is_alphanum($alphanum_param)");
     /// ```
     =>
-    "is_format",
-    "is::format"
+    "alphanum"
 );
 
-/// This module contains functions that validate values
-pub mod is {
-    pub use super::string_is_format as format;
+create_validation_with_tests!(
+    /// The string::is_alpha function checks whether a value has only alpha characters.
+    /// Also aliased as `string_is_alpha!`
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - The value to check. Could be a field or a parameter that represents the
+    /// value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::string, statements::let_};
+    ///
+    /// let result = string::is_alpha!("alice");
+    /// assert_eq!(result.to_debug_sql(), "string::is_alpha('alice')");
+    ///
+    /// let alpha_field = Field::new("alpha_field");
+    /// let result = string::is_alpha!(alpha_field);
+    /// assert_eq!(result.to_debug_sql(), "string::is_alpha(alpha_field)");
+    ///
+    /// let alpha_param = let_("alpha_param").equal_to("alice").get_param();
+    /// let result = string::is_alpha!(alpha_param);
+    /// assert_eq!(result.to_query().unwrap().sql(), "string::is_alpha($alpha_param)");
+    /// ```
+    =>
+    "alpha"
+);
 
-    // The is::alphanum function checks whether a value has only alphanumeric characters.
-    create_validation_with_tests!(
-        /// The string::is::alphanum function checks whether a value has only alphanumeric characters.
-        /// Also aliased as `string::is_alphanum!`
-        ///
-        /// # Arguments
-        ///
-        /// * `value` - The value to check. Could be a field or a parameter that represents the
-        /// value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::string, statements::let_};
-        ///
-        /// let result = string::is::alphanum!("alice1234");
-        /// assert_eq!(result.to_debug_sql(), "string::is::alphanum('alice1234')");
-        ///
-        /// let alphanum_field = Field::new("alphanum_field");
-        /// let result = string::is::alphanum!(alphanum_field);
-        /// assert_eq!(result.to_debug_sql(), "string::is::alphanum(alphanum_field)");
-        ///
-        /// let alphanum_param = let_("alphanum_param").equal_to("alice1234").get_param();
-        /// let result = string::is::alphanum!(alphanum_param);
-        /// assert_eq!(result.to_query().unwrap().sql(), "string::is::alphanum($alphanum_param)");
-        /// ```
-        =>
-        "alphanum"
-    );
+create_validation_with_tests!(
+    /// The string::is_ascii function checks whether a value has only ascii characters.
+    /// Also aliased as `string_is_ascii!`
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - The value to check. Could be a field or a parameter that represents the
+    /// value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::string, statements::let_};
+    ///
+    /// let result = string::is_ascii!("alice");
+    /// assert_eq!(result.to_debug_sql(), "string::is_ascii('alice')");
+    ///
+    /// let ascii_field = Field::new("ascii_field");
+    /// let result = string::is_ascii!(ascii_field);
+    /// assert_eq!(result.to_debug_sql(), "string::is_ascii(ascii_field)");
+    ///
+    /// let ascii_param = let_("ascii_param").equal_to("alice").get_param();
+    /// let result = string::is_ascii!(ascii_param);
+    /// assert_eq!(result.to_query().unwrap().sql(), "string::is_ascii($ascii_param)");
+    /// ```
+    =>
+    "ascii"
+);
 
-    create_validation_with_tests!(
-        /// The string::is::alpha function checks whether a value has only alpha characters.
-        /// Also aliased as `string::is_alpha!`
-        ///
-        /// # Arguments
-        ///
-        /// * `value` - The value to check. Could be a field or a parameter that represents the
-        /// value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::string, statements::let_};
-        ///
-        /// let result = string::is::alpha!("alice");
-        /// assert_eq!(result.to_debug_sql(), "string::is::alpha('alice')");
-        ///
-        /// let alpha_field = Field::new("alpha_field");
-        /// let result = string::is::alpha!(alpha_field);
-        /// assert_eq!(result.to_debug_sql(), "string::is::alpha(alpha_field)");
-        ///
-        /// let alpha_param = let_("alpha_param").equal_to("alice").get_param();
-        /// let result = string::is::alpha!(alpha_param);
-        /// assert_eq!(result.to_query().unwrap().sql(), "string::is::alpha($alpha_param)");
-        /// ```
-        =>
-        "alpha"
-    );
+create_validation_with_tests!(
+    /// The string::is_domain function checks whether a value is a domain.
+    /// Also aliased as `string_is_domain!`
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - The value to check. Could be a field or a parameter that represents the
+    /// value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::string, statements::let_};
+    ///
+    /// let result = string::is_domain!("example.com");
+    /// assert_eq!(result.to_debug_sql(), "string::is_domain('example.com')");
+    ///
+    /// let domain_field = Field::new("domain_field");
+    /// let result = string::is_domain!(domain_field);
+    /// assert_eq!(result.to_debug_sql(), "string::is_domain(domain_field)");
+    ///
+    /// let domain_param = let_("domain_param").equal_to("example.com").get_param();
+    /// let result = string::is_domain!(domain_param);
+    /// assert_eq!(result.to_query().unwrap().sql(), "string::is_domain($domain_param)");
+    /// ```
+    =>
+    "domain"
+);
 
-    create_validation_with_tests!(
-        /// The string::is::ascii function checks whether a value has only ascii characters.
-        /// Also aliased as `string_is_ascii!`
-        ///
-        /// # Arguments
-        ///
-        /// * `value` - The value to check. Could be a field or a parameter that represents the
-        /// value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::string, statements::let_};
-        ///
-        /// let result = string::is::ascii!("alice");
-        /// assert_eq!(result.to_debug_sql(), "string::is::ascii('alice')");
-        ///
-        /// let ascii_field = Field::new("ascii_field");
-        /// let result = string::is::ascii!(ascii_field);
-        /// assert_eq!(result.to_debug_sql(), "string::is::ascii(ascii_field)");
-        ///
-        /// let ascii_param = let_("ascii_param").equal_to("alice").get_param();
-        /// let result = string::is::ascii!(ascii_param);
-        /// assert_eq!(result.to_query().unwrap().sql(), "string::is::ascii($ascii_param)");
-        /// ```
-        =>
-        "ascii"
-    );
+create_validation_with_tests!(
+    /// The string::is_email function checks whether a value is an email.
+    /// Also aliased as `string_is_email!`
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - The value to check. Could be a field or a parameter that represents the
+    /// value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::string, statements::let_};
+    ///
+    /// let result = string::is_email!("alice@example.com");
+    /// assert_eq!(result.to_debug_sql(), "string::is_email('alice@example.com')");
+    ///
+    /// let email_field = Field::new("email_field");
+    /// let result = string::is_email!(email_field);
+    /// assert_eq!(result.to_debug_sql(), "string::is_email(email_field)");
+    ///
+    /// let email_param = let_("email_param").equal_to("alice@exampleco").get_param();
+    ///
+    /// let result = string::is_email!(email_param);
+    /// assert_eq!(result.to_query().unwrap().sql(), "string::is_email($email_param)");
+    /// ```
+    =>
+    "email"
+);
 
-    create_validation_with_tests!(
-        /// The string::is::domain function checks whether a value is a domain.
-        /// Also aliased as `string_is_domain!`
-        ///
-        /// # Arguments
-        ///
-        /// * `value` - The value to check. Could be a field or a parameter that represents the
-        /// value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::string, statements::let_};
-        ///
-        /// let result = string::is::domain!("example.com");
-        /// assert_eq!(result.to_debug_sql(), "string::is::domain('example.com')");
-        ///
-        /// let domain_field = Field::new("domain_field");
-        /// let result = string::is::domain!(domain_field);
-        /// assert_eq!(result.to_debug_sql(), "string::is::domain(domain_field)");
-        ///
-        /// let domain_param = let_("domain_param").equal_to("example.com").get_param();
-        /// let result = string::is::domain!(domain_param);
-        /// assert_eq!(result.to_query().unwrap().sql(), "string::is::domain($domain_param)");
-        /// ```
-        =>
-        "domain"
-    );
+create_validation_with_tests!(
+    /// The string::is_hexadecimal function checks whether a value is hexadecimal.
+    /// Also aliased as `string_is_hexadecimal!`
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - The value to check. Could be a field or a parameter that represents the
+    /// value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::string, statements::let_};
+    ///
+    /// let result = string::is_hexadecimal!("alice");
+    /// assert_eq!(result.to_debug_sql(), "string::is_hexadecimal('alice')");
+    ///
+    /// let hexadecimal_field = Field::new("hexadecimal_field");
+    /// let result = string::is_hexadecimal!(hexadecimal_field);
+    /// assert_eq!(result.to_debug_sql(), "string::is_hexadecimal(hexadecimal_field)");
+    ///
+    /// let hexadecimal_param = let_("hexadecimal_param").equal_to("alice").get_param();
+    /// let result = string::is_hexadecimal!(hexadecimal_param);
+    /// assert_eq!(result.to_query().unwrap().sql(), "string::is_hexadecimal($hexadecimal_param)");
+    /// ```
+    =>
+    "hexadecimal"
+);
 
-    create_validation_with_tests!(
-        /// The string::is::email function checks whether a value is an email.
-        /// Also aliased as `string_is_email!`
-        ///
-        /// # Arguments
-        ///
-        /// * `value` - The value to check. Could be a field or a parameter that represents the
-        /// value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::string, statements::let_};
-        ///
-        /// let result = string::is::email!("alice@example.com");
-        /// assert_eq!(result.to_debug_sql(), "string::is::email('alice@example.com')");
-        ///
-        /// let email_field = Field::new("email_field");
-        /// let result = string::is::email!(email_field);
-        /// assert_eq!(result.to_debug_sql(), "string::is::email(email_field)");
-        ///
-        /// let email_param = let_("email_param").equal_to("alice@exampleco").get_param();
-        ///
-        /// let result = string::is::email!(email_param);
-        /// assert_eq!(result.to_query().unwrap().sql(), "string::is::email($email_param)");
-        /// ```
-        =>
-        "email"
-    );
+create_validation_with_tests!(
+    /// The string::is_latitude function checks whether a value is a latitude value.
+    /// Also aliased as `string_is_latitude!`
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - The value to check. Could be a field or a parameter that represents the
+    /// value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::string, statements::let_};
+    ///
+    /// let result = string::is_latitude!("-0.118092");
+    /// assert_eq!(result.to_debug_sql(), "string::is_latitude('-0.118092')");
+    ///
+    /// let latitude_field = Field::new("latitude_field");
+    /// let result = string::is_latitude!(latitude_field);
+    /// assert_eq!(result.to_debug_sql(), "string::is_latitude(latitude_field)");
+    ///
+    /// let latitude_param = let_("latitude_param").equal_to("alice").get_param();
+    /// let result = string::is_latitude!(latitude_param);
+    /// assert_eq!(result.to_query().unwrap().sql(), "string::is_latitude($latitude_param)");
+    /// ```
+    =>
+    "latitude"
+);
 
-    create_validation_with_tests!(
-            /// The string::is::hexadecimal function checks whether a value is hexadecimal.
-            /// Also aliased as `string_is_hexadecimal!`
-            ///
-            /// # Arguments
-            ///
-            /// * `value` - The value to check. Could be a field or a parameter that represents the
-            /// value.
-            ///
-            /// # Example
-            /// ```rust
-            /// use umbriel::{*, functions::string, statements::let_};
-            ///
-            /// let result = string::is::hexadecimal!("alice");
-            /// assert_eq!(result.to_debug_sql(), "string::is::hexadecimal('alice')");
-            ///
-            /// let hexadecimal_field = Field::new("hexadecimal_field");
-            /// let result = string::is::hexadecimal!(hexadecimal_field);
-            /// assert_eq!(result.to_debug_sql(), "string::is::hexadecimal(hexadecimal_field)");
-            ///
-            /// let hexadecimal_param = let_("hexadecimal_param").equal_to("alice").get_param();
-            /// let result = string::is::hexadecimal!(hexadecimal_param);
-            /// assert_eq!(result.to_query().unwrap().sql(), "string::is::hexadecimal($hexadecimal_param)");
-            /// ```
-            =>
-            "hexadecimal"
-    );
+create_validation_with_tests!(
+    /// The string::is_longitude function checks whether a value is a longitude value.
+    /// Also aliased as `string_is_longitude!`
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - The value to check. Could be a field or a parameter that represents the
+    /// value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::string, statements::let_};
+    ///
+    /// let result = string::is_longitude!("51.509865");
+    /// assert_eq!(result.to_debug_sql(), "string::is_longitude('51.509865')");
+    ///
+    /// let longitude_field = Field::new("longitude_field");
+    /// let result = string::is_longitude!(longitude_field);
+    /// assert_eq!(result.to_debug_sql(), "string::is_longitude(longitude_field)");
+    ///
+    /// let longitude_param = let_("longitude_param").equal_to("alice").get_param();
+    /// let result = string::is_longitude!(longitude_param);
+    /// assert_eq!(result.to_query().unwrap().sql(), "string::is_longitude($longitude_param)");
+    /// ```
+    =>
+    "longitude"
+);
 
-    create_validation_with_tests!(
-        /// The string::is::latitude function checks whether a value is a latitude value.
-        /// Also aliased as `string_is_latitude!`
-        ///
-        /// # Arguments
-        ///
-        /// * `value` - The value to check. Could be a field or a parameter that represents the
-        /// value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::string, statements::let_};
-        ///
-        /// let result = string::is::latitude!("-0.118092");
-        /// assert_eq!(result.to_debug_sql(), "string::is::latitude('-0.118092')");
-        ///
-        /// let latitude_field = Field::new("latitude_field");
-        /// let result = string::is::latitude!(latitude_field);
-        /// assert_eq!(result.to_debug_sql(), "string::is::latitude(latitude_field)");
-        ///
-        /// let latitude_param = let_("latitude_param").equal_to("alice").get_param();
-        /// let result = string::is::latitude!(latitude_param);
-        /// assert_eq!(result.to_query().unwrap().sql(), "string::is::latitude($latitude_param)");
-        /// ```
-        =>
-        "latitude"
-    );
+create_validation_with_tests!(
+    /// The string::is_numeric function checks whether a value has only numeric characters.
+    /// Also aliased as `string_is_numeric!`
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - The value to check. Could be a field or a parameter that represents the
+    /// value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::string, statements::let_};
+    ///
+    /// let result = string::is_numeric!("alice");
+    /// assert_eq!(result.to_debug_sql(), "string::is_numeric('alice')");
+    ///
+    /// let numeric_field = Field::new("numeric_field");
+    /// let result = string::is_numeric!(numeric_field);
+    /// assert_eq!(result.to_debug_sql(), "string::is_numeric(numeric_field)");
+    ///
+    /// let numeric_param = let_("numeric_param").equal_to("alice").get_param();
+    /// let result = string::is_numeric!(numeric_param);
+    /// assert_eq!(result.to_query().unwrap().sql(), "string::is_numeric($numeric_param)");
+    /// ```
+    =>
+    "numeric"
+);
 
-    create_validation_with_tests!(
-        /// The string::is::longitude function checks whether a value is a longitude value.
-        /// Also aliased as `string_is_longitude!`
-        ///
-        /// # Arguments
-        ///
-        /// * `value` - The value to check. Could be a field or a parameter that represents the
-        /// value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::string, statements::let_};
-        ///
-        /// let result = string::is::longitude!("51.509865");
-        /// assert_eq!(result.to_debug_sql(), "string::is::longitude('51.509865')");
-        ///
-        /// let longitude_field = Field::new("longitude_field");
-        /// let result = string::is::longitude!(longitude_field);
-        /// assert_eq!(result.to_debug_sql(), "string::is::longitude(longitude_field)");
-        ///
-        /// let longitude_param = let_("longitude_param").equal_to("alice").get_param();
-        /// let result = string::is::longitude!(longitude_param);
-        /// assert_eq!(result.to_query().unwrap().sql(), "string::is::longitude($longitude_param)");
-        /// ```
-        =>
-        "longitude"
-    );
+create_validation_with_tests!(
+    /// The string::is_semver function checks whether a value matches a semver version.
+    /// Also aliased as `string_is_semver!`
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - The value to check. Could be a field or a parameter that represents the
+    /// value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::string, statements::let_};
+    ///
+    /// let result = string::is_semver!("alice");
+    /// assert_eq!(result.to_debug_sql(), "string::is_semver('alice')");
+    ///
+    /// let semver_field = Field::new("semver_field");
+    /// let result = string::is_semver!(semver_field);
+    /// assert_eq!(result.to_debug_sql(), "string::is_semver(semver_field)");
+    ///
+    /// let semver_param = let_("semver_param").equal_to("alice").get_param();
+    /// let result = string::is_semver!(semver_param);
+    /// assert_eq!(result.to_query().unwrap().sql(), "string::is_semver($semver_param)");
+    /// ```
+    =>
+    "semver"
+);
 
-    create_validation_with_tests!(
-        /// The string::is::numeric function checks whether a value has only numeric characters.
-        /// Also aliased as `string_is_numeric!`
-        ///
-        /// # Arguments
-        ///
-        /// * `value` - The value to check. Could be a field or a parameter that represents the
-        /// value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::string, statements::let_};
-        ///
-        /// let result = string::is::numeric!("alice");
-        /// assert_eq!(result.to_debug_sql(), "string::is::numeric('alice')");
-        ///
-        /// let numeric_field = Field::new("numeric_field");
-        /// let result = string::is::numeric!(numeric_field);
-        /// assert_eq!(result.to_debug_sql(), "string::is::numeric(numeric_field)");
-        ///
-        /// let numeric_param = let_("numeric_param").equal_to("alice").get_param();
-        /// let result = string::is::numeric!(numeric_param);
-        /// assert_eq!(result.to_query().unwrap().sql(), "string::is::numeric($numeric_param)");
-        /// ```
-        =>
-        "numeric"
-    );
+create_validation_with_tests!(
+    /// The string::is_uuid function checks whether a value is a UUID.
+    /// Also aliased as `string_is_uuid!`
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - The value to check. Could be a field or a parameter that represents the
+    /// value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::string, statements::let_};
+    ///
+    /// let result = string::is_uuid!("alice");
+    /// assert_eq!(result.to_debug_sql(), "string::is_uuid('alice')");
+    ///
+    /// let uuid_field = Field::new("uuid_field");
+    /// let result = string::is_uuid!(uuid_field);
+    /// assert_eq!(result.to_debug_sql(), "string::is_uuid(uuid_field)");
+    ///
+    /// let uuid_param = let_("uuid_param").equal_to("alice").get_param();
+    /// let result = string::is_uuid!(uuid_param);
+    /// assert_eq!(result.to_query().unwrap().sql(), "string::is_uuid($uuid_param)");
+    /// ```
+    =>
+    "uuid"
+);
 
-    create_validation_with_tests!(
-        /// The string::is::semver function checks whether a value matches a semver version.
-        /// Also aliased as `string_is_semver!`
-        ///
-        /// # Arguments
-        ///
-        /// * `value` - The value to check. Could be a field or a parameter that represents the
-        /// value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::string, statements::let_};
-        ///
-        /// let result = string::is::semver!("alice");
-        /// assert_eq!(result.to_debug_sql(), "string::is::semver('alice')");
-        ///
-        /// let semver_field = Field::new("semver_field");
-        /// let result = string::is::semver!(semver_field);
-        /// assert_eq!(result.to_debug_sql(), "string::is::semver(semver_field)");
-        ///
-        /// let semver_param = let_("semver_param").equal_to("alice").get_param();
-        /// let result = string::is::semver!(semver_param);
-        /// assert_eq!(result.to_query().unwrap().sql(), "string::is::semver($semver_param)");
-        /// ```
-        =>
-        "semver"
-    );
-
-    create_validation_with_tests!(
-        /// The string::is::uuid function checks whether a value is a UUID.
-        /// Also aliased as `string_is_uuid!`
-        ///
-        /// # Arguments
-        ///
-        /// * `value` - The value to check. Could be a field or a parameter that represents the
-        /// value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::string, statements::let_};
-        ///
-        /// let result = string::is::uuid!("alice");
-        /// assert_eq!(result.to_debug_sql(), "string::is::uuid('alice')");
-        ///
-        /// let uuid_field = Field::new("uuid_field");
-        /// let result = string::is::uuid!(uuid_field);
-        /// assert_eq!(result.to_debug_sql(), "string::is::uuid(uuid_field)");
-        ///
-        /// let uuid_param = let_("uuid_param").equal_to("alice").get_param();
-        /// let result = string::is::uuid!(uuid_param);
-        /// assert_eq!(result.to_query().unwrap().sql(), "string::is::uuid($uuid_param)");
-        /// ```
-        =>
-        "uuid"
-    );
-
-    create_validation_with_tests!(
-        /// The string::is::datetime function checks whether a value matches a datetime format.
-        /// Also aliased as `string_is_datetime!`
-        ///
-        /// # Arguments
-        ///
-        /// * `value` - The value to check. Could be a field or a parameter that represents the
-        /// value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::string, statements::let_};
-        ///
-        /// let result = string::is::datetime!("alice");
-        /// assert_eq!(result.to_debug_sql(), "string::is::datetime('alice')");
-        ///
-        /// let datetime_field = Field::new("datetime_field");
-        /// let result = string::is::datetime!(datetime_field);
-        /// assert_eq!(result.to_debug_sql(), "string::is::datetime(datetime_field)");
-        ///
-        /// let datetime_param = let_("datetime_param").equal_to("alice").get_param();
-        /// let result = string::is::datetime!(datetime_param);
-        /// assert_eq!(result.to_query().unwrap().sql(), "string::is::datetime($datetime_param)");
-        /// ```
-        =>
-        "datetime"
-    );
-}
+create_validation_with_tests!(
+    /// The string::is_datetime function checks whether a value matches a datetime format.
+    /// Also aliased as `string_is_datetime!`
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - The value to check. Could be a field or a parameter that represents the
+    /// value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::string, statements::let_};
+    ///
+    /// let result = string::is_datetime!("alice");
+    /// assert_eq!(result.to_debug_sql(), "string::is_datetime('alice')");
+    ///
+    /// let datetime_field = Field::new("datetime_field");
+    /// let result = string::is_datetime!(datetime_field);
+    /// assert_eq!(result.to_debug_sql(), "string::is_datetime(datetime_field)");
+    ///
+    /// let datetime_param = let_("datetime_param").equal_to("alice").get_param();
+    /// let result = string::is_datetime!(datetime_param);
+    /// assert_eq!(result.to_query().unwrap().sql(), "string::is_datetime($datetime_param)");
+    /// ```
+    =>
+    "datetime"
+);
 
 create_fn_with_two_strings_args!(
     /// The string::distance::hamming function calculates the hamming distance between two strings.

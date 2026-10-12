@@ -1,4 +1,3 @@
-
 // Session functions
 // These functions can be used when working with and manipulating text and string values.
 //
@@ -8,7 +7,7 @@
 // session::ip()	Returns the current user's session IP address
 // session::ns()	Returns the currently selected namespace
 // session::origin()	Returns the current user's HTTP origin
-// session::sc()	Returns the current user's authentication scope
+// session::ac()	Returns the access method the current user authenticated with
 //
 
 macro_rules! create_function {
@@ -99,14 +98,14 @@ create_function!(
 "origin");
 
 create_function!(
-    /// Returns the current user's authentication scope
-    /// Also aliased as `session_sc!
+    /// Returns the access method the current user authenticated with
+    /// Also aliased as `session_ac!
     ///
     /// # Example
     /// ```rust
     /// use umbriel::{*, functions::session};
     ///
-    /// session::sc!();
+    /// assert_eq!(session::ac!().to_debug_sql(), "session::ac()");
     /// ```
     =>
-"sc");
+"ac");

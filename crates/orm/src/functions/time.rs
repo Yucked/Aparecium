@@ -1,4 +1,3 @@
-
 // Time functions
 // These functions can be used when working with and manipulating datetime values.
 //
@@ -23,10 +22,10 @@
 // time::ceil()	Rounds a datetime up by a specific duration
 // time::max()	Finds the most recent datetime in an array
 // time::min()	Finds the least recent datetime in an array
-// time::from::micros()	Calculates a datetimes based on an amount of microseconds since January 1, 1970 0:00:00 UTC.
-// time::from::millis()	Calculates a datetimes based on an amount of milliseconds since January 1, 1970 0:00:00 UTC.
-// time::from::secs()	Calculates a datetimes based on an amount of seconds since January 1, 1970 0:00:00 UTC.
-// time::from::unix()	Calculates a datetimes based on an amount of seconds since January 1, 1970 0:00:00 UTC.
+// time::from_micros()	Calculates a datetimes based on an amount of microseconds since January 1, 1970 0:00:00 UTC.
+// time::from_millis()	Calculates a datetimes based on an amount of milliseconds since January 1, 1970 0:00:00 UTC.
+// time::from_secs()	Calculates a datetimes based on an amount of seconds since January 1, 1970 0:00:00 UTC.
+// time::from_unix()	Calculates a datetimes based on an amount of seconds since January 1, 1970 0:00:00 UTC.
 
 use crate::{DatetimeLike, DurationLike, Function, StrandLike};
 
@@ -824,141 +823,133 @@ create_time_fn_with_single_array_of_datetime_arg!(
 );
 
 macro_rules! create_time_fn_with_single_number_arg {
-    ($(#[$attr:meta])* => $function_name: expr, $function_path: expr) => {
+    ($(#[$attr:meta])* => $function_name: expr) => {
         paste::paste! {
 
             $(#[$attr])*
-            pub fn [<$function_name _fn>](number: impl ::std::convert::Into<$crate::NumberLike>) -> $crate::Function {
-                $crate::Function::new(concat!("time::", $function_path)).arg(number.into())
+            pub fn [<from_ $function_name _fn>](number: impl ::std::convert::Into<$crate::NumberLike>) -> $crate::Function {
+                $crate::Function::new(concat!("time::from_", $function_name)).arg(number.into())
             }
 
             $(#[$attr])*
             #[macro_export]
             macro_rules! [<time_from_ $function_name>] {
                 ( $number:expr ) => {
-                    $crate::functions::time::from::[<$function_name _fn>]($number)
+                    $crate::functions::time::[<from_ $function_name _fn>]($number)
                 };
             }
 
-            pub use [<time_from_ $function_name>] as [<$function_name>];
+            pub use [<time_from_ $function_name>] as [<from_ $function_name>];
 
         }
     }
 }
 
-/// The time::from module contains functions that convert a number into a datetime.
-pub mod from {
-    create_time_fn_with_single_number_arg!(
-        /// The time::from::micros function converts a number of microseconds into a datetime.
-        /// The function is also aliased as `time_from_micros!`.
-        ///
-        /// # Arguments
-        ///
-        /// * `number` - The number of microseconds to convert. Could also be a field or a parameter representing a number of microseconds.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::time};
-        ///
-        /// let result = time::from::micros!(1);
-        /// assert_eq!(result.to_debug_sql(), "time::from::micros(1)");
-        ///
-        /// let rebirth_date = Field::new("rebirth_date");
-        /// let result = time::from::micros!(rebirth_date);
-        /// assert_eq!(result.to_debug_sql(), "time::from::micros(rebirth_date)");
-        ///
-        /// let param = Param::new("rebirth_date");
-        /// let result = time::from::micros!(param);
-        /// assert_eq!(result.to_debug_sql(), "time::from::micros($rebirth_date)");
-        /// ```
-        =>
-        "micros",
-        "from::micros"
-    );
+// The `time::from_*` functions convert a number into a datetime.
+create_time_fn_with_single_number_arg!(
+    /// The time::from_micros function converts a number of microseconds into a datetime.
+    /// The function is also aliased as `time_from_micros!`.
+    ///
+    /// # Arguments
+    ///
+    /// * `number` - The number of microseconds to convert. Could also be a field or a parameter representing a number of microseconds.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::time};
+    ///
+    /// let result = time::from_micros!(1);
+    /// assert_eq!(result.to_debug_sql(), "time::from_micros(1)");
+    ///
+    /// let rebirth_date = Field::new("rebirth_date");
+    /// let result = time::from_micros!(rebirth_date);
+    /// assert_eq!(result.to_debug_sql(), "time::from_micros(rebirth_date)");
+    ///
+    /// let param = Param::new("rebirth_date");
+    /// let result = time::from_micros!(param);
+    /// assert_eq!(result.to_debug_sql(), "time::from_micros($rebirth_date)");
+    /// ```
+    =>
+    "micros"
+);
 
-    create_time_fn_with_single_number_arg!(
-        /// The time::from::millis function converts a number of milliseconds into a datetime.
-        /// The function is also aliased as `time_from_millis!`.
-        ///
-        /// # Arguments
-        ///
-        /// * `number` - The number of milliseconds to convert. Could also be a field or a parameter representing a number of milliseconds.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::time};
-        ///
-        /// let result = time::from::millis!(1);
-        /// assert_eq!(result.to_debug_sql(), "time::from::millis(1)");
-        ///
-        /// let rebirth_date = Field::new("rebirth_date");
-        /// let result = time::from::millis!(rebirth_date);
-        /// assert_eq!(result.to_debug_sql(), "time::from::millis(rebirth_date)");
-        ///
-        /// let param = Param::new("rebirth_date");
-        /// let result = time::from::millis!(param);
-        /// assert_eq!(result.to_debug_sql(), "time::from::millis($rebirth_date)");
-        /// ```
-        =>
-        "millis",
-        "from::millis"
-    );
+create_time_fn_with_single_number_arg!(
+    /// The time::from_millis function converts a number of milliseconds into a datetime.
+    /// The function is also aliased as `time_from_millis!`.
+    ///
+    /// # Arguments
+    ///
+    /// * `number` - The number of milliseconds to convert. Could also be a field or a parameter representing a number of milliseconds.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::time};
+    ///
+    /// let result = time::from_millis!(1);
+    /// assert_eq!(result.to_debug_sql(), "time::from_millis(1)");
+    ///
+    /// let rebirth_date = Field::new("rebirth_date");
+    /// let result = time::from_millis!(rebirth_date);
+    /// assert_eq!(result.to_debug_sql(), "time::from_millis(rebirth_date)");
+    ///
+    /// let param = Param::new("rebirth_date");
+    /// let result = time::from_millis!(param);
+    /// assert_eq!(result.to_debug_sql(), "time::from_millis($rebirth_date)");
+    /// ```
+    =>
+    "millis"
+);
 
-    // from::secs
-    create_time_fn_with_single_number_arg!(
-        /// The time::from::secs function converts a number of seconds into a datetime.
-        /// The function is also aliased as `time_from_secs!`.
-        ///
-        /// # Arguments
-        ///
-        /// * `number` - The number of seconds to convert. Could also be a field or a parameter representing a number of seconds.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::time};
-        ///
-        /// let result = time::from::secs!(1);
-        /// assert_eq!(result.to_debug_sql(), "time::from::secs(1)");
-        ///
-        /// let rebirth_date = Field::new("rebirth_date");
-        /// let result = time::from::secs!(rebirth_date);
-        /// assert_eq!(result.to_debug_sql(), "time::from::secs(rebirth_date)");
-        ///
-        /// let param = Param::new("rebirth_date");
-        /// let result = time::from::secs!(param);
-        /// assert_eq!(result.to_debug_sql(), "time::from::secs($rebirth_date)");
-        /// ```
-        =>
-        "secs",
-        "from::secs"
-    );
+create_time_fn_with_single_number_arg!(
+    /// The time::from_secs function converts a number of seconds into a datetime.
+    /// The function is also aliased as `time_from_secs!`.
+    ///
+    /// # Arguments
+    ///
+    /// * `number` - The number of seconds to convert. Could also be a field or a parameter representing a number of seconds.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::time};
+    ///
+    /// let result = time::from_secs!(1);
+    /// assert_eq!(result.to_debug_sql(), "time::from_secs(1)");
+    ///
+    /// let rebirth_date = Field::new("rebirth_date");
+    /// let result = time::from_secs!(rebirth_date);
+    /// assert_eq!(result.to_debug_sql(), "time::from_secs(rebirth_date)");
+    ///
+    /// let param = Param::new("rebirth_date");
+    /// let result = time::from_secs!(param);
+    /// assert_eq!(result.to_debug_sql(), "time::from_secs($rebirth_date)");
+    /// ```
+    =>
+    "secs"
+);
 
-    // from::unix
-    create_time_fn_with_single_number_arg!(
-        /// The time::from::unix function converts a number of seconds since the Unix epoch into a datetime.
-        /// The function is also aliased as `time_from_unix!`.
-        ///
-        /// # Arguments
-        ///
-        /// * `number` - The number of seconds since the Unix epoch to convert. Could also be a field or a parameter representing a number of seconds since the Unix epoch.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::time};
-        ///
-        /// let result = time::from::unix!(1);
-        /// assert_eq!(result.to_debug_sql(), "time::from::unix(1)");
-        ///
-        /// let rebirth_date = Field::new("rebirth_date");
-        /// let result = time::from::unix!(rebirth_date);
-        /// assert_eq!(result.to_debug_sql(), "time::from::unix(rebirth_date)");
-        ///
-        /// let param = Param::new("rebirth_date");
-        /// let result = time::from::unix!(param);
-        /// assert_eq!(result.to_debug_sql(), "time::from::unix($rebirth_date)");
-        /// ```
-        =>
-        "unix",
-        "from::unix"
-    );
-}
+create_time_fn_with_single_number_arg!(
+    /// The time::from_unix function converts a number of seconds since the Unix epoch into a datetime.
+    /// The function is also aliased as `time_from_unix!`.
+    ///
+    /// # Arguments
+    ///
+    /// * `number` - The number of seconds since the Unix epoch to convert. Could also be a field or a parameter representing a number of seconds since the Unix epoch.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::time};
+    ///
+    /// let result = time::from_unix!(1);
+    /// assert_eq!(result.to_debug_sql(), "time::from_unix(1)");
+    ///
+    /// let rebirth_date = Field::new("rebirth_date");
+    /// let result = time::from_unix!(rebirth_date);
+    /// assert_eq!(result.to_debug_sql(), "time::from_unix(rebirth_date)");
+    ///
+    /// let param = Param::new("rebirth_date");
+    /// let result = time::from_unix!(param);
+    /// assert_eq!(result.to_debug_sql(), "time::from_unix($rebirth_date)");
+    /// ```
+    =>
+    "unix"
+);
