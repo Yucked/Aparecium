@@ -1,9 +1,9 @@
 
-use aparecium::{
+use umbriel::{
     statements::{create, create_only, select, update},
     *,
 };
-use aparecium_tests::{Account, Balance, account};
+use umbriel_tests::{Account, Balance, account};
 use pretty_assertions::assert_eq;
 use surrealdb::{Surreal, engine::local::Mem};
 
@@ -13,8 +13,8 @@ fn test_duplicate_variable_name_properly_chain_bound_in_query_chain() {
 
     let query = chain! {
         let var_name = select(All).from(account_table);
-        let var_name = "Oyelowo";
-        let var_name = "Oyedayo";
+        let var_name = "Charlie";
+        let var_name = "Bennett";
         select(All).from(account_table);
     };
 
@@ -30,8 +30,8 @@ fn test_duplicate_variable_name_properly_chain_bound_in_chain_transaction() {
         begin transaction;
 
         let var_name = select(All).from(account_table);
-        let var_name = "Oyelowo";
-        let var_name = "Oyedayo";
+        let var_name = "Charlie";
+        let var_name = "Bennett";
         select(All).from(account_table);
 
         commit transaction;
@@ -46,9 +46,9 @@ fn test_duplicate_variable_name_properly_chain_bound_in_chain_block() {
     let account_table = &Account::table();
 
     let query = chain! {
-        let var_name = "Oyelowo";
+        let var_name = "Charlie";
         let var_name = select(All).from(account_table);
-        let var_name = "Oyedayo";
+        let var_name = "Bennett";
         select(All).from(account_table);
 
         return var_name;
@@ -65,8 +65,8 @@ fn test_duplicate_variable_name_properly_chain_bound_in_dedicated_transaction() 
     let query = transaction! {
         BEGIN TRANSACTION;
 
-        let var_name = "Oyelowo";
-        let var_name = "Oyedayo";
+        let var_name = "Charlie";
+        let var_name = "Bennett";
         let var_name = select(All).from(account_table);
         select(All).from(account_table);
 
@@ -83,8 +83,8 @@ fn test_duplicate_variable_name_properly_chain_bound_in_dedicated_block() {
 
     let query = block! {
         let var_name = select(All).from(account_table);
-        let var_name = "Oyedayo";
-        let var_name = "Oyelowo";
+        let var_name = "Bennett";
+        let var_name = "Charlie";
         select(All).from(account_table);
 
         return var_name;
@@ -100,7 +100,7 @@ async fn test_simple_standalone_for_loop() -> SurrealOrmResult<()> {
     let account_table = Account::table();
 
     let query = chain! {
-        for name in vec!["Oyelowo", "Oyedayo"] {
+        for name in vec!["Charlie", "Bennett"] {
             let new_bal = 5;
             select(All).from(account_table).where_(balance.eq(new_bal));
         };
@@ -117,14 +117,14 @@ async fn test_multiple_for_loops() -> SurrealOrmResult<()> {
     let account::Schema { balance, .. } = Account::schema();
     let account_table = &Account::table();
 
-    let names_closure = || vec!["Oyelowo", "Oyedayo"];
+    let names_closure = || vec!["Charlie", "Bennett"];
 
     let query = chain! {
-        for name in vec!["Oyelowo", "Oyedayo"] {
+        for name in vec!["Charlie", "Bennett"] {
             let new_bal = 5;
             select(All).from(account_table).where_(balance.eq(new_bal));
 
-            let names = vec!["Oyelowo", "Oyedayo"];
+            let names = vec!["Charlie", "Bennett"];
             for name in names {
                 let amount_to_use = 999;
                 create_only::<Balance>().set(object!(Balance {
@@ -159,19 +159,19 @@ async fn test_simple_standalone_if_else() -> SurrealOrmResult<()> {
     let query = chain! {
         let first_cond = balance.gte(100);
         if first_cond {
-            let first_name = "Oyelowo";
+            let first_name = "Charlie";
             let score = 100;
             select(All).from(account_table).where_(balance.eq(5));
         } else if second_cond_from_outside {
-            let first_name = "Oyelowo";
+            let first_name = "Charlie";
             let score = 100;
             select(All).from(account_table).where_(balance.eq(5));
         } else if (balance.gte(100)) {
-           let first_name = "Oyelowo";
+           let first_name = "Charlie";
             let score = 100;
             select(All).from(account_table).where_(balance.eq(5));
         } else {
-            let first_name = "Oyelowo";
+            let first_name = "Charlie";
             let score = 100;
             select(All).from(account_table).where_(balance.eq(5));
         };
@@ -190,17 +190,17 @@ async fn test_multiple_if_else() -> SurrealOrmResult<()> {
     let query = chain! {
         let within_turbo_cond = balance.equal(33);
         let cond_username = if  within_turbo_cond {
-            let first_name = "Oyelowo";
+            let first_name = "Charlie";
             if balance.equal(33) {
-                let username = "oye";
+                let username = "cha";
                 if balance.equal(92) {
-                    let username = "Oyedayo";
+                    let username = "Bennett";
                     if within_turbo_cond {
-                        let username = "codebreather";
+                        let username = "exampleco";
                     };
 
-                    for name in vec!["Oyelowo", "Oyedayo"] {
-                        let first = "Oyelowo";
+                    for name in vec!["Charlie", "Bennett"] {
+                        let first = "Charlie";
                         select(All).from(Account::table()).where_(balance.eq(5));
                     };
 
@@ -210,16 +210,16 @@ async fn test_multiple_if_else() -> SurrealOrmResult<()> {
                 select(All).from(Account::table()).where_(balance.eq(5));
             };
         } else if balance.less_than(100) {
-            let first_name = "Oyelowo";
+            let first_name = "Charlie";
             let score = 100;
             select(All).from(Account::table()).where_(balance.eq(5));
 
         } else if (balance.gte(100)) {
-           let first_name = "Oyelowo";
+           let first_name = "Charlie";
             let score = 100;
             return select(All).from(Account::table()).where_(balance.eq(5));
         } else {
-            let first_name = "Oyelowo";
+            let first_name = "Charlie";
             let score = 100;
             select(All).from(Account::table()).where_(balance.eq(5));
         };
@@ -228,7 +228,7 @@ async fn test_multiple_if_else() -> SurrealOrmResult<()> {
         select(All).from(Account::table()).where_(balance.eq(5));
 
         if (balance.greater_than(100)) {
-            let first_name = "Oyelowo";
+            let first_name = "Charlie";
         };
 
         return cond_username;
@@ -265,31 +265,31 @@ async fn test_transaction_with_block_macro() -> SurrealOrmResult<()> {
 
         let balance_amount = balance1.with_path::<Balance>(E).amount;
         if balance_amount.greater_than(100) {
-            let first_name = "Oyelowo";
+            let first_name = "Charlie";
             let score = 100;
             select(All).from(Account::table()).where_(balance.eq(5));
         } else if balance_amount.less_than(100) {
-            let first_name = "Oyelowo";
+            let first_name = "Charlie";
             let score = 100;
             select(All).from(Account::table()).where_(balance.eq(5));
         } else if balance_amount.gte(100) {
-            let first_name = "Oyelowo";
+            let first_name = "Charlie";
             let score = 100;
             select(All).from(Account::table()).where_(balance.eq(5));
         } else {
-            let first_name = "Oyelowo";
+            let first_name = "Charlie";
             let score = 100;
             select(All).from(Account::table()).where_(balance.eq(5));
         };
 
-        for name in vec!["Oyelowo", "Oyedayo"] {
-            let first = "Oyelowo";
+        for name in vec!["Charlie", "Bennett"] {
+            let first = "Charlie";
             select(All).from(Account::table()).where_(balance.eq(5));
 
             let good_stmt = select(All).from(Account::table()).where_(balance.eq(64));
 
             if balance.gt(50) {
-                let first_name = "Oyelowo";
+                let first_name = "Charlie";
             };
 
             select(All).from(Account::table()).where_(balance.eq(34));
