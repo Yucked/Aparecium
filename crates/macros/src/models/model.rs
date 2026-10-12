@@ -4,7 +4,7 @@ use syn::{Expr, Meta, Token, punctuated::Punctuated};
 
 use crate::models::*;
 
-/// Expands `#[aparecium::model(node | edge | object, table = "…", value = manual)]`.
+/// Expands `#[umbriel::model(node | edge | object, table = "…", value = manual)]`.
 ///
 /// The struct gains the SDK's `SurrealValue` derive (unless `value = manual`) and the hidden
 /// `ModelCodegen` derive, which receives the model kind and table as `#[orm(..)]`.
@@ -68,7 +68,7 @@ fn expand_model_attribute(args: TokenStream, item: TokenStream) -> syn::Result<T
     })?;
     let table = table.map(|table| quote!(, table = #table));
 
-    // `SurrealValue` names its runtime through the consumer's own path to Aparecium, so a
+    // `SurrealValue` names its runtime through the consumer's own path to Umbriel, so a
     // renamed dependency works without a direct `surrealdb` dependency.
     let surreal_value = (!manual_value).then(|| {
         let types_path = quote!(#crate_name::types).to_string();
@@ -109,6 +109,7 @@ impl ModelReceiver {
             __________connect,
             _____field_names,
             _____struct_marker_ident,
+            _____table,
         } = VariablesModelMacro::new();
 
         let code_gen = Codegen::parse_fields(&model_attributes)?;
@@ -119,6 +120,10 @@ impl ModelReceiver {
             static_assertions,
             imports_referenced_node_schema,
             record_link_fields_methods,
+            serialized_fmt_db_field_names_instance: own_stored_fields,
+            flattened_objects,
+            field_metadata,
+            schema_field_idents,
             ..
         } = &code_gen;
         let imports_referenced_node_schema = imports_referenced_node_schema.iter();
@@ -140,9 +145,28 @@ impl ModelReceiver {
             DataType::Node => self.node_tokens(&code_gen)?,
             DataType::Edge => self.edge_tokens(&code_gen)?,
             DataType::Object => quote!(
-                impl #impl_generics #crate_name::Object for #struct_name_ident #ty_generics #where_clause {}
+                impl #impl_generics #crate_name::Object for #struct_name_ident #ty_generics #where_clause {
+                    const STORED_FIELDS: #crate_name::StoredFields = #module_name_internal::STORED_FIELDS;
+
+                    fn field_meta_on(#_____table: #crate_name::Table) -> ::std::vec::Vec<#crate_name::FieldMetadata> {
+                        ::std::iter::IntoIterator::into_iter([#( #field_metadata ),*])
+                            #( .chain(<#flattened_objects as #crate_name::Object>::field_meta_on(#_____table.clone())) )*
+                            .collect()
+                    }
+                }
             ),
         };
+
+        // The stored names are string literals and the flattened objects are concrete types, so
+        // these constants never name the model's generic parameters and the check is evaluated
+        // for every model, used or not.
+        let stored_fields = quote!(
+            pub(super) const STORED_FIELDS: #crate_name::StoredFields = #crate_name::StoredFields::new(
+                &[#( #own_stored_fields ),*],
+                &[#( &<#flattened_objects as #crate_name::Object>::STORED_FIELDS ),*],
+            );
+            const _: () = STORED_FIELDS.assert_valid();
+        );
 
         // Lets `assert_fields!` check that relations name a real node or edge table.
         let table_name_checker = model_attributes.table()?.map(|table| {
@@ -207,6 +231,8 @@ impl ModelReceiver {
 
                 use super::*;
 
+                #stored_fields
+
                 #table_name_checker
 
                 #( #imports_referenced_node_schema) *
@@ -223,7 +249,6 @@ impl ModelReceiver {
 
                     /// Paths to the model's fields, from the query root or a graph traversal.
                     #[allow(non_snake_case)]
-                    #[derive(Debug, Clone)]
                     pub struct __Schema__ #ty_generics #where_clause {
                        #( #schema_struct_fields_types_kv) *
                         pub(super) #___________path: #crate_name::Field,
@@ -232,9 +257,32 @@ impl ModelReceiver {
                 }
                 pub type #struct_name_ident #ty_generics = #_____schema_def::__Schema__ #ty_generics;
 
+                // Fieldwise and hand-written: derives would require the model's generics, and the
+                // type arguments of flattened objects, to be `Debug`/`Clone`. Every field is a
+                // field wrapper or another schema, which implement both without bounds.
+                impl #impl_generics ::std::fmt::Debug for #struct_name_ident #ty_generics #where_clause {
+                    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                        f.debug_struct("Schema")
+                            #( .field(stringify!(#schema_field_idents), &self.#schema_field_idents) )*
+                            .field("path", &self.#___________path)
+                            .finish()
+                    }
+                }
+
+                // A clone keeps fields the caller reassigned.
+                impl #impl_generics ::std::clone::Clone for #struct_name_ident #ty_generics #where_clause {
+                    fn clone(&self) -> Self {
+                        Self {
+                            #( #schema_field_idents: ::std::clone::Clone::clone(&self.#schema_field_idents), )*
+                            #___________path: ::std::clone::Clone::clone(&self.#___________path),
+                            #_____struct_marker_ident: ::std::marker::PhantomData,
+                        }
+                    }
+                }
+
                 impl #impl_generics #crate_name::Render for #struct_name_ident #ty_generics #where_clause {
-                    fn render(&self, sql: &mut #crate_name::Sql) {
-                        sql.push(&self.#___________path);
+                    fn render(&self, out: &mut #crate_name::Renderer) {
+                        out.push(&self.#___________path);
                     }
                 }
 
@@ -314,6 +362,7 @@ impl ModelReceiver {
         let patch_ident = struct_name_ident.patch_ident();
         let VariablesModelMacro {
             _____struct_marker_ident,
+            _____table,
             ..
         } = VariablesModelMacro::new();
         let Codegen {
@@ -323,8 +372,9 @@ impl ModelReceiver {
             link_self_fields,
             link_one_and_self_fields,
             link_many_fields,
-            field_definitions,
             field_metadata,
+            flattened_objects,
+            flattened_field_keys,
             renamed_serialized_fields_kv,
             patch_fields,
             patch_defaults,
@@ -334,9 +384,10 @@ impl ModelReceiver {
         } = code_gen;
         let CommonIdents {
             struct_with_renamed_serialized_fields,
+            module_name_internal,
             ..
         } = code_gen.common_idents();
-        let serializable_fields_count = serializable_fields.len();
+        let object_keys_count = serializable_fields.len() + flattened_field_keys.len();
         let record_id_field = record_id_field.as_ref().ok_or_else(|| {
             syn::Error::new_spanned(
                 &self.ident,
@@ -350,9 +401,11 @@ impl ModelReceiver {
 
         Ok(quote!(
             impl #impl_generics #struct_name_ident #ty_generics #where_clause {
+                /// The keys `object!` requires: the stored fields, and each flattened field, which
+                /// it then rejects since a flattened object is not one assignable field.
                 #[doc(hidden)]
-                pub const fn __get_serializable_field_names() -> [&'static str; #serializable_fields_count] {
-                    [#( #serializable_fields ), *]
+                pub const fn __get_serializable_field_names() -> [&'static str; #object_keys_count] {
+                    [#( #serializable_fields, )* #( #flattened_field_keys, )*]
                 }
             }
 
@@ -374,7 +427,9 @@ impl ModelReceiver {
                 }
 
                 fn get_serializable_fields() -> ::std::vec::Vec<#crate_name::Field> {
-                    ::std::vec![#( #crate_name::Field::ident(#serializable_fields) ), *]
+                    let mut fields = ::std::vec::Vec::new();
+                    #module_name_internal::STORED_FIELDS.for_each(&mut |name| fields.push(#crate_name::Field::ident(name)));
+                    fields
                 }
 
                 fn get_linked_fields() -> ::std::vec::Vec<#crate_name::Field> {
@@ -402,11 +457,18 @@ impl ModelReceiver {
                 }
 
                 fn define_fields() -> ::std::vec::Vec<#crate_name::Raw> {
-                    ::std::vec![#( #field_definitions ), *]
+                    <Self as #crate_name::Model>::get_field_meta()
+                        .into_iter()
+                        .flat_map(|meta| meta.definition)
+                        .collect()
                 }
 
+                // Flattened objects' fields are defined as this table's own.
                 fn get_field_meta() -> ::std::vec::Vec<#crate_name::FieldMetadata> {
-                    ::std::vec![#( #field_metadata ), *]
+                    let #_____table = <Self as #crate_name::Model>::table();
+                    ::std::iter::IntoIterator::into_iter([#( #field_metadata ),*])
+                        #( .chain(<#flattened_objects as #crate_name::Object>::field_meta_on(#_____table.clone())) )*
+                        .collect()
                 }
             }
 
