@@ -1,5 +1,5 @@
 [package]
-name = "aparecium-macros"
+name = "umbriel-macros"
 version = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
@@ -18,7 +18,7 @@ proc-macro-crate = { workspace = true }
 syn = { workspace = true }
 quote = { workspace = true }
 darling = { workspace = true }
-convert_case = { workspace = true }
+heck = { workspace = true }
 strum = { workspace = true }
 strum_macros = { workspace = true }
 thiserror = { workspace = true }
