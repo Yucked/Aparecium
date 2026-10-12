@@ -1,6 +1,6 @@
 use surrealdb::types::Table;
 
-use crate::{Conditional, Event, Filter, Sql};
+use crate::{Conditional, Event, Filter, Renderer};
 
 use super::{Statement, Subquery, impl_definition};
 
@@ -20,7 +20,7 @@ You must select your namespace and database before you can use the DEFINE EVENT 
 
 # Example
 ```rust
-use aparecium::{*, statements::{define_event, select}, types::RecordId};
+use umbriel::{*, statements::{define_event, select}, types::RecordId};
 
 # let age = Field::new("age");
 # let city = Field::new("city");
@@ -102,12 +102,12 @@ pub struct DefineEventStatement {
 }
 
 impl Statement for DefineEventStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("DEFINE EVENT ").push(&self.event);
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("DEFINE EVENT ").push(&self.event);
         if let Some(table) = &self.on_table {
-            sql.push_str(" ON TABLE ").push(table);
+            out.push_str(" ON TABLE ").push(table);
         }
-        sql.push_str(" WHEN ")
+        out.push_str(" WHEN ")
             .push(&self.when)
             .push_str(" THEN ")
             .push(&self.then);
