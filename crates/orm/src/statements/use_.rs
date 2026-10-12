@@ -1,4 +1,4 @@
-use crate::{Database, Namespace, Sql};
+use crate::{Database, Namespace, Renderer};
 
 use super::{Statement, impl_statement};
 
@@ -8,7 +8,7 @@ use super::{Statement, impl_statement};
 /// Examples
 ///
 /// ```rust
-/// use aparecium::{*, statements::use_};
+/// use umbriel::{*, statements::use_};
 ///
 /// // Switch to the test Namespace
 /// use_().database(Database::from("test"));
@@ -48,13 +48,13 @@ impl UseStatement {
 }
 
 impl Statement for UseStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("USE");
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("USE");
         if let Some(database) = &self.database {
-            sql.push_str(" DB ").push(database);
+            out.push_str(" DB ").push(database);
         }
         if let Some(namespace) = &self.namespace {
-            sql.push_str(" NS ").push(namespace);
+            out.push_str(" NS ").push(namespace);
         }
     }
 }
