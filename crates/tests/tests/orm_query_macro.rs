@@ -1,4 +1,4 @@
-use aparecium::{query, query_raw};
+use umbriel::{query, query_raw};
 use surrealdb::{Surreal, engine::local::Mem};
 
 #[tokio::test]
@@ -9,7 +9,7 @@ async fn test_query_macro_with_bindigns() {
     let _query = query!(db, "SELECT * FROM users").await;
     let _query = query!(db, "SELECT * FROM users", {}).await;
     let _query = query!(db, "SELECT * FROM users WHERE id = $id", {id : 1} ).await;
-    let username = "Oyelowo";
+    let username = "Charlie";
     let _query = query!(db, "SELECT name, age FROM users WHERE id = $id AND name = $name", {
         id : 1,
         name : username
@@ -18,7 +18,7 @@ async fn test_query_macro_with_bindigns() {
 
     // db.query("SELECT name, age, * FROM users WHERE id = $id AND name = $name")
     //     .bind(("id", 1))
-    //     .bind(("name", "Oyelowo"));
+    //     .bind(("name", "Charlie"));
 }
 
 #[tokio::test]
@@ -30,11 +30,11 @@ async fn test_complex_multiple_queries() {
         db,
         [
             "SELECT * FROM users WHERE id = $id",
-            "CREATE user:oyelowo SET name = $name, planet = 'Codebreather', skills = $skills"
+            "CREATE user:charlie SET name = $name, planet = 'ExampleCo', skills = $skills"
         ],
         {
             id: 1,
-            name: "Oyelowo",
+            name: "Charlie",
             skills: vec!["Rust", "python", "typescript"]
         }
     )
@@ -49,10 +49,10 @@ fn test_query_macro() {
 
 #[test]
 fn test_query_macro_with_params() {
-    let query = query_raw!("SELECT name, age, * FROM users WHERE name = $1 AND name = 'Oyelowo'");
+    let query = query_raw!("SELECT name, age, * FROM users WHERE name = $1 AND name = 'Charlie'");
     assert_eq!(
         query,
-        "SELECT name, age, * FROM users WHERE name = $1 AND name = 'Oyelowo'"
+        "SELECT name, age, * FROM users WHERE name = $1 AND name = 'Charlie'"
     );
 }
 
