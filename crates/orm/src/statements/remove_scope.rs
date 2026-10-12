@@ -1,4 +1,4 @@
-use crate::{Scope, Sql};
+use crate::{Scope, Renderer};
 
 use super::{Statement, impl_definition};
 
@@ -10,7 +10,7 @@ use super::{Statement, impl_definition};
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, statements::remove_scope};
+/// use umbriel::{*, statements::remove_scope};
 /// # let scope = Scope::new("scope");
 /// let statement = remove_scope(scope);
 /// assert_eq!(statement.to_debug_sql(), "REMOVE SCOPE scope;");
@@ -27,8 +27,8 @@ pub struct RemoveScopeStatement {
 }
 
 impl Statement for RemoveScopeStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("REMOVE SCOPE ").push(&self.scope);
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("REMOVE SCOPE ").push(&self.scope);
     }
 }
 
