@@ -2,17 +2,17 @@
 mod tests {
     use select::CanOrder;
 
-    use aparecium::{statements::select, *};
+    use umbriel::{statements::select, *};
 
-    use aparecium::{statements::*, *};
+    use umbriel::{statements::*, *};
 
     #[test]
     fn test_transaction_commit() {
         let age = Field::new("age");
         let country = Field::new("country");
         let city = Field::new("city");
-        let fake_id = sql::Thing::from(("user".to_string(), "oyelowo".to_string()));
-        let fake_id2 = sql::Thing::from(("user".to_string(), "oyedayo".to_string()));
+        let fake_id = sql::Thing::from(("user".to_string(), "charlie".to_string()));
+        let fake_id2 = sql::Thing::from(("user".to_string(), "bennett".to_string()));
 
         let statement1 = select(All)
             .from(fake_id)
@@ -49,8 +49,8 @@ mod tests {
         let age = Field::new("age");
         let country = Field::new("country");
         let city = Field::new("city");
-        let fake_id = sql::Thing::from(("user".to_string(), "oyelowo".to_string()));
-        let fake_id2 = sql::Thing::from(("user".to_string(), "oyedayo".to_string()));
+        let fake_id = sql::Thing::from(("user".to_string(), "charlie".to_string()));
+        let fake_id2 = sql::Thing::from(("user".to_string(), "bennett".to_string()));
 
         let statement1 = select(All)
             .from(fake_id)
