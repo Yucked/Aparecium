@@ -1,12 +1,12 @@
 
-use aparecium::{
+use umbriel::{
     DbResources, create_table_resources,
     migrations::{Generate, Init, MockPrompter, Mode, RenameOrDelete},
 };
-use aparecium_tests::migrations::{
+use umbriel_tests::migrations::{
     Animal, AnimalV2, Planet, PlanetV2, Resources, ResourcesV2, invalid_cases,
 };
-use aparecium_tests::migrator_support::{AssertionArg, TestConfig, current_function};
+use umbriel_tests::migrator_support::{AssertionArg, TestConfig, current_function};
 use tempfile::tempdir;
 use test_case::test_case;
 
@@ -955,7 +955,7 @@ async fn test_should_panic_if_renaming_from_non_existing_field_in_migration_dire
             .name("migration init".into())
             .run(true)
             .build(),
-        // Oyelowo January 5, 2023: we are using V2 here because AnimalV2 tries to rename but since we are not
+        // Charlie January 5, 2023: we are using V2 here because AnimalV2 tries to rename but since we are not
         // initing from V1, we dont have the field to rename from, so this should panic
         ResourcesV2,
         MockPrompter::default(),
