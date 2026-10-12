@@ -1,4 +1,4 @@
-use crate::{Namespace, Sql};
+use crate::{Namespace, Renderer};
 
 use super::{Statement, impl_definition};
 
@@ -16,7 +16,7 @@ use super::{Statement, impl_definition};
 /// Examples:
 ///
 /// ```rust
-/// use aparecium::{*, statements::{define_namespace}};
+/// use umbriel::{*, statements::{define_namespace}};
 /// let acme = Namespace::new("acme");
 ///
 /// let statement = define_namespace(acme);
@@ -35,8 +35,8 @@ pub struct DefineNamespaceStatement {
 }
 
 impl Statement for DefineNamespaceStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("DEFINE NAMESPACE ").push(&self.namespace);
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("DEFINE NAMESPACE ").push(&self.namespace);
     }
 }
 
