@@ -52,13 +52,13 @@ impl Codegen<'_> {
         let binding = field_type.get_generics_from_current_struct(table_attributes)?;
         let (field_impl_generics, _field_ty_generics, field_where_clause) =
             binding.split_for_impl();
-        let field_name_pascalized = field_receiver.field_name_pascalized(casing)?;
+        let field_name_pascalized = field_receiver.field_name_pascalized(table_attributes)?;
 
         let field_type =
             field_type.replace_self_with_current_struct_concrete_type(table_attributes)?;
         let setter_assignable_impl = quote!( impl #field_impl_generics
             #crate_name::SetterAssignable<#field_type> for
-            self::#field_name_pascalized  #field_where_clause {}
+            #field_name_pascalized  #field_where_clause {}
         );
 
         let field_type_setter_patcher_impls: FieldTypeSetterPatcherImpls = if field_receiver
@@ -71,7 +71,7 @@ impl Codegen<'_> {
             quote!(
                 #setter_assignable_impl
 
-                impl #field_impl_generics #crate_name::Patchable<#field_type> for self::#field_name_pascalized  #field_where_clause {}
+                impl #field_impl_generics #crate_name::Patchable<#field_type> for #field_name_pascalized  #field_where_clause {}
             ).into()
         };
 
@@ -88,6 +88,7 @@ impl Codegen<'_> {
         };
 
         let field_setter_impls = quote!(
+            #[doc(hidden)]
             #[derive(Debug, Clone)]
             pub struct #field_name_pascalized(pub #crate_name::Field);
 
@@ -135,14 +136,14 @@ impl Codegen<'_> {
                 }
             }
 
-            impl<T> ::std::convert::From<self::#field_name_pascalized> for #crate_name::SetterArg<T> {
-                fn from(value: self::#field_name_pascalized) -> Self {
+            impl<T> ::std::convert::From<#field_name_pascalized> for #crate_name::SetterArg<T> {
+                fn from(value: #field_name_pascalized) -> Self {
                     Self::from(value.0)
                 }
             }
 
-            impl<T> ::std::convert::From<&self::#field_name_pascalized> for #crate_name::SetterArg<T> {
-                fn from(value: &self::#field_name_pascalized) -> Self {
+            impl<T> ::std::convert::From<&#field_name_pascalized> for #crate_name::SetterArg<T> {
+                fn from(value: &#field_name_pascalized) -> Self {
                     Self::from(&value.0)
                 }
             }
@@ -163,8 +164,7 @@ impl Codegen<'_> {
         model_attributes: &ModelAttributes,
     ) -> ExtractorResult<ArrayElementFieldSetterToken> {
         let crate_name = get_crate_name(false);
-        let field_name_as_pascalized =
-            field_receiver.field_name_pascalized(&model_attributes.casing()?)?;
+        let field_name_as_pascalized = field_receiver.field_name_pascalized(model_attributes)?;
 
         let (generics, array_item_type) = match field_receiver.to_relation_type(model_attributes) {
             RelationType::LinkMany(foreign_node) => {
@@ -196,8 +196,7 @@ impl Codegen<'_> {
 
                 let inner_list_type = field_receiver
                     .array_item_ty_specified
-                    .as_ref()
-                    .map(ArrayItemType::inner)
+                    .as_deref()
                     .or(guessed_arrayish_item_type.as_ref());
 
                 match inner_list_type {
@@ -214,7 +213,7 @@ impl Codegen<'_> {
         let array_setter_impl = array_item_type.map_or(quote!(), |item_type| {
             generics.map_or(
                 quote!(
-                    impl #crate_name::SetterArray<#item_type> for self::#field_name_as_pascalized {}
+                    impl #crate_name::SetterArray<#item_type> for #field_name_as_pascalized {}
                 ),
                 |this| {
                     let (field_impl_generics, _field_ty_generics, field_where_clause) =
@@ -222,7 +221,7 @@ impl Codegen<'_> {
 
                     quote!(
                         impl #field_impl_generics #crate_name::SetterArray<#item_type> for
-                        self::#field_name_as_pascalized #field_where_clause {}
+                        #field_name_as_pascalized #field_where_clause {}
                     )
                 },
             )
@@ -236,8 +235,7 @@ impl Codegen<'_> {
         model_attributes: &ModelAttributes,
     ) -> ExtractorResult<FieldSetterNumericImpl> {
         let crate_name = get_crate_name(false);
-        let field_name_pascalized =
-            field_receiver.field_name_pascalized(&model_attributes.casing()?)?;
+        let field_name_pascalized = field_receiver.field_name_pascalized(model_attributes)?;
         let field_type = field_receiver.ty();
         let binding = field_type.get_generics_from_current_struct(model_attributes)?;
         let (field_impl_generics, _field_ty_generics, field_where_clause) =
@@ -272,17 +270,17 @@ impl Codegen<'_> {
         });
 
         let numeric_trait = quote!(
-            impl #field_impl_generics #crate_name::SetterNumeric<#field_type> for self::#field_name_pascalized
+            impl #field_impl_generics #crate_name::SetterNumeric<#field_type> for #field_name_pascalized
             #field_where_clause {}
 
-            impl ::std::convert::From<self::#field_name_pascalized> for #crate_name::NumberLike {
-                fn from(val: self::#field_name_pascalized) -> Self {
+            impl ::std::convert::From<#field_name_pascalized> for #crate_name::NumberLike {
+                fn from(val: #field_name_pascalized) -> Self {
                     val.0.into()
                 }
             }
 
-            impl ::std::convert::From<&self::#field_name_pascalized> for #crate_name::NumberLike {
-                fn from(val: &self::#field_name_pascalized) -> Self {
+            impl ::std::convert::From<&#field_name_pascalized> for #crate_name::NumberLike {
+                fn from(val: &#field_name_pascalized) -> Self {
                     (&val.0).into()
                 }
             }
