@@ -1,7 +1,9 @@
 
+use std::sync::Arc;
+
 use crate::{
-    Aliasable, ArrayLike, Conditional, GeometryLike, NumberLike, Ordinal, Render, Setter, Sql,
-    StrandLike, ValueLike, render::sql,
+    Aliasable, ArrayLike, Conditional, GeometryLike, NumberLike, Ordinal, Render, Renderer,
+    Setter, StrandLike, ValueLike,
 };
 
 /// A SurrealQL binary operator.
@@ -135,25 +137,111 @@ impl Operator {
 }
 
 impl Render for Operator {
-    fn render(&self, sql: &mut Sql) {
-        sql.push_str(self.as_str());
+    fn render(&self, out: &mut Renderer) {
+        out.push_str(self.as_str());
     }
 }
 
-/// Defines the operations that can be performed on a field
+/// Defines the operations that can be performed on a field. Shared, since operations are reused as
+/// operands, conditions and projections.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Operation(Sql);
+pub struct Operation(Arc<OperationNode>);
+
+#[derive(Debug, PartialEq)]
+enum OperationNode {
+    /// `lhs <operator> rhs`
+    Binary {
+        lhs: ValueLike,
+        operator: Operator,
+        rhs: ValueLike,
+    },
+    /// `lhs <operator> rhs` with operation operands parenthesized, so each binds first.
+    Arithmetic {
+        lhs: ValueLike,
+        operator: Operator,
+        rhs: ValueLike,
+    },
+    /// `lower < operand < upper`, or with `<=` when inclusive.
+    Between {
+        lower: Ordinal,
+        operand: ValueLike,
+        upper: Ordinal,
+        inclusive: bool,
+    },
+    /// `operand @reference@ terms`; the reference is part of the operator, so it is written as a
+    /// literal.
+    MatchesWithRef {
+        operand: ValueLike,
+        reference: NumberLike,
+        terms: StrandLike,
+    },
+}
 
 impl Operation {
-    pub(crate) fn new(sql: Sql) -> Self {
-        Self(sql)
+    fn new(node: OperationNode) -> Self {
+        Self(Arc::new(node))
+    }
+
+    pub(crate) fn binary(lhs: ValueLike, operator: Operator, rhs: ValueLike) -> Self {
+        Self::new(OperationNode::Binary { lhs, operator, rhs })
+    }
+
+    pub(crate) fn arithmetic(lhs: ValueLike, operator: Operator, rhs: ValueLike) -> Self {
+        Self::new(OperationNode::Arithmetic { lhs, operator, rhs })
     }
 }
 
 impl Render for Operation {
-    fn render(&self, sql: &mut Sql) {
-        sql.push(&self.0);
+    fn render(&self, out: &mut Renderer) {
+        match &*self.0 {
+            OperationNode::Binary { lhs, operator, rhs } => {
+                out.push(lhs)
+                    .push_str(" ")
+                    .push(operator)
+                    .push_str(" ")
+                    .push(rhs);
+            }
+            OperationNode::Arithmetic { lhs, operator, rhs } => {
+                lhs.render_operand(out);
+                out.push_str(" ").push(operator).push_str(" ");
+                rhs.render_operand(out);
+            }
+            OperationNode::Between {
+                lower,
+                operand,
+                upper,
+                inclusive,
+            } => {
+                let operator = if *inclusive { " <= " } else { " < " };
+                out.push(lower)
+                    .push_str(operator)
+                    .push(operand)
+                    .push_str(operator)
+                    .push(upper);
+            }
+            OperationNode::MatchesWithRef {
+                operand,
+                reference,
+                terms,
+            } => {
+                out.push(operand)
+                    .push_str(" @")
+                    .push_inlined(reference)
+                    .push_str("@ ")
+                    .push(terms);
+            }
+        }
     }
+}
+
+/// `lower < operand < upper`, or with `<=` when inclusive.
+fn between(operand: ValueLike, lower: Ordinal, upper: Ordinal, inclusive: bool) -> Operation {
+    Operation::new(OperationNode::Between {
+        lower,
+        operand,
+        upper,
+        inclusive,
+    })
 }
 
 impl Aliasable for Operation {}
@@ -163,14 +251,16 @@ impl Operatable for Operation {}
 impl Conditional for Operation {}
 
 impl From<Setter> for Operation {
-    fn from(value: Setter) -> Self {
-        Self(value.to_sql())
+    fn from(setter: Setter) -> Self {
+        let (field, operator, value) = setter.into_parts();
+        Self::binary(field.into(), operator, value)
     }
 }
 
 /// Defines the operations that can be performed on a field or param or some other types
-/// it is implemented for.
-pub trait Operatable: Sized + Render {
+/// it is implemented for. The left operand is the node's expression form, so a `LET` statement
+/// stands for its parameter.
+pub trait Operatable: Sized + Render + Clone + Into<ValueLike> {
     /// `=`. Return a new `operation` that checks whether the field is equal to the specified value
     ///
     /// # Arguments
@@ -180,7 +270,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// let query = age.equal(25);
     /// assert_eq!(query.to_debug_sql(), "age = 25");
@@ -211,7 +301,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// let query = age.eq(25);
     /// assert_eq!(query.to_debug_sql(), "age = 25");
@@ -242,7 +332,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// let query = age.not_equal(25);
     /// assert_eq!(query.to_debug_sql(), "age != 25");
@@ -273,7 +363,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// let query = age.neq(25);
     /// assert_eq!(query.to_debug_sql(), "age != 25");
@@ -304,7 +394,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// let query = age.exactly_equal(25);
     /// assert_eq!(query.to_debug_sql(), "age == 25");
@@ -336,7 +426,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let friends = Field::new("friends");
     /// let query = friends.any_equal("Alice");
     /// assert_eq!(query.to_debug_sql(), "friends ?= 'Alice'");
@@ -367,7 +457,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let friends = Field::new("friends");
     /// friends.all_equal("Alice");
     /// ```
@@ -387,7 +477,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let name = Field::new("name");
     /// let query = name.like("A");
     /// assert_eq!(query.to_debug_sql(), "name ~ 'A'");
@@ -408,7 +498,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let name = Field::new("name");
     /// let query = name.not_like("A");
     /// assert_eq!(query.to_debug_sql(), "name !~ 'A'");
@@ -429,7 +519,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let name = Field::new("name");
     /// name.any_like("A");
     /// ```
@@ -449,7 +539,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let name = Field::new("name");
     /// name.all_like("A");
     /// ```
@@ -469,7 +559,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// age.less_than(30);
     /// ```
@@ -490,7 +580,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// age.lt(30);
     /// ```
@@ -511,7 +601,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// age.less_than_or_equal(30);
     /// ```
@@ -532,7 +622,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// age.lte(30);
     /// ```
@@ -553,7 +643,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// age.greater_than(30);
     /// ```
@@ -574,7 +664,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// age.gt(30);
     /// ```
@@ -595,7 +685,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// age.greater_than_or_equal(30);
     /// ```
@@ -616,7 +706,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// age.gte(30);
     /// ```
@@ -637,7 +727,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// age.add(5);
     /// ```
@@ -656,7 +746,7 @@ pub trait Operatable: Sized + Render {
     ///
     /// # Example
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// age.plus(5);
     /// ```
@@ -676,7 +766,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// age.subtract(5);
     /// ```
@@ -696,7 +786,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// age.minus(5);
     /// ```
@@ -716,7 +806,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// age.multiply(5);
     /// ```
@@ -735,7 +825,7 @@ pub trait Operatable: Sized + Render {
     ///
     /// # Example
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// age.mul(5);
     /// ```
@@ -755,7 +845,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// age.divide(5);
     /// ```
@@ -774,7 +864,7 @@ pub trait Operatable: Sized + Render {
     ///
     /// # Example
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// let age = Field::new("age");
     /// age.div(5);
     /// ```
@@ -794,7 +884,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// let age = Field::new("age");
     /// age.power(5);
     /// ```
@@ -814,7 +904,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// let age = Field::new("age");
     /// age.pow(5);
     /// ```
@@ -834,7 +924,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// age.truthy_and(5);
     /// ```
@@ -854,7 +944,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// age.truthy_or(5);
     /// ```
@@ -874,7 +964,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// age.and(5);
     /// ```
@@ -894,7 +984,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// age.or(5);
     /// ```
@@ -914,7 +1004,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// age.is(5);
     /// ```
@@ -934,7 +1024,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// age.is_not(5);
     /// ```
@@ -954,12 +1044,12 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let friends = Field::new("friends");
-    /// friends.contains("Oyelowo");
+    /// friends.contains("Charlie");
     ///
     /// # let polygon = Field::new("polygon");
-    /// polygon.contains("Oyelowo");
+    /// polygon.contains("Charlie");
     /// ```
     fn contains<T>(&self, value: T) -> Operation
     where
@@ -978,9 +1068,9 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let friends = Field::new("friends");
-    /// friends.contains_not("Oyelowo");
+    /// friends.contains_not("Charlie");
     /// ```
     fn contains_not<T>(&self, value: T) -> Operation
     where
@@ -998,9 +1088,9 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let friends = Field::new("friends");
-    /// friends.contains_all(&["Oyelowo", "Oyelowo"]);
+    /// friends.contains_all(&["Charlie", "Charlie"]);
     /// ```
     fn contains_all<T>(&self, value: T) -> Operation
     where
@@ -1019,9 +1109,9 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let friends = Field::new("friends");
-    /// friends.contains_any(&["Oyelowo", "Oyelowo"]);
+    /// friends.contains_any(&["Charlie", "Charlie"]);
     /// ```
     fn contains_any<T>(&self, value: T) -> Operation
     where
@@ -1040,9 +1130,9 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let friends = Field::new("friends");
-    /// friends.contains_none(&["Oyelowo", "Oyelowo"]);
+    /// friends.contains_none(&["Charlie", "Charlie"]);
     /// ```
     fn contains_none<T>(&self, value: T) -> Operation
     where
@@ -1061,7 +1151,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// age.inside(10);
     /// ```
@@ -1081,7 +1171,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let age = Field::new("age");
     /// age.in_(10);
     /// ```
@@ -1101,8 +1191,8 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
-    /// use aparecium::types::Geometry;
+    /// # use umbriel::*;
+    /// use umbriel::types::Geometry;
     /// use geo::polygon;
     /// let point = Field::new("point");
     /// let polygon = Geometry::Polygon(polygon!(
@@ -1139,7 +1229,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// let numbers = Field::new("numbers");
     /// numbers.all_inside(&[10, 20, 10]);
     /// ```
@@ -1160,7 +1250,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// let numbers = Field::new("numbers");
     /// numbers.any_inside(&[10, 20, 10]);
     /// ```
@@ -1181,7 +1271,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// let numbers = Field::new("numbers");
     /// numbers.none_inside(vec![10, 20, 10]);
     /// ```
@@ -1202,7 +1292,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// use geo::polygon;
     ///
     /// let location = Field::new("location");
@@ -1236,7 +1326,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// use geo::polygon;
     ///
     /// let location = Field::new("location");
@@ -1271,7 +1361,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     ///
     /// # let content = Field::new("content");
     /// let query = content.matches("hello world");
@@ -1297,7 +1387,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     ///
     /// # let content = Field::new("content");
     ///
@@ -1308,13 +1398,11 @@ pub trait Operatable: Sized + Render {
     where
         T: Into<StrandLike>,
     {
-        let reference: NumberLike = reference.into();
-        let terms: StrandLike = terms.into();
-        let mut sql = Sql::new();
-        self.render_operand(&mut sql);
-        sql.push_str(" @").push_inlined(&reference);
-        sql.push_str("@ ").push(&terms);
-        Operation(sql)
+        Operation::new(OperationNode::MatchesWithRef {
+            operand: self.clone().into(),
+            reference: reference.into(),
+            terms: terms.into(),
+        })
     }
 
     /// Check whether the value of the field is between the given lower and upper bounds.
@@ -1327,7 +1415,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     ///
     /// let age = Field::new("age");
     /// age.between(18, 30);
@@ -1336,12 +1424,7 @@ pub trait Operatable: Sized + Render {
     where
         T: Into<Ordinal>,
     {
-        let lower_bound: Ordinal = lower_bound.into();
-        let upper_bound: Ordinal = upper_bound.into();
-        let mut sql = sql!(lower_bound, " < ");
-        self.render_operand(&mut sql);
-        sql.push_str(" < ").push(&upper_bound);
-        Operation(sql)
+        between(self.clone().into(), lower_bound.into(), upper_bound.into(), false)
     }
 
     /// Check whether the value of the field is between the given lower and upper bounds.
@@ -1354,7 +1437,7 @@ pub trait Operatable: Sized + Render {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     ///
     /// let age = Field::new("age");
     /// age.within(18, 30);
@@ -1363,25 +1446,11 @@ pub trait Operatable: Sized + Render {
     where
         T: Into<Ordinal>,
     {
-        let lower_bound: Ordinal = lower_bound.into();
-        let upper_bound: Ordinal = upper_bound.into();
-        let mut sql = sql!(lower_bound, " <= ");
-        self.render_operand(&mut sql);
-        sql.push_str(" <= ").push(&upper_bound);
-        Operation(sql)
-    }
-
-    /// Writes the node as the left operand. A `LET` statement stands for its parameter here.
-    fn render_operand(&self, sql: &mut Sql) {
-        self.render(sql);
+        between(self.clone().into(), lower_bound.into(), upper_bound.into(), true)
     }
 
     /// `self <operator> value`.
     fn operate(&self, operator: Operator, value: impl Into<ValueLike>) -> Operation {
-        let value: ValueLike = value.into();
-        let mut sql = Sql::new();
-        self.render_operand(&mut sql);
-        sql.push_str(" ").push(&operator).push_str(" ").push(&value);
-        Operation(sql)
+        Operation::binary(self.clone().into(), operator, value.into())
     }
 }
