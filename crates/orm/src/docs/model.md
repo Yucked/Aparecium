@@ -1,9 +1,9 @@
 Declares a model: a struct stored in SurrealDB, with a typed schema for building queries.
 
 ```text
-#[aparecium::model(node, table = "user")]     a record in its own table
-#[aparecium::model(edge, table = "follows")]  a record relating two nodes
-#[aparecium::model(object)]                   a value embedded in another model
+#[umbriel::model(node, table = "user")]     a record in its own table
+#[umbriel::model(edge, table = "follows")]  a record relating two nodes
+#[umbriel::model(object)]                   a value embedded in another model
 ```
 
 The attribute derives the SDK's `SurrealValue` for the struct, so values convert to and from the
@@ -12,7 +12,8 @@ database without Serde, and generates:
 - for every model, `<Model as SchemaGetter>::schema()`, whose fields are paths for queries
   (`User::schema().name`) and whose link methods traverse records and graph edges;
 - for nodes and edges, the [`Model`] implementation (table, record id, field definitions for
-  migrations) and `<Model>Patch`, a partial update with one [`Patch`] per stored field.
+  migrations) and `<Model>Patch`, a partial update with one [`Patch`] per stored field;
+- for objects, the [`Object`] implementation a model needs to flatten them.
 
 # Record ids
 
@@ -25,12 +26,29 @@ table, so a `RecordId<User>` never holds a `post:…` id. Embedded objects have 
 Stored names come from the same attributes the `SurrealValue` derive reads:
 `#[surreal(rename_all = "camelCase")]` on the struct and `#[surreal(rename = "…")]` on a field.
 Schema fields are named after the stored name when it is a Rust identifier, and after the Rust
-field otherwise.
+field otherwise. Two fields stored under one name fail to compile.
+
+# Flattened objects
+
+`#[surreal(flatten)]` on a field whose type is a `#[model(object)]` stores the object's fields as
+the model's own:
+
+- the field's schema is the object's schema at the model's path (`user.street`, not
+  `user.address.street`);
+- the object's field definitions are the model's;
+- in `<Model>Patch` the field is a [`FlatPatch`]: `Keep` leaves every field of the object
+  unchanged, and `Set(object)` assigns each of them, removing (`NONE`) any the value omits. There
+  is no `None` or `Null`, since the object has no field of its own to remove or set to `NULL`.
+
+Only objects can be flattened, since their stored names are known when compiling: maps and other
+values are rejected, as are objects that store no field and object types that depend on the
+model's generic parameters. A flattened field takes no `#[orm(…)]` settings, and `object!` does not
+accept a model with one; use `content`, a patch or individual setters instead.
 
 # Example
 
 ```rust
-use aparecium::{LinkOne, Patch, RecordId, model};
+use umbriel::{LinkOne, Patch, RecordId, model};
 
 #[model(node, table = "user")]
 #[surreal(rename_all = "camelCase")]
