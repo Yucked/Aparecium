@@ -1,6 +1,6 @@
 use surrealdb::types::Table;
 
-use crate::Sql;
+use crate::Renderer;
 
 use super::{
     Statement,
@@ -47,7 +47,7 @@ pub struct DefineTableStatement {
 /// Examples:
 ///
 /// ```rust
-/// use aparecium::{*, statements::{define_table, for_permission, order, select}, types::RecordId};
+/// use umbriel::{*, statements::{define_table, for_permission, order, select}, types::RecordId};
 /// use CrudType::*;
 ///
 /// let name = Field::new("name");
@@ -139,33 +139,33 @@ impl DefineTableStatement {
 }
 
 impl Statement for DefineTableStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("DEFINE TABLE ").push(&self.table);
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("DEFINE TABLE ").push(&self.table);
 
         if self.drop {
-            sql.push_str(" DROP");
+            out.push_str(" DROP");
         }
 
         if self.flexible {
-            sql.push_str(" FLEXIBLE");
+            out.push_str(" FLEXIBLE");
         }
 
         match self.schema_type {
             Some(SchemaType::Schemafull) => {
-                sql.push_str(" SCHEMAFULL");
+                out.push_str(" SCHEMAFULL");
             }
             Some(SchemaType::Schemaless) => {
-                sql.push_str(" SCHEMALESS");
+                out.push_str(" SCHEMALESS");
             }
             None => {}
         }
 
         if let Some(select_statement) = &self.as_ {
-            sql.push_str(" AS \n\t");
-            select_statement.render_body(sql);
+            out.push_str(" AS \n\t");
+            select_statement.render_body(out);
         }
 
-        sql.push(&self.permissions);
+        out.push(&self.permissions);
     }
 }
 
