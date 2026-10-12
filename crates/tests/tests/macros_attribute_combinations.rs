@@ -15,7 +15,7 @@
 // NOTE: Change this if the logic changes in the future.
 
 mod check1 {
-    use aparecium_tests::compile_support::*;
+    use umbriel_tests::compile_support::*;
 
     #[derive(Node, Serialize, Deserialize, Debug, Clone)]
     #[serde(rename_all = "camelCase")]
@@ -29,7 +29,7 @@ mod check1 {
 
 mod check2 {
 
-    use aparecium_tests::compile_support::*;
+    use umbriel_tests::compile_support::*;
 
     #[derive(Node, Serialize, Deserialize, Clone, Debug)]
     #[serde(rename_all = "camelCase")]
@@ -43,7 +43,7 @@ mod check2 {
 
 mod check3 {
 
-    use aparecium_tests::compile_support::*;
+    use umbriel_tests::compile_support::*;
 
     #[derive(Node, Serialize, Deserialize, Clone, Debug)]
     #[serde(rename_all = "camelCase")]
@@ -62,7 +62,7 @@ mod check3 {
             ty = string,
             value = "permissions_fn",
             assert = assert_fn(),
-            permissions = permissions_fn2("Oyelowo Oyedayo")
+            permissions = permissions_fn2("Charlie Bennett")
         )]
         age2: String,
     }
