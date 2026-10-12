@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::{
+    use umbriel::{
         functions::crypto,
         statements::{define_scope, select},
         *,
@@ -14,14 +14,14 @@ mod tests {
         let pass = Field::new("pass");
         let pass_param = Param::new("pass_param");
 
-        let token_def = define_scope("oyelowo_scope")
+        let token_def = define_scope("charlie_scope")
             .session(Duration::from_secs(45))
             .signup(Raw::new(
                 "CREATE user SET email = $email, pass = crypto::argon2::generate($pass)",
             ))
             .signin(
                 select(All).from(user).where_(
-                    cond(email.equal("oyelowo@codebreather.com"))
+                    cond(email.equal("charlie@example.com"))
                         .and(crypto::argon2::compare!(pass, pass_param)),
                 ),
             );
@@ -34,9 +34,9 @@ mod tests {
         );
         assert_eq!(
             token_def.to_raw().build(),
-            "DEFINE SCOPE oyelowo_scope SESSION 45s \
+            "DEFINE SCOPE charlie_scope SESSION 45s \
                 \n\tSIGNUP (CREATE user SET email = $email, pass = crypto::argon2::generate($pass)) \
-                \n\tSIGNIN (SELECT * FROM user WHERE (email = 'oyelowo@codebreather.com') AND (crypto::argon2::compare(pass, $pass_param)));"
+                \n\tSIGNIN (SELECT * FROM user WHERE (email = 'charlie@example.com') AND (crypto::argon2::compare(pass, $pass_param)));"
         );
 
         assert_eq!(token_def.get_bindings().len(), 4);
