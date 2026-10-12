@@ -1,7 +1,7 @@
 
 // use super::studentwithgranularattributes;
 use CrudType::*;
-use aparecium::{
+use umbriel::{
     sql,
     statements::{
         DefineFieldStatement, DefineTableStatement, Permissions, SelectStatement, define_field,
@@ -21,7 +21,7 @@ fn age_permissions() -> Permissions {
     } = StudentWithGranularAttributes::schema();
 
     [
-        for_permission([Create, Delete]).where_(firstName.is("Oyelowo")),
+        for_permission([Create, Delete]).where_(firstName.is("Charlie")),
         for_permission(Update).where_(ageInlineExpr.less_than_or_equal(130)),
     ]
     .into()
@@ -35,7 +35,7 @@ fn student_permissions() -> Permissions {
     } = StudentWithGranularAttributes::schema();
 
     Permissions::from(vec![
-        for_permission([Select, Update]).where_(firstName.is("Oyedayo")),
+        for_permission([Select, Update]).where_(firstName.is("Bennett")),
         for_permission([Create, Delete]).where_(ageInlineExpr.lte(57)),
     ])
 }
@@ -57,12 +57,12 @@ fn age_define_external_fn_path() -> DefineFieldStatement {
     define_field(ageDefineInline)
         .on_table(Student::table())
         .type_(Int)
-        .value("oyelowo@codebreather.com")
+        .value("charlie@example.com")
         .assert(cond(value().is_not(NONE)).and(value().like("is_email")))
         .permissions(for_permission(Select).where_(ageDefineInline.greater_than_or_equal(18))) // Single works
-        .permissions(for_permission([Create, Update]).where_(firstName.is("Oyedayo"))) //Multiple
+        .permissions(for_permission([Create, Update]).where_(firstName.is("Bennett"))) //Multiple
         .permissions([
-            for_permission([Create, Delete]).where_(firstName.is("Oyelowo")),
+            for_permission([Create, Delete]).where_(firstName.is("Charlie")),
             for_permission(Update).where_(ageDefineInline.less_than_or_equal(130)),
         ])
 }
@@ -82,12 +82,12 @@ fn define_age_define_external_fn_path() -> DefineFieldStatement {
     define_field(ageDefineInline)
         .on_table(Student::table())
         .type_(Int)
-        .value("oyelowo@codebreather.com")
+        .value("charlie@example.com")
         .assert(cond(value().is_not(NONE)).and(value().like("is_email")))
         .permissions(for_permission(Select).where_(ageDefineInline.greater_than_or_equal(18))) // Single works
-        .permissions(for_permission([Create, Update]).where_(firstName.is("Oyedayo"))) //Multiple
+        .permissions(for_permission([Create, Update]).where_(firstName.is("Bennett"))) //Multiple
         .permissions([
-            for_permission([Create, Delete]).where_(firstName.is("Oyelowo")),
+            for_permission([Create, Delete]).where_(firstName.is("Charlie")),
             for_permission(Update).where_(ageDefineInline.less_than_or_equal(130)),
         ])
 }
@@ -153,7 +153,7 @@ pub struct StudentWithGranularAttributes {
         ty = int,
         value = 18,
         assert = cond(value().is_not(NONE)).and(value().gte(18)),
-        permissions = for_permission([CrudType::Create, CrudType::Delete]).where_(StudentWithGranularAttributes::schema().firstName.is("Oyelowo"))
+        permissions = for_permission([CrudType::Create, CrudType::Delete]).where_(StudentWithGranularAttributes::schema().firstName.is("Charlie"))
     )]
     age_inline_expr: u8,
 
@@ -269,11 +269,11 @@ fn define_first_name(field: impl Into<Field>, table: Table) -> DefineFieldStatem
     define_field(field)
         .on_table(table)
         .type_(FieldType::String)
-        .value("Oyelowo")
+        .value("Charlie")
         .assert(cond(value().is_not(NONE)).and(value().like("is_email")))
         .permissions([
             for_permission(Select).where_(ageDefineInline.gte(18)),
-            for_permission([Create, Update]).where_(firstName.is("Oyedayo")),
+            for_permission([Create, Update]).where_(firstName.is("Bennett")),
         ])
 }
 
@@ -288,11 +288,11 @@ fn define_last_name() -> DefineFieldStatement {
     define_field(lastName)
         .on_table(StudentWithDefineAttr::table())
         .type_(FieldType::String)
-        .value("Oyedayo")
+        .value("Bennett")
         .assert(cond(value().is_not(NONE)).and(value().like("is_email")))
         .permissions([
             for_permission(Select).where_(ageDefineInline.gte(18)),
-            for_permission([Create, Update]).where_(lastName.is("Oyedayo")),
+            for_permission([Create, Update]).where_(lastName.is("Bennett")),
         ])
 }
 
@@ -307,11 +307,11 @@ fn define_last_name_external_fn_attr() -> DefineFieldStatement {
     define_field(lastName)
         .on_table(StudentWithDefineAttr::table())
         .type_(FieldType::String)
-        .value("Oyedayo")
+        .value("Bennett")
         .assert(cond(value().is_not(NONE)).and(value().like("is_email")))
         .permissions([
             for_permission(Select).where_(ageDefineInline.gte(18)),
-            for_permission([Create, Update]).where_(lastName.is("Oyedayo")),
+            for_permission([Create, Update]).where_(lastName.is("Bennett")),
         ])
 }
 fn define_student_with_define_attr() -> DefineTableStatement {
@@ -335,9 +335,9 @@ fn define_student_with_define_attr() -> DefineTableStatement {
         )
         .schemafull()
         .permissions(for_permission(Select).where_(age.greater_than_or_equal(18))) // Single works
-        .permissions(for_permission([Create, Delete]).where_(lastName.is("Oye"))) //Multiple
+        .permissions(for_permission([Create, Delete]).where_(lastName.is("Cha"))) //Multiple
         .permissions([
-            for_permission([Create, Delete]).where_(lastName.is("Oyedayo")),
+            for_permission([Create, Delete]).where_(lastName.is("Bennett")),
             for_permission(Update).where_(age.less_than_or_equal(130)),
         ])
 }
@@ -351,12 +351,12 @@ fn define_age(field: impl Into<Field>) -> DefineFieldStatement {
     define_field(field)
         .on_table(Student::table())
         .type_(Int)
-        .value("oyelowo@codebreather.com")
+        .value("charlie@example.com")
         .assert(cond(value().is_not(NONE)).and(value().like("is_email")))
         .permissions(for_permission(Select).where_(age.greater_than_or_equal(18))) // Single works
-        .permissions(for_permission([Create, Update]).where_(firstName.is("Oyedayo"))) //Multiple
+        .permissions(for_permission([Create, Update]).where_(firstName.is("Bennett"))) //Multiple
         .permissions([
-            for_permission([Create, Delete]).where_(firstName.is("Oyelowo")),
+            for_permission([Create, Delete]).where_(firstName.is("Charlie")),
             for_permission(Update).where_(age.less_than_or_equal(130)),
         ])
 }
@@ -387,7 +387,7 @@ pub struct StudentWithDefineAttr {
 
     #[orm(
         ty = int,
-        define = define_field(StudentWithDefineAttr::schema().ageDefineInline).on_table(Student::table()).type_(FieldType::Int).value("oyelowo@codebreather.com")
+        define = define_field(StudentWithDefineAttr::schema().ageDefineInline).on_table(Student::table()).type_(FieldType::Int).value("charlie@example.com")
     )]
     age_define_inline: u8,
 
@@ -462,7 +462,7 @@ pub struct StudentWithDefineFnAttr {
 
     #[orm(
         ty = int,
-        define = define_field(StudentWithDefineFnAttr::schema().ageDefineInline).on_table(Student::table()).type_(FieldType::Int).value("oyelowo@codebreather.com")
+        define = define_field(StudentWithDefineFnAttr::schema().ageDefineInline).on_table(Student::table()).type_(FieldType::Int).value("charlie@example.com")
     )]
     age_define_inline: u8,
 
@@ -576,7 +576,7 @@ impl Default for Student {
     }
 }
 
-#[derive(aparecium::Edge, Serialize, Deserialize, Debug, Clone, Default)]
+#[derive(umbriel::Edge, Serialize, Deserialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 #[orm(table = writes)]
 pub struct Writes<In: Node, Out: Node> {
