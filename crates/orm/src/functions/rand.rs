@@ -5,7 +5,7 @@
 // rand::bool()	Generates and returns a random boolean
 // rand::enum()	Randomly picks a value from the specified values
 // rand::float()	Generates and returns a random floating point number
-// rand::guid()	Generates and returns a random guid
+// rand::id()	Generates and returns a random ID
 // rand::int()	Generates and returns a random integer
 // rand::string()	Generates and returns a random string
 // rand::time()	Generates and returns a random datetime
@@ -165,9 +165,9 @@ pub fn float_fn(
 ///
 /// # Arguments
 /// * `from` - The minimum value of the range. Can be a number, field or parameter reprsenting
-///    the number.
+///   the number.
 /// * `to` - The maximum value of the range. Can be a number, field or parameter reprsenting
-///    the number.
+///   the number.
 ///
 /// # Example
 /// ```rust
@@ -215,9 +215,9 @@ pub fn int_fn(from: Option<impl Into<NumberLike>>, to: Option<impl Into<NumberLi
 ///
 /// # Arguments
 /// * `from` - The minimum value of the range. Can be a number, field or parameter reprsenting
-///     the number.
+///   the number.
 /// * `to` - The maximum value of the range. Can be a number, field or parameter reprsenting
-///     the number.
+///   the number.
 ///
 /// # Example
 /// ```rust
@@ -262,9 +262,9 @@ pub fn time_fn(from: Option<impl Into<NumberLike>>, to: Option<impl Into<NumberL
 ///
 /// # Arguments
 /// * `from` - The minimum value of the range. Can be a number, field or parameter reprsenting
-///     the number.
+///   the number.
 /// * `to` - The maximum value of the range. Can be a number, field or parameter reprsenting
-///     the number.
+///   the number.
 ///
 /// # Example
 /// ```rust
@@ -316,10 +316,10 @@ pub fn string_fn(
 ///
 /// # Arguments
 /// * `from` - The length of the string if one argument is provided. If two arguments are
-///     provided, then it is the minimum length of the string. Can be a number, field or parameter
-///     reprsenting the number.
+///   provided, then it is the minimum length of the string. Can be a number, field or parameter
+///   reprsenting the number.
 /// * `to` - The maximum length of the string. Can be a number, field or parameter reprsenting
-///     the number.
+///   the number.
 ///
 /// # Example
 /// ```rust
@@ -352,49 +352,49 @@ macro_rules! rand_string {
 }
 pub use rand_string as string;
 
-/// The rand::guid function generates a 20-character random guid.
+/// The rand::id function generates a 20-character random ID.
 ///
-/// rand::guid() -> string
-/// If a number is provided, then the function generates a random guid, with a specific length.
-pub fn guid_fn(length: Option<impl Into<NumberLike>>) -> Function {
-    let function = Function::new("rand::guid");
+/// rand::id() -> string
+/// If a number is provided, then the function generates a random ID with a specific length.
+pub fn id_fn(length: Option<impl Into<NumberLike>>) -> Function {
+    let function = Function::new("rand::id");
     match length {
         Some(length) => function.arg(length.into()),
         None => function,
     }
 }
 
-/// Generates a random guid if no arguments are provided. If one argument is provided, then it
-/// generates a random guid with the length provided.
-/// The function is also aliased as `rand_guid!()`.
+/// Generates a random ID if no arguments are provided. If one argument is provided, then it
+/// generates a random ID with the length provided.
+/// The function is also aliased as `rand_id!()`.
 ///
 /// # Arguments
 ///
-/// * `length` - The length of the guid. Can be a number, field or parameter reprsenting the
-///     number.
+/// * `length` - The length of the ID. Can be a number, field or parameter reprsenting the
+///   number.
 ///
 /// # Example
 /// ```rust
 /// use umbriel::{*, functions::rand};
 ///
-/// assert_eq!(rand::guid!().to_debug_sql(), "rand::guid()");
-/// assert_eq!(rand::guid!(1).to_debug_sql(), "rand::guid(1)");
+/// assert_eq!(rand::id!().to_debug_sql(), "rand::id()");
+/// assert_eq!(rand::id!(1).to_debug_sql(), "rand::id(1)");
 /// # let length_field = Field::new("length_field");
-/// assert_eq!(rand::guid!(length_field).to_debug_sql(), "rand::guid(length_field)");
+/// assert_eq!(rand::id!(length_field).to_debug_sql(), "rand::id(length_field)");
 /// # let length_param = Param::new("length_param");
-/// assert_eq!(rand::guid!(length_param).to_debug_sql(), "rand::guid($length_param)");
+/// assert_eq!(rand::id!(length_param).to_debug_sql(), "rand::id($length_param)");
 /// ```
 #[macro_export]
-macro_rules! rand_guid {
+macro_rules! rand_id {
     () => {
-        $crate::functions::rand::guid_fn(None as Option<$crate::NumberLike>)
+        $crate::functions::rand::id_fn(None as Option<$crate::NumberLike>)
     };
     ( $length:expr ) => {
-        $crate::functions::rand::guid_fn(Some($length))
+        $crate::functions::rand::id_fn(Some($length))
     };
 }
 
-pub use rand_guid as guid;
+pub use rand_id as id;
 
 /// This module contains functions for generating versioned random uuids.
 pub mod uuid {

@@ -1,4 +1,3 @@
-
 // Type functions
 // These functions can be used for generating and coercing data to specific data types. These functions are useful when accepting input values in client libraries, and ensuring that they are the desired type within SQL statements.
 //
@@ -13,35 +12,35 @@
 // type::int()	Converts a value into an integer
 // type::number()	Converts a value into a number
 // type::point()	Converts a value into a geometry point
-// type::regex()	Converts a value into a regular expression
+// type::record()	Converts a value into a record ID
 // type::string()	Converts a value into a string
 // type::table()	Converts a value into a table
-// type::thing()	Converts a value into a record pointer
-// type::is::array()	Checks if given value is of type array
-// type::is::bool()	Checks if given value is of type bool
-// type::is::bytes()	Checks if given value is of type bytes
-// type::is::collection()	Checks if given value is of type collection
-// type::is::datetime()	Checks if given value is of type datetime
-// type::is::decimal()	Checks if given value is of type decimal
-// type::is::duration()	Checks if given value is of type duration
-// type::is::float()	Checks if given value is of type float
-// type::is::geometry()	Checks if given value is of type geometry
-// type::is::int()	Checks if given value is of type int
-// type::is::line()	Checks if given value is of type line
-// type::is::null()	Checks if given value is of type null
-// type::is::multiline()	Checks if given value is of type multiline
-// type::is::multipoint()	Checks if given value is of type multipoint
-// type::is::multipolygon()	Checks if given value is of type multipolygon
-// type::is::number()	Checks if given value is of type number
-// type::is::object()	Checks if given value is of type object
-// type::is::point()	Checks if given value is of type point
-// type::is::polygon()	Checks if given value is of type polygon
-// type::is::record()	Checks if given value is of type record
-// type::is::string()	Checks if given value is of type string
-// type::is::uuid()	Checks if given value is of type uuid
+// type::is_array()	Checks if given value is of type array
+// type::is_bool()	Checks if given value is of type bool
+// type::is_bytes()	Checks if given value is of type bytes
+// type::is_collection()	Checks if given value is of type collection
+// type::is_datetime()	Checks if given value is of type datetime
+// type::is_decimal()	Checks if given value is of type decimal
+// type::is_duration()	Checks if given value is of type duration
+// type::is_float()	Checks if given value is of type float
+// type::is_geometry()	Checks if given value is of type geometry
+// type::is_int()	Checks if given value is of type int
+// type::is_line()	Checks if given value is of type line
+// type::is_null()	Checks if given value is of type null
+// type::is_multiline()	Checks if given value is of type multiline
+// type::is_multipoint()	Checks if given value is of type multipoint
+// type::is_multipolygon()	Checks if given value is of type multipolygon
+// type::is_number()	Checks if given value is of type number
+// type::is_object()	Checks if given value is of type object
+// type::is_point()	Checks if given value is of type point
+// type::is_polygon()	Checks if given value is of type polygon
+// type::is_record()	Checks if given value is of type record
+// type::is_string()	Checks if given value is of type string
+// type::is_uuid()	Checks if given value is of type uuid
 
 use crate::{
-    ArrayLike, DatetimeLike, DurationLike, Function, NumberLike, StrandLike, TableLike, ValueLike,
+    ArrayLike, DatetimeLike, DurationLike, Function, NumberLike, ObjectLike, RecordIdLike,
+    StrandLike, TableLike, ValueLike,
 };
 
 macro_rules! create_type {
@@ -73,7 +72,7 @@ create_type!(
     ///
     /// # Arguments
     /// * `value` - The value to be converted to a bool. Could also be a field or a parameter representing the value.
-    /// 
+    ///
     /// # Example
     /// ```
     /// use umbriel::{*, functions::type_};
@@ -88,7 +87,7 @@ create_type!(
     /// let result = type_::bool!(bool_param);
     /// assert_eq!(result.to_debug_sql(), "type::bool($bool_param)");
     /// ```
-    => 
+    =>
     "bool", ValueLike
 );
 
@@ -310,32 +309,6 @@ create_type!(
 );
 
 create_type!(
-    /// The type::regex function converts a value into a regex.
-    /// Also aliased as `type_regex!`
-    ///
-    /// # Arguments
-    /// * `value` - The value to be converted to a regex. Could also be a field or a parameter
-    /// representing the value.
-    ///
-    /// # Example
-    /// ```rust
-    /// use umbriel::{*, functions::type_};
-    /// let result = type_::regex!("/[A-Z]{3}/");
-    /// assert_eq!(result.to_debug_sql(), "type::regex('/[A-Z]{3}/')");
-    ///
-    /// let regex_field = Field::new("regex_field");
-    /// let result = type_::regex!(regex_field);
-    /// assert_eq!(result.to_debug_sql(), "type::regex(regex_field)");
-    ///
-    /// let regex_param = Param::new("regex_param");
-    /// let result = type_::regex!(regex_param);
-    /// assert_eq!(result.to_debug_sql(), "type::regex($regex_param)");
-    /// ```
-    =>
-    "regex", StrandLike
-);
-
-create_type!(
     /// The type::table function converts a value into a table definition.
     /// Also aliased as `type_table!`
     ///
@@ -373,9 +346,9 @@ pub fn point_fn(point1: impl Into<NumberLike>, point2: impl Into<NumberLike>) ->
 ///
 /// # Arguments
 /// * `point1` - The first point of the geometry point. Could also be a field or a parameter
-///     representing the value.
+///   representing the value.
 /// * `point2` - The second point of the geometry point. Could also be a field or a parameter
-///     representing the value.
+///   representing the value.
 ///
 /// # Example
 /// ```rust
@@ -402,46 +375,46 @@ macro_rules! type_point {
 
 pub use type_point as point;
 
-/// The type::thing function converts a value into a record pointer definition.
-pub fn thing_fn(table: impl Into<TableLike>, value: impl Into<ValueLike>) -> Function {
-    Function::new("type::thing")
+/// The type::record function converts a table and a key into a record ID.
+pub fn record_fn(table: impl Into<TableLike>, value: impl Into<ValueLike>) -> Function {
+    Function::new("type::record")
         .arg(table.into())
         .arg(value.into())
 }
 
-/// The type::thing function converts a value into a record pointer definition.
-/// Also aliased as `type_thing!`
+/// The type::record function converts a table and a key into a record ID.
+/// Also aliased as `type_record!`
 ///
 /// # Arguments
-/// * `table` - The table to be converted to a record pointer definition. Could also be a field or a parameter
-///     representing the value.
-/// * `value` - The value to be converted to a record pointer definition. Could also be a field or a parameter
-///     representing the value.
+/// * `table` - The table of the record ID. Could also be a field or a parameter
+///   representing the value.
+/// * `value` - The key of the record ID. Could also be a field or a parameter
+///   representing the value.
 ///
 /// # Example
 /// ```rust
 /// use umbriel::{*, functions::type_, statements::let_};
-/// let result = type_::thing!(Table::new("user"), 1234);
-/// assert_eq!(result.to_debug_sql(), "type::thing(user, 1234)");
+/// let result = type_::record!(Table::new("user"), 1234);
+/// assert_eq!(result.to_debug_sql(), "type::record(user, 1234)");
 ///
 /// let table_field = Field::new("table_field");
 /// let value_field = Field::new("value_field");
-/// let result = type_::thing!(table_field, value_field);
-/// assert_eq!(result.to_debug_sql(), "type::thing(table_field, value_field)");
+/// let result = type_::record!(table_field, value_field);
+/// assert_eq!(result.to_debug_sql(), "type::record(table_field, value_field)");
 ///
 /// let table_param = let_("table_param").equal_to("user").get_param();
 /// let value_param = let_("value_param").equal_to(1234).get_param();
-/// let result = type_::thing!(table_param, value_param);
-/// assert_eq!(result.to_debug_sql(), "type::thing($table_param, $value_param)");
+/// let result = type_::record!(table_param, value_param);
+/// assert_eq!(result.to_debug_sql(), "type::record($table_param, $value_param)");
 /// ```
 #[macro_export]
-macro_rules! type_thing {
+macro_rules! type_record {
     ( $table:expr, $value:expr ) => {
-        $crate::functions::type_::thing_fn($table, $value)
+        $crate::functions::type_::record_fn($table, $value)
     };
 }
 
-pub use type_thing as thing;
+pub use type_record as record;
 
 // create_is_function macro
 macro_rules! create_is_function {
@@ -449,522 +422,519 @@ macro_rules! create_is_function {
         paste::paste! {
 
             $(#[$attr])*
-            pub fn [<$function_name _fn>](value: impl Into<$value_type>) -> $crate::Function {
-                $crate::Function::new(concat!("type::is::", $function_name)).arg(value.into())
+            pub fn [<is_ $function_name _fn>](value: impl Into<$value_type>) -> $crate::Function {
+                $crate::Function::new(concat!("type::is_", $function_name)).arg(value.into())
             }
 
             $(#[$attr])*
             #[macro_export]
             macro_rules! [<type_is_ $function_name>] {
-                ( $string:expr ) => {
-                    $crate::functions::type_::is::[<$function_name _fn>]($string)
+                ( $value:expr ) => {
+                    $crate::functions::type_::[<is_ $function_name _fn>]($value)
                 };
             }
-            pub use [<type_is_ $function_name>] as [<$function_name>];
+            pub use [<type_is_ $function_name>] as [<is_ $function_name>];
 
         }
     };
 }
 
-/// The type_::is functions check if given value is of a specific type.
-pub mod is {
-    use crate::{DatetimeLike, DurationLike, NumberLike, ObjectLike, RecordIdLike, StrandLike, ValueLike};
+// The `type::is_*` functions check if given value is of a specific type.
+create_is_function!(
+    /// The type::is_array function checks if given value is of type array.
+    /// Also aliased as `type_is_array!`
+    ///
+    /// # Arguments
+    /// * `value` - The value to be checked if it is of type array. Could also be a field or a parameter
+    /// representing the value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::type_};
+    /// let result = type_::is_array!(1234);
+    /// assert_eq!(result.to_debug_sql(), "type::is_array(1234)");
+    ///
+    /// let array_field = Field::new("array_field");
+    /// let result = type_::is_array!(array_field);
+    /// assert_eq!(result.to_debug_sql(), "type::is_array(array_field)");
+    ///
+    /// let array_param = Param::new("array_param");
+    /// let result = type_::is_array!(array_param);
+    /// assert_eq!(result.to_debug_sql(), "type::is_array($array_param)");
+    /// ```
+    =>
+    "array", ValueLike
+);
 
-    create_is_function!(
-        /// The type::is::array function checks if given value is of type array.
-        /// Also aliased as `type_is_array!`
-        ///
-        /// # Arguments
-        /// * `value` - The value to be checked if it is of type array. Could also be a field or a parameter
-        /// representing the value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::type_};
-        /// let result = type_::is::array!(1234);
-        /// assert_eq!(result.to_debug_sql(), "type::is::array(1234)");
-        ///
-        /// let array_field = Field::new("array_field");
-        /// let result = type_::is::array!(array_field);
-        /// assert_eq!(result.to_debug_sql(), "type::is::array(array_field)");
-        ///
-        /// let array_param = Param::new("array_param");
-        /// let result = type_::is::array!(array_param);
-        /// assert_eq!(result.to_debug_sql(), "type::is::array($array_param)");
-        /// ```
-        =>
-        "array", ValueLike
-    );
+create_is_function!(
+    /// The type::is_bool function checks if given value is of type bool.
+    /// Also aliased as `type_is_bool!`
+    ///
+    /// # Arguments
+    /// * `value` - The value to be checked if it is of type bool. Could also be a field or a parameter
+    /// representing the value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::type_};
+    /// let result = type_::is_bool!(1234);
+    /// assert_eq!(result.to_debug_sql(), "type::is_bool(1234)");
+    ///
+    /// let bool_field = Field::new("bool_field");
+    /// let result = type_::is_bool!(bool_field);
+    /// assert_eq!(result.to_debug_sql(), "type::is_bool(bool_field)");
+    ///
+    /// let bool_param = Param::new("bool_param");
+    /// let result = type_::is_bool!(bool_param);
+    /// assert_eq!(result.to_debug_sql(), "type::is_bool($bool_param)");
+    /// ```
+    =>
+    "bool", ValueLike
+);
 
-    create_is_function!(
-        /// The type::is::bool function checks if given value is of type bool.
-        /// Also aliased as `type_is_bool!`
-        ///
-        /// # Arguments
-        /// * `value` - The value to be checked if it is of type bool. Could also be a field or a parameter
-        /// representing the value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::type_};
-        /// let result = type_::is::bool!(1234);
-        /// assert_eq!(result.to_debug_sql(), "type::is::bool(1234)");
-        ///
-        /// let bool_field = Field::new("bool_field");
-        /// let result = type_::is::bool!(bool_field);
-        /// assert_eq!(result.to_debug_sql(), "type::is::bool(bool_field)");
-        ///
-        /// let bool_param = Param::new("bool_param");
-        /// let result = type_::is::bool!(bool_param);
-        /// assert_eq!(result.to_debug_sql(), "type::is::bool($bool_param)");
-        /// ```
-        =>
-        "bool", ValueLike
-    );
+create_is_function!(
+    /// The type::is_bytes function checks if given value is of type bytes.
+    /// Also aliased as `type_is_bytes!`
+    ///
+    /// # Arguments
+    /// * `value` - The value to be checked if it is of type bytes. Could also be a field or a parameter
+    /// representing the value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::type_};
+    /// let result = type_::is_bytes!(1234);
+    /// assert_eq!(result.to_debug_sql(), "type::is_bytes(1234)");
+    ///
+    /// let bytes_field = Field::new("bytes_field");
+    /// let result = type_::is_bytes!(bytes_field);
+    /// assert_eq!(result.to_debug_sql(), "type::is_bytes(bytes_field)");
+    ///
+    /// let bytes_param = Param::new("bytes_param");
+    /// let result = type_::is_bytes!(bytes_param);
+    /// assert_eq!(result.to_debug_sql(), "type::is_bytes($bytes_param)");
+    /// ```
+    =>
+    "bytes", ValueLike
+);
 
-    create_is_function!(
-        /// The type::is::bytes function checks if given value is of type bytes.
-        /// Also aliased as `type_is_bytes!`
-        ///
-        /// # Arguments
-        /// * `value` - The value to be checked if it is of type bytes. Could also be a field or a parameter
-        /// representing the value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::type_};
-        /// let result = type_::is::bytes!(1234);
-        /// assert_eq!(result.to_debug_sql(), "type::is::bytes(1234)");
-        ///
-        /// let bytes_field = Field::new("bytes_field");
-        /// let result = type_::is::bytes!(bytes_field);
-        /// assert_eq!(result.to_debug_sql(), "type::is::bytes(bytes_field)");
-        ///
-        /// let bytes_param = Param::new("bytes_param");
-        /// let result = type_::is::bytes!(bytes_param);
-        /// assert_eq!(result.to_debug_sql(), "type::is::bytes($bytes_param)");
-        /// ```
-        =>
-        "bytes", ValueLike
-    );
+create_is_function!(
+    /// The type::is_datetime function checks if given value is of type datetime.
+    /// Also aliased as `type_is_datetime!`
+    ///
+    /// # Arguments
+    /// * `value` - The value to be checked if it is of type datetime. Could also be a field or a parameter
+    /// representing the value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::type_};
+    ///
+    /// let dt = chrono::DateTime::from_timestamp(61, 0).unwrap();
+    /// let result = type_::is_datetime!(dt);
+    /// assert_eq!(result.to_debug_sql(), "type::is_datetime(d'1970-01-01T00:01:01Z')");
+    ///
+    /// let datetime_field = Field::new("datetime_field");
+    /// let result = type_::is_datetime!(datetime_field);
+    /// assert_eq!(result.to_debug_sql(), "type::is_datetime(datetime_field)");
+    ///
+    /// let datetime_param = Param::new("datetime_param");
+    /// let result = type_::is_datetime!(datetime_param);
+    /// assert_eq!(result.to_debug_sql(), "type::is_datetime($datetime_param)");
+    /// ```
+    =>
+    "datetime", DatetimeLike
+);
 
-    create_is_function!(
-        /// The type::is::datetime function checks if given value is of type datetime.
-        /// Also aliased as `type_is_datetime!`
-        ///
-        /// # Arguments
-        /// * `value` - The value to be checked if it is of type datetime. Could also be a field or a parameter
-        /// representing the value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::type_};
-        ///
-        /// let dt = chrono::DateTime::from_timestamp(61, 0).unwrap();
-        /// let result = type_::is::datetime!(dt);
-        /// assert_eq!(result.to_debug_sql(), "type::is::datetime(d'1970-01-01T00:01:01Z')");
-        ///
-        /// let datetime_field = Field::new("datetime_field");
-        /// let result = type_::is::datetime!(datetime_field);
-        /// assert_eq!(result.to_debug_sql(), "type::is::datetime(datetime_field)");
-        ///
-        /// let datetime_param = Param::new("datetime_param");
-        /// let result = type_::is::datetime!(datetime_param);
-        /// assert_eq!(result.to_debug_sql(), "type::is::datetime($datetime_param)");
-        /// ```
-        =>
-        "datetime", DatetimeLike
-    );
+create_is_function!(
+    /// The type::is_collection function checks if given value is of type collection.
+    /// Also aliased as `type_is_collection!`
+    ///
+    /// # Arguments
+    /// * `value` - The value to be checked if it is of type collection. Could also be a field or a parameter
+    /// representing the value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::type_};
+    ///
+    /// let result = type_::is_collection!(1234);
+    /// assert_eq!(result.to_debug_sql(), "type::is_collection(1234)");
+    ///
+    /// let collection_field = Field::new("collection_field");
+    /// let result = type_::is_collection!(collection_field);
+    /// assert_eq!(result.to_debug_sql(), "type::is_collection(collection_field)");
+    ///
+    /// let collection_param = Param::new("collection_param");
+    /// let result = type_::is_collection!(collection_param);
+    /// assert_eq!(result.to_debug_sql(), "type::is_collection($collection_param)");
+    /// ```
+    =>
+    "collection", ValueLike
+);
 
-    create_is_function!(
-        /// The type::is::collection function checks if given value is of type collection.
-        /// Also aliased as `type_is_collection!`
-        ///
-        /// # Arguments
-        /// * `value` - The value to be checked if it is of type collection. Could also be a field or a parameter
-        /// representing the value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::type_};
-        ///
-        /// let result = type_::is::collection!(1234);
-        /// assert_eq!(result.to_debug_sql(), "type::is::collection(1234)");
-        ///
-        /// let collection_field = Field::new("collection_field");
-        /// let result = type_::is::collection!(collection_field);
-        /// assert_eq!(result.to_debug_sql(), "type::is::collection(collection_field)");
-        ///
-        /// let collection_param = Param::new("collection_param");
-        /// let result = type_::is::collection!(collection_param);
-        /// assert_eq!(result.to_debug_sql(), "type::is::collection($collection_param)");
-        /// ```
-        =>
-        "collection", ValueLike
-    );
+create_is_function!(
+    /// The type::is_decimal function checks if given value is of type decimal.
+    /// Also aliased as `type_is_decimal!`
+    ///
+    /// # Arguments
+    /// * `value` - The value to be checked if it is of type decimal. Could also be a field or a parameter
+    /// representing the value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::type_};
+    /// let result = type_::is_decimal!(1234);
+    /// assert_eq!(result.to_debug_sql(), "type::is_decimal(1234)");
+    ///
+    /// let decimal_field = Field::new("decimal_field");
+    /// let result = type_::is_decimal!(decimal_field);
+    /// assert_eq!(result.to_debug_sql(), "type::is_decimal(decimal_field)");
+    ///
+    /// let decimal_param = Param::new("decimal_param");
+    /// let result = type_::is_decimal!(decimal_param);
+    /// assert_eq!(result.to_debug_sql(), "type::is_decimal($decimal_param)");
+    /// ```
+    =>
+    "decimal", ValueLike
+);
 
-    create_is_function!(
-        /// The type::is::decimal function checks if given value is of type decimal.
-        /// Also aliased as `type_is_decimal!`
-        ///
-        /// # Arguments
-        /// * `value` - The value to be checked if it is of type decimal. Could also be a field or a parameter
-        /// representing the value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::type_};
-        /// let result = type_::is::decimal!(1234);
-        /// assert_eq!(result.to_debug_sql(), "type::is::decimal(1234)");
-        ///
-        /// let decimal_field = Field::new("decimal_field");
-        /// let result = type_::is::decimal!(decimal_field);
-        /// assert_eq!(result.to_debug_sql(), "type::is::decimal(decimal_field)");
-        ///
-        /// let decimal_param = Param::new("decimal_param");
-        /// let result = type_::is::decimal!(decimal_param);
-        /// assert_eq!(result.to_debug_sql(), "type::is::decimal($decimal_param)");
-        /// ```
-        =>
-        "decimal", ValueLike
-    );
+create_is_function!(
+    /// The type::is_duration function checks if given value is of type duration.
+    /// Also aliased as `type_is_duration!`
+    ///
+    /// # Arguments
+    /// * `value` - The value to be checked if it is of type duration. Could also be a field or a parameter
+    /// representing the value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::type_};
+    ///
+    /// let duration = std::time::Duration::from_secs(60 * 60);
+    /// let result = type_::is_duration!(duration);
+    /// assert_eq!(result.to_debug_sql(), "type::is_duration(1h)");
+    ///
+    /// let duration_field = Field::new("duration_field");
+    /// let result = type_::is_duration!(duration_field);
+    /// assert_eq!(result.to_debug_sql(), "type::is_duration(duration_field)");
+    ///
+    /// let duration_param = Param::new("duration_param");
+    /// let result = type_::is_duration!(duration_param);
+    /// assert_eq!(result.to_debug_sql(), "type::is_duration($duration_param)");
+    /// ```
+    =>
+    "duration", DurationLike
+);
 
-    create_is_function!(
-        /// The type::is::duration function checks if given value is of type duration.
-        /// Also aliased as `type_is_duration!`
-        ///
-        /// # Arguments
-        /// * `value` - The value to be checked if it is of type duration. Could also be a field or a parameter
-        /// representing the value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::type_};
-        ///
-        /// let duration = std::time::Duration::from_secs(60 * 60);
-        /// let result = type_::is::duration!(duration);
-        /// assert_eq!(result.to_debug_sql(), "type::is::duration(1h)");
-        ///
-        /// let duration_field = Field::new("duration_field");
-        /// let result = type_::is::duration!(duration_field);
-        /// assert_eq!(result.to_debug_sql(), "type::is::duration(duration_field)");
-        ///
-        /// let duration_param = Param::new("duration_param");
-        /// let result = type_::is::duration!(duration_param);
-        /// assert_eq!(result.to_debug_sql(), "type::is::duration($duration_param)");
-        /// ```
-        =>
-        "duration", DurationLike
-    );
+create_is_function!(
+    /// The type::is_float function checks if given value is of type float.
+    /// Also aliased as `type_is_float!`
+    ///
+    /// # Arguments
+    /// * `value` - The value to be checked if it is of type float. Could also be a field or a parameter
+    /// representing the value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::type_};
+    /// let result = type_::is_float!(1234);
+    /// assert_eq!(result.to_debug_sql(), "type::is_float(1234)");
+    ///
+    /// let float_field = Field::new("float_field");
+    /// let result = type_::is_float!(float_field);
+    /// assert_eq!(result.to_debug_sql(), "type::is_float(float_field)");
+    ///
+    /// let float_param = Param::new("float_param");
+    /// let result = type_::is_float!(float_param);
+    /// assert_eq!(result.to_debug_sql(), "type::is_float($float_param)");
+    /// ```
+    =>
+    "float", NumberLike
+);
 
-    create_is_function!(
-        /// The type::is::float function checks if given value is of type float.
-        /// Also aliased as `type_is_float!`
-        ///
-        /// # Arguments
-        /// * `value` - The value to be checked if it is of type float. Could also be a field or a parameter
-        /// representing the value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::type_};
-        /// let result = type_::is::float!(1234);
-        /// assert_eq!(result.to_debug_sql(), "type::is::float(1234)");
-        ///
-        /// let float_field = Field::new("float_field");
-        /// let result = type_::is::float!(float_field);
-        /// assert_eq!(result.to_debug_sql(), "type::is::float(float_field)");
-        ///
-        /// let float_param = Param::new("float_param");
-        /// let result = type_::is::float!(float_param);
-        /// assert_eq!(result.to_debug_sql(), "type::is::float($float_param)");
-        /// ```
-        =>
-        "float", NumberLike
-    );
+create_is_function!(
+    /// The type::is_int function checks if given value is of type int.
+    /// Also aliased as `type_is_int!`
+    ///
+    /// # Arguments
+    /// * `value` - The value to be checked if it is of type int. Could also be a field or a parameter
+    /// representing the value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::type_};
+    /// let result = type_::is_int!(1234);
+    /// assert_eq!(result.to_debug_sql(), "type::is_int(1234)");
+    ///
+    /// let int_field = Field::new("int_field");
+    /// let result = type_::is_int!(int_field);
+    /// assert_eq!(result.to_debug_sql(), "type::is_int(int_field)");
+    ///
+    /// let int_param = Param::new("int_param");
+    /// let result = type_::is_int!(int_param);
+    /// assert_eq!(result.to_debug_sql(), "type::is_int($int_param)");
+    /// ```
+    =>
+    "int", NumberLike
+);
 
-    create_is_function!(
-        /// The type::is::int function checks if given value is of type int.
-        /// Also aliased as `type_is_int!`
-        ///
-        /// # Arguments
-        /// * `value` - The value to be checked if it is of type int. Could also be a field or a parameter
-        /// representing the value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::type_};
-        /// let result = type_::is::int!(1234);
-        /// assert_eq!(result.to_debug_sql(), "type::is::int(1234)");
-        ///
-        /// let int_field = Field::new("int_field");
-        /// let result = type_::is::int!(int_field);
-        /// assert_eq!(result.to_debug_sql(), "type::is::int(int_field)");
-        ///
-        /// let int_param = Param::new("int_param");
-        /// let result = type_::is::int!(int_param);
-        /// assert_eq!(result.to_debug_sql(), "type::is::int($int_param)");
-        /// ```
-        =>
-        "int", NumberLike
-    );
+create_is_function!(
+    /// The type::is_null function checks if given value is of type null.
+    /// Also aliased as `type_is_null!`
+    ///
+    /// # Arguments
+    /// * `value` - The value to be checked if it is of type null. Could also be a field or a parameter
+    /// representing the value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::type_};
+    ///
+    /// let result = type_::is_null!(1234);
+    /// assert_eq!(result.to_debug_sql(), "type::is_null(1234)");
+    ///
+    /// let null_field = Field::new("null_field");
+    /// let result = type_::is_null!(null_field);
+    /// assert_eq!(result.to_debug_sql(), "type::is_null(null_field)");
+    ///
+    /// let null_param = Param::new("null_param");
+    /// let result = type_::is_null!(null_param);
+    /// assert_eq!(result.to_debug_sql(), "type::is_null($null_param)");
+    /// ```
+    =>
+    "null", ValueLike
+);
 
-    create_is_function!(
-        /// The type::is::null function checks if given value is of type null.
-        /// Also aliased as `type_is_null!`
-        ///
-        /// # Arguments
-        /// * `value` - The value to be checked if it is of type null. Could also be a field or a parameter
-        /// representing the value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::type_};
-        ///
-        /// let result = type_::is::null!(1234);
-        /// assert_eq!(result.to_debug_sql(), "type::is::null(1234)");
-        ///
-        /// let null_field = Field::new("null_field");
-        /// let result = type_::is::null!(null_field);
-        /// assert_eq!(result.to_debug_sql(), "type::is::null(null_field)");
-        ///
-        /// let null_param = Param::new("null_param");
-        /// let result = type_::is::null!(null_param);
-        /// assert_eq!(result.to_debug_sql(), "type::is::null($null_param)");
-        /// ```
-        =>
-        "null", ValueLike
-    );
+create_is_function!(
+    /// The type::is_number function checks if given value is of type number.
+    /// Also aliased as `type_is_number!`
+    ///
+    /// # Arguments
+    /// * `value` - The value to be checked if it is of type number. Could also be a field or a parameter
+    /// representing the value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::type_};
+    /// let result = type_::is_number!(1234);
+    /// assert_eq!(result.to_debug_sql(), "type::is_number(1234)");
+    ///
+    /// let number_field = Field::new("number_field");
+    /// let result = type_::is_number!(number_field);
+    /// assert_eq!(result.to_debug_sql(), "type::is_number(number_field)");
+    ///
+    /// let number_param = Param::new("number_param");
+    /// let result = type_::is_number!(number_param);
+    /// assert_eq!(result.to_debug_sql(), "type::is_number($number_param)");
+    /// ```
+    =>
+    "number", NumberLike
+);
 
-    create_is_function!(
-        /// The type::is::number function checks if given value is of type number.
-        /// Also aliased as `type_is_number!`
-        ///
-        /// # Arguments
-        /// * `value` - The value to be checked if it is of type number. Could also be a field or a parameter
-        /// representing the value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::type_};
-        /// let result = type_::is::number!(1234);
-        /// assert_eq!(result.to_debug_sql(), "type::is::number(1234)");
-        ///
-        /// let number_field = Field::new("number_field");
-        /// let result = type_::is::number!(number_field);
-        /// assert_eq!(result.to_debug_sql(), "type::is::number(number_field)");
-        ///
-        /// let number_param = Param::new("number_param");
-        /// let result = type_::is::number!(number_param);
-        /// assert_eq!(result.to_debug_sql(), "type::is::number($number_param)");
-        /// ```
-        =>
-        "number", NumberLike
-    );
+create_is_function!(
+    /// The type::is_string function checks if given value is of type string.
+    /// Also aliased as `type_is_string!`
+    ///
+    /// # Arguments
+    /// * `value` - The value to be checked if it is of type string. Could also be a field or a parameter
+    /// representing the value.
+    ///
+    /// # Example
+    /// ```rust
+    ///
+    /// use umbriel::{*, functions::type_};
+    /// let result = type_::is_string!("Alice");
+    /// assert_eq!(result.to_debug_sql(), "type::is_string('Alice')");
+    ///
+    /// let string_field = Field::new("string_field");
+    /// let result = type_::is_string!(string_field);
+    /// assert_eq!(result.to_debug_sql(), "type::is_string(string_field)");
+    ///
+    /// let string_param = Param::new("string_param");
+    /// let result = type_::is_string!(string_param);
+    /// assert_eq!(result.to_debug_sql(), "type::is_string($string_param)");
+    /// ```
+    =>
+    "string", StrandLike
+);
 
-    create_is_function!(
-        /// The type::is::string function checks if given value is of type string.
-        /// Also aliased as `type_is_string!`
-        ///
-        /// # Arguments
-        /// * `value` - The value to be checked if it is of type string. Could also be a field or a parameter
-        /// representing the value.
-        ///
-        /// # Example
-        /// ```rust
-        ///
-        /// use umbriel::{*, functions::type_};
-        /// let result = type_::is::string!("Alice");
-        /// assert_eq!(result.to_debug_sql(), "type::is::string('Alice')");
-        ///
-        /// let string_field = Field::new("string_field");
-        /// let result = type_::is::string!(string_field);
-        /// assert_eq!(result.to_debug_sql(), "type::is::string(string_field)");
-        ///
-        /// let string_param = Param::new("string_param");
-        /// let result = type_::is::string!(string_param);
-        /// assert_eq!(result.to_debug_sql(), "type::is::string($string_param)");
-        /// ```
-        =>
-        "string", StrandLike
-    );
+create_is_function!(
+    /// The type::is_geometry function checks if given value is of type geometry.
+    /// Also aliased as `type_is_geometry!`
+    ///
+    /// # Arguments
+    /// * `value` - The value to be checked if it is of type geometry. Could also be a field or a parameter
+    /// representing the value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::type_};
+    ///
+    /// let result = type_::is_geometry!(geo::point!(x: 51.509865, y: -0.118092));
+    /// assert_eq!(result.to_debug_sql(), "type::is_geometry((51.509865f, -0.118092f))");
+    ///
+    /// let geometry_field = Field::new("geometry_field");
+    /// let result = type_::is_geometry!(geometry_field);
+    /// assert_eq!(result.to_debug_sql(), "type::is_geometry(geometry_field)");
+    ///
+    /// let geometry_param = Param::new("geometry_param");
+    /// let result = type_::is_geometry!(geometry_param);
+    /// assert_eq!(result.to_debug_sql(), "type::is_geometry($geometry_param)");
+    /// ```
+    =>
+    "geometry", crate::GeometryLike
+);
 
-    create_is_function!(
-        /// The type::is::geometry function checks if given value is of type geometry.
-        /// Also aliased as `type_is_geometry!`
-        ///
-        /// # Arguments
-        /// * `value` - The value to be checked if it is of type geometry. Could also be a field or a parameter
-        /// representing the value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::type_};
-        ///
-        /// let result = type_::is::geometry!(geo::point!(x: 51.509865, y: -0.118092));
-        /// assert_eq!(result.to_debug_sql(), "type::is::geometry((51.509865f, -0.118092f))");
-        ///
-        /// let geometry_field = Field::new("geometry_field");
-        /// let result = type_::is::geometry!(geometry_field);
-        /// assert_eq!(result.to_debug_sql(), "type::is::geometry(geometry_field)");
-        ///
-        /// let geometry_param = Param::new("geometry_param");
-        /// let result = type_::is::geometry!(geometry_param);
-        /// assert_eq!(result.to_debug_sql(), "type::is::geometry($geometry_param)");
-        /// ```
-        =>
-        "geometry", crate::GeometryLike
-    );
+create_is_function!(
+    /// The type::is_line function checks if given value is of type line.
+    /// Also aliased as `type_is_line!`
+    ///
+    /// # Arguments
+    /// * `value` - The value to be checked if it is of type line. Could also be a field or a parameter
+    /// representing the value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::type_};
+    ///
+    /// let result = type_::is_line!(geo::LineString(vec![
+    ///    geo::Coord {
+    ///    x: -122.33583,
+    ///    y: 47.60621,
+    ///    },
+    ///    geo::Coord {
+    ///    x: -122.33583,
+    ///    y: 47.60622,
+    ///    },
+    /// ]));
+    /// assert_eq!(result.to_debug_sql(),
+    /// "type::is_line({ type: 'LineString', coordinates: [[-122.33583f, 47.60621f], [-122.33583f, 47.60622f]] })");
+    ///
+    /// let line_field = Field::new("line_field");
+    /// let result = type_::is_line!(line_field);
+    /// assert_eq!(result.to_debug_sql(), "type::is_line(line_field)");
+    ///
+    /// let line_param = Param::new("line_param");
+    /// let result = type_::is_line!(line_param);
+    /// assert_eq!(result.to_debug_sql(), "type::is_line($line_param)");
+    /// ```
+    =>
+    "line", crate::GeometryLike
+);
 
-    create_is_function!(
-        /// The type::is::line function checks if given value is of type line.
-        /// Also aliased as `type_is_line!`
-        ///
-        /// # Arguments
-        /// * `value` - The value to be checked if it is of type line. Could also be a field or a parameter
-        /// representing the value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::type_};
-        ///
-        /// let result = type_::is::line!(geo::LineString(vec![
-        ///    geo::Coord {
-        ///    x: -122.33583,
-        ///    y: 47.60621,
-        ///    },
-        ///    geo::Coord {
-        ///    x: -122.33583,
-        ///    y: 47.60622,
-        ///    },
-        /// ]));
-        /// assert_eq!(result.to_debug_sql(),
-        /// "type::is::line({ type: 'LineString', coordinates: [[-122.33583f, 47.60621f], [-122.33583f, 47.60622f]] })");
-        ///
-        /// let line_field = Field::new("line_field");
-        /// let result = type_::is::line!(line_field);
-        /// assert_eq!(result.to_debug_sql(), "type::is::line(line_field)");
-        ///
-        /// let line_param = Param::new("line_param");
-        /// let result = type_::is::line!(line_param);
-        /// assert_eq!(result.to_debug_sql(), "type::is::line($line_param)");
-        /// ```
-        =>
-        "line", crate::GeometryLike
-    );
+create_is_function!(
+    /// The type::is_multiline function checks if given value is of type multiline.
+    /// Also aliased as `type_is_multiline!`
+    ///
+    /// # Arguments
+    /// * `value` - The value to be checked if it is of type multiline. Could also be a field or a parameter
+    /// representing the value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::type_};
+    ///
+    /// let result = type_::is_multiline!(geo::MultiLineString(vec![]));
+    /// assert_eq!(result.to_debug_sql(),
+    /// "type::is_multiline({ type: 'MultiLineString', coordinates: [] })");
+    ///
+    /// let multiline_field = Field::new("multiline_field");
+    /// let result = type_::is_multiline!(multiline_field);
+    /// assert_eq!(result.to_debug_sql(), "type::is_multiline(multiline_field)");
+    ///
+    /// let multiline_param = Param::new("multiline_param");
+    /// let result = type_::is_multiline!(multiline_param);
+    /// assert_eq!(result.to_debug_sql(), "type::is_multiline($multiline_param)");
+    /// ```
+    =>
+    "multiline", crate::GeometryLike
+);
 
-    create_is_function!(
-        /// The type::is::multiline function checks if given value is of type multiline.
-        /// Also aliased as `type_is_multiline!`
-        ///
-        /// # Arguments
-        /// * `value` - The value to be checked if it is of type multiline. Could also be a field or a parameter
-        /// representing the value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::type_};
-        ///
-        /// let result = type_::is::multiline!(geo::MultiLineString(vec![]));
-        /// assert_eq!(result.to_debug_sql(),
-        /// "type::is::multiline({ type: 'MultiLineString', coordinates: [] })");
-        ///
-        /// let multiline_field = Field::new("multiline_field");
-        /// let result = type_::is::multiline!(multiline_field);
-        /// assert_eq!(result.to_debug_sql(), "type::is::multiline(multiline_field)");
-        ///
-        /// let multiline_param = Param::new("multiline_param");
-        /// let result = type_::is::multiline!(multiline_param);
-        /// assert_eq!(result.to_debug_sql(), "type::is::multiline($multiline_param)");
-        /// ```
-        =>
-        "multiline", crate::GeometryLike
-    );
+create_is_function!(
+    /// The type::is_multipoint function checks if given value is of type multipoint.
+    /// Also aliased as `type_is_multipoint!`
+    ///
+    /// # Arguments
+    /// * `value` - The value to be checked if it is of type multipoint. Could also be a field or a parameter
+    /// representing the value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::type_};
+    ///
+    /// let result = type_::is_multipoint!(geo::MultiPoint(vec![(0.0, 0.0).into(), (1.0, 1.0).into(), (2.0, 35.0).into()]));
+    /// assert_eq!(result.to_debug_sql(),
+    /// "type::is_multipoint({ type: 'MultiPoint', coordinates: [[0f, 0f], [1f, 1f], [2f, 35f]] })");
+    ///
+    /// let multipoint_field = Field::new("multipoint_field");
+    /// let result = type_::is_multipoint!(multipoint_field);
+    /// assert_eq!(result.to_debug_sql(), "type::is_multipoint(multipoint_field)");
+    ///
+    /// let multipoint_param = Param::new("multipoint_param");
+    /// let result = type_::is_multipoint!(multipoint_param);
+    /// assert_eq!(result.to_debug_sql(), "type::is_multipoint($multipoint_param)");
+    /// ```
+    =>
+    "multipoint", crate::GeometryLike
+);
 
-    create_is_function!(
-        /// The type::is::multipoint function checks if given value is of type multipoint.
-        /// Also aliased as `type_is_multipoint!`
-        ///
-        /// # Arguments
-        /// * `value` - The value to be checked if it is of type multipoint. Could also be a field or a parameter
-        /// representing the value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::type_};
-        ///
-        /// let result = type_::is::multipoint!(geo::MultiPoint(vec![(0.0, 0.0).into(), (1.0, 1.0).into(), (2.0, 35.0).into()]));
-        /// assert_eq!(result.to_debug_sql(),
-        /// "type::is::multipoint({ type: 'MultiPoint', coordinates: [[0f, 0f], [1f, 1f], [2f, 35f]] })");
-        ///
-        /// let multipoint_field = Field::new("multipoint_field");
-        /// let result = type_::is::multipoint!(multipoint_field);
-        /// assert_eq!(result.to_debug_sql(), "type::is::multipoint(multipoint_field)");
-        ///
-        /// let multipoint_param = Param::new("multipoint_param");
-        /// let result = type_::is::multipoint!(multipoint_param);
-        /// assert_eq!(result.to_debug_sql(), "type::is::multipoint($multipoint_param)");
-        /// ```
-        =>
-        "multipoint", crate::GeometryLike
-    );
-
-    create_is_function!(
-        /// The type::is::multipolygon function checks if given value is of type multipolygon.
-        /// Also aliased as `type_is_multipolygon!`
-        ///
-        /// # Arguments
-        /// * `value` - The value to be checked if it is of type multipolygon. Could also be a field or a parameter
-        /// representing the value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::type_};
-        ///
-        /// let result = type_::is::multipolygon!(geo::MultiPolygon(vec![]));
-        ///
-        /// assert_eq!(result.to_debug_sql(),
-        /// "type::is::multipolygon({ type: 'MultiPolygon', coordinates: [] })");
-        /// let multipolygon_field = Field::new("multipolygon_field");
-        /// let result = type_::is::multipolygon!(multipolygon_field);
-        /// assert_eq!(result.to_debug_sql(), "type::is::multipolygon(multipolygon_field)");
-        /// let multipolygon_param = Param::new("multipolygon_param");
-        /// let result = type_::is::multipolygon!(multipolygon_param);
-        /// assert_eq!(result.to_debug_sql(), "type::is::multipolygon($multipolygon_param)");
-        /// ```
+create_is_function!(
+    /// The type::is_multipolygon function checks if given value is of type multipolygon.
+    /// Also aliased as `type_is_multipolygon!`
+    ///
+    /// # Arguments
+    /// * `value` - The value to be checked if it is of type multipolygon. Could also be a field or a parameter
+    /// representing the value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::type_};
+    ///
+    /// let result = type_::is_multipolygon!(geo::MultiPolygon(vec![]));
+    ///
+    /// assert_eq!(result.to_debug_sql(),
+    /// "type::is_multipolygon({ type: 'MultiPolygon', coordinates: [] })");
+    /// let multipolygon_field = Field::new("multipolygon_field");
+    /// let result = type_::is_multipolygon!(multipolygon_field);
+    /// assert_eq!(result.to_debug_sql(), "type::is_multipolygon(multipolygon_field)");
+    /// let multipolygon_param = Param::new("multipolygon_param");
+    /// let result = type_::is_multipolygon!(multipolygon_param);
+    /// assert_eq!(result.to_debug_sql(), "type::is_multipolygon($multipolygon_param)");
+    /// ```
     =>
     "multipolygon", crate::GeometryLike
-    );
+);
 
-    create_is_function!(
-        /// The type::is::point function checks if given value is of type point.
-        /// Also aliased as `type_is_point!`
-        ///
-        /// # Arguments
-        /// * `value` - The value to be checked if it is of type point. Could also be a field or a parameter
-        /// representing the value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::type_};
-        ///
-        /// let result = type_::is::point!(geo::Point::new(0.0, 0.0));
-        /// assert_eq!(result.to_debug_sql(), "type::is::point((0f, 0f))");
-        ///
-        /// let point_field = Field::new("point_field");
-        /// let result = type_::is::point!(point_field);
-        /// assert_eq!(result.to_debug_sql(), "type::is::point(point_field)");
-        ///
-        /// let point_param = Param::new("point_param");
-        /// let result = type_::is::point!(point_param);
-        /// assert_eq!(result.to_debug_sql(), "type::is::point($point_param)");
-        /// ```
-        =>
-        "point", crate::GeometryLike
-    );
+create_is_function!(
+    /// The type::is_point function checks if given value is of type point.
+    /// Also aliased as `type_is_point!`
+    ///
+    /// # Arguments
+    /// * `value` - The value to be checked if it is of type point. Could also be a field or a parameter
+    /// representing the value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::type_};
+    ///
+    /// let result = type_::is_point!(geo::Point::new(0.0, 0.0));
+    /// assert_eq!(result.to_debug_sql(), "type::is_point((0f, 0f))");
+    ///
+    /// let point_field = Field::new("point_field");
+    /// let result = type_::is_point!(point_field);
+    /// assert_eq!(result.to_debug_sql(), "type::is_point(point_field)");
+    ///
+    /// let point_param = Param::new("point_param");
+    /// let result = type_::is_point!(point_param);
+    /// assert_eq!(result.to_debug_sql(), "type::is_point($point_param)");
+    /// ```
+    =>
+    "point", crate::GeometryLike
+);
 
-    create_is_function!(
-    /// The type::is::polygon function checks if given value is of type polygon.
+create_is_function!(
+    /// The type::is_polygon function checks if given value is of type polygon.
     /// Also aliased as `type_is_polygon!`
     ///
     /// # Arguments
@@ -975,7 +945,7 @@ pub mod is {
     /// ```rust
     /// use umbriel::{*, functions::type_};
     ///
-    /// let result = type_::is::polygon!(geo::Polygon::new(
+    /// let result = type_::is_polygon!(geo::Polygon::new(
     ///    geo::LineString(vec![
     ///         geo::Coord {
     ///             x: -122.33583,
@@ -1000,95 +970,94 @@ pub mod is {
     ///    println!("{}", result.to_debug_sql());
     ///
     ///    let polygon_field = Field::new("polygon_field");
-    ///    let result = type_::is::polygon!(polygon_field);
-    ///    assert_eq!(result.to_debug_sql(), "type::is::polygon(polygon_field)");
+    ///    let result = type_::is_polygon!(polygon_field);
+    ///    assert_eq!(result.to_debug_sql(), "type::is_polygon(polygon_field)");
     ///
     ///    let polygon_param = Param::new("polygon_param");
-    ///    let result = type_::is::polygon!(polygon_param);
-    ///    assert_eq!(result.to_debug_sql(), "type::is::polygon($polygon_param)");
+    ///    let result = type_::is_polygon!(polygon_param);
+    ///    assert_eq!(result.to_debug_sql(), "type::is_polygon($polygon_param)");
     ///    ```
     =>
     "polygon", crate::GeometryLike
-    );
+);
 
-    create_is_function!(
-        /// The type::is::object function checks if given value is of type object.
-        /// Also aliased as `type_is_object!`
-        ///
-        /// # Arguments
-        /// * `value` - The value to be checked if it is of type object. Could also be a field or a parameter
-        /// representing the value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::type_};
-        ///
-        /// let result = type_::is::object!(types::Object::default());
-        /// assert_eq!(result.to_debug_sql(), "type::is::object({  })");
-        ///
-        /// let object_field = Field::new("object_field");
-        /// let result = type_::is::object!(object_field);
-        /// assert_eq!(result.to_debug_sql(), "type::is::object(object_field)");
-        ///
-        /// let object_param = Param::new("object_param");
-        /// let result = type_::is::object!(object_param);
-        /// assert_eq!(result.to_debug_sql(), "type::is::object($object_param)");
-        /// ```
-        =>
-        "object", ObjectLike
-    );
+create_is_function!(
+    /// The type::is_object function checks if given value is of type object.
+    /// Also aliased as `type_is_object!`
+    ///
+    /// # Arguments
+    /// * `value` - The value to be checked if it is of type object. Could also be a field or a parameter
+    /// representing the value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::type_};
+    ///
+    /// let result = type_::is_object!(types::Object::default());
+    /// assert_eq!(result.to_debug_sql(), "type::is_object({  })");
+    ///
+    /// let object_field = Field::new("object_field");
+    /// let result = type_::is_object!(object_field);
+    /// assert_eq!(result.to_debug_sql(), "type::is_object(object_field)");
+    ///
+    /// let object_param = Param::new("object_param");
+    /// let result = type_::is_object!(object_param);
+    /// assert_eq!(result.to_debug_sql(), "type::is_object($object_param)");
+    /// ```
+    =>
+    "object", ObjectLike
+);
 
-    create_is_function!(
-        /// The type::is::record function checks if given value is of type record.
-        /// Also aliased as `type_is_record!`
-        ///
-        /// # Arguments
-        /// * `value` - The value to be checked if it is of type record. Could also be a field or a parameter
-        /// representing the value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::type_};
-        ///
-        /// let result = type_::is::record!(types::RecordId::new("user", "alice"));
-        /// assert_eq!(result.to_debug_sql(), "type::is::record(user:alice)");
-        ///
-        /// let record_field = Field::new("record_field");
-        /// let result = type_::is::record!(record_field);
-        /// assert_eq!(result.to_debug_sql(), "type::is::record(record_field)");
-        ///
-        /// let record_param = Param::new("record_param");
-        /// let result = type_::is::record!(record_param);
-        /// assert_eq!(result.to_debug_sql(), "type::is::record($record_param)");
-        /// ```
-        =>
-        "record", RecordIdLike
-    );
+create_is_function!(
+    /// The type::is_record function checks if given value is of type record.
+    /// Also aliased as `type_is_record!`
+    ///
+    /// # Arguments
+    /// * `value` - The value to be checked if it is of type record. Could also be a field or a parameter
+    /// representing the value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::type_};
+    ///
+    /// let result = type_::is_record!(types::RecordId::new("user", "alice"));
+    /// assert_eq!(result.to_debug_sql(), "type::is_record(user:alice)");
+    ///
+    /// let record_field = Field::new("record_field");
+    /// let result = type_::is_record!(record_field);
+    /// assert_eq!(result.to_debug_sql(), "type::is_record(record_field)");
+    ///
+    /// let record_param = Param::new("record_param");
+    /// let result = type_::is_record!(record_param);
+    /// assert_eq!(result.to_debug_sql(), "type::is_record($record_param)");
+    /// ```
+    =>
+    "record", RecordIdLike
+);
 
-    create_is_function!(
-        /// The type::is::uuid function checks if given value is of type uuid.
-        /// Also aliased as `type_is_uuid!`
-        ///
-        /// # Arguments
-        /// * `value` - The value to be checked if it is of type uuid. Could also be a field or a parameter
-        /// representing the value.
-        ///
-        /// # Example
-        /// ```rust
-        /// use umbriel::{*, functions::type_};
-        ///
-        /// let result = type_::is::uuid!(uuid::Uuid::parse_str("936DA01F9ABD4d9d80C702AF85C822A8").unwrap());
-        /// assert_eq!(result.to_debug_sql(), "type::is::uuid(u'936da01f-9abd-4d9d-80c7-02af85c822a8')");
-        ///
-        /// let uuid_field = Field::new("uuid_field");
-        /// let result = type_::is::uuid!(uuid_field);
-        /// assert_eq!(result.to_debug_sql(), "type::is::uuid(uuid_field)");
-        ///
-        /// let uuid_param = Param::new("uuid_param");
-        /// let result = type_::is::uuid!(uuid_param);
-        /// assert_eq!(result.to_debug_sql(), "type::is::uuid($uuid_param)");
-        /// ```
-        =>
-        "uuid", ValueLike
-    );
-}
+create_is_function!(
+    /// The type::is_uuid function checks if given value is of type uuid.
+    /// Also aliased as `type_is_uuid!`
+    ///
+    /// # Arguments
+    /// * `value` - The value to be checked if it is of type uuid. Could also be a field or a parameter
+    /// representing the value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::type_};
+    ///
+    /// let result = type_::is_uuid!(uuid::Uuid::parse_str("936DA01F9ABD4d9d80C702AF85C822A8").unwrap());
+    /// assert_eq!(result.to_debug_sql(), "type::is_uuid(u'936da01f-9abd-4d9d-80c7-02af85c822a8')");
+    ///
+    /// let uuid_field = Field::new("uuid_field");
+    /// let result = type_::is_uuid!(uuid_field);
+    /// assert_eq!(result.to_debug_sql(), "type::is_uuid(uuid_field)");
+    ///
+    /// let uuid_param = Param::new("uuid_param");
+    /// let result = type_::is_uuid!(uuid_param);
+    /// assert_eq!(result.to_debug_sql(), "type::is_uuid($uuid_param)");
+    /// ```
+    =>
+    "uuid", ValueLike
+);
