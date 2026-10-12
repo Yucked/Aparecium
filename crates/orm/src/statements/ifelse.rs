@@ -32,7 +32,7 @@ use super::{Statement, impl_statement};
 /// # let country = Field::new("country");
 /// if_(age.greater_than_or_equal(18).less_than_or_equal(120))
 ///     .then("Valid")
-///     .else_if(name.like("Alice"))
+///     .else_if(name.is("Alice"))
 ///     .then("The Alien!")
 ///     .else_if(cond(country.is("Canada")).or(country.is("Norway")))
 ///     .then("Cold")
@@ -51,12 +51,11 @@ use super::{Statement, impl_statement};
 ///     .from(fake_id)
 ///     .where_(cond(city.is("Prince Edward Island"))
 ///                 .and(city.is("NewFoundland"))
-///                 .or(city.like("Toronto"))
+///                 .or(city.is("Toronto"))
 ///     )
 ///     .order_by(order(&age).numeric())
 ///     .limit(153)
-///     .start(10)
-///     .parallel();
+///     .start(10);
 ///
 /// let select2 = select(All)
 ///     .from(fake_id2)
@@ -67,7 +66,7 @@ use super::{Statement, impl_statement};
 ///
 ///  if_(cond(age.greater_than_or_equal(18)).and(age.less_than_or_equal(120)))
 ///     .then(select1)
-///     .else_if(name.like("Alice"))
+///     .else_if(name.is("Alice"))
 ///     .then(select2)
 ///     .else_if(cond(country.is("Canada")).or(country.is("Norway")))
 ///     .then("Cold")

@@ -22,12 +22,11 @@ use crate::{Fragment, Queryable, Render, Renderer};
 ///     .from(fake_id)
 ///     .where_(cond(city.is("Prince Edward Island"))
 ///             .and(city.is("NewFoundland"))
-///             .or(city.like("Toronto")),
+///             .or(city.is("Toronto")),
 ///     )
 ///     .order_by(order(&age).numeric())
 ///     .limit(153)
-///     .start(10)
-///     .parallel();
+///     .start(10);
 ///
 /// let statement2 = select(All)
 ///     .from(fake_id2)

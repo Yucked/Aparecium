@@ -37,18 +37,17 @@ use umbriel::{*, statements::{define_event, select}, types::RecordId};
              .where_(
                  cond(city.is("Prince Edward Island"))
                      .and(city.is("NewFoundland"))
-                     .or(city.like("Toronto")),
+                     .or(city.is("Toronto")),
              )
              .limit(153)
-             .start(10)
-             .parallel(),
+             .start(10),
      );
 
  assert_eq!(
      query.to_debug_sql(),
      "DEFINE EVENT email ON TABLE user WHEN age >= 18 THEN (SELECT * FROM user:alice \
-WHERE ((city IS 'Prince Edward Island') AND (city IS 'NewFoundland')) OR (city ~ 'Toronto') \
-LIMIT 153 START AT 10 PARALLEL);",
+WHERE ((city IS 'Prince Edward Island') AND (city IS 'NewFoundland')) OR (city IS 'Toronto') \
+LIMIT 153 START AT 10);",
 );
 ```
 */
