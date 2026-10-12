@@ -3,18 +3,21 @@ use std::borrow::Cow;
 
 use surrealdb::types::Table;
 
-use crate::{Aliasable, Arrow, Clause, Conditional, Ident, Operatable, Param, Render, Sql};
+use crate::{
+    Aliasable, Arrow, Clause, Conditional, Filter, Fragment, Ident, NumberLike, Operatable,
+    Param, Render, Renderer,
+};
 
 /// A path into a record: a field, a nested field, or a graph traversal.
 ///
-/// [`Field::new`] takes SurrealQL idiom text written verbatim, as before. Paths Aparecium builds
+/// [`Field::new`] takes SurrealQL idiom text written verbatim, as before. Paths Umbriel builds
 /// itself, such as generated schema fields and graph traversals, are kept as typed parts so names
 /// are escaped and filters keep their bound values.
 ///
 /// # Examples
 ///
 /// ```
-/// # use aparecium::*;
+/// # use umbriel::*;
 /// let field = Field::new("name");
 ///
 /// assert_eq!(field.to_debug_sql(), "name");
@@ -31,7 +34,7 @@ pub enum IdiomPart {
     /// Caller-written idiom text, rendered verbatim.
     Raw(Cow<'static, str>),
     /// A leading expression: a parameter, record id or subquery.
-    Expr(Sql),
+    Expr(Fragment),
     /// A field name, `.name` after another part.
     Field(Ident),
     /// `.*`, every field.
@@ -41,9 +44,9 @@ pub enum IdiomPart {
     /// `[$]`, the last element.
     Last,
     /// `[n]`, one element.
-    Index(Sql),
+    Index(NumberLike),
     /// `[WHERE condition]`.
-    Where(Sql),
+    Where(Filter),
     /// A graph hop: `->edge`, `<-(a, b WHERE condition)` or `->$param`.
     Graph(Graph),
 }
@@ -60,20 +63,24 @@ pub struct Graph {
 enum GraphTarget {
     Tables {
         tables: Vec<Table>,
-        condition: Option<Sql>,
+        condition: Option<Filter>,
     },
-    Expr(Sql),
+    Expr(Fragment),
 }
 
 impl Graph {
-    pub(crate) fn tables(arrow: Option<Arrow>, tables: Vec<Table>, condition: Option<Sql>) -> Self {
+    pub(crate) fn tables(
+        arrow: Option<Arrow>,
+        tables: Vec<Table>,
+        condition: Option<Filter>,
+    ) -> Self {
         Self {
             arrow,
             target: GraphTarget::Tables { tables, condition },
         }
     }
 
-    pub(crate) fn expr(arrow: Option<Arrow>, expr: Sql) -> Self {
+    pub(crate) fn expr(arrow: Option<Arrow>, expr: Fragment) -> Self {
         Self {
             arrow,
             target: GraphTarget::Expr(expr),
@@ -82,23 +89,23 @@ impl Graph {
 }
 
 impl Render for Graph {
-    fn render(&self, sql: &mut Sql) {
-        sql.push(&self.arrow);
+    fn render(&self, out: &mut Renderer) {
+        out.push(&self.arrow);
         match &self.target {
             GraphTarget::Tables { tables, condition } => match (tables.as_slice(), condition) {
                 ([table], None) => {
-                    sql.push(table);
+                    out.push(table);
                 }
                 _ => {
-                    sql.push_str("(").push_joined(tables, ", ");
+                    out.push_str("(").push_joined(tables, ", ");
                     if let Some(condition) = condition {
-                        sql.push_str(" WHERE ").push(condition);
+                        out.push_str(" WHERE ").push(condition);
                     }
-                    sql.push_str(")");
+                    out.push_str(")");
                 }
             },
             GraphTarget::Expr(expr) => {
-                sql.push(expr);
+                out.push(expr);
             }
         }
     }
@@ -124,9 +131,9 @@ impl Field {
     }
 
     /// A path starting from an expression such as a parameter, record id or subquery.
-    pub fn from_expr(expr: impl Render) -> Self {
+    pub fn from_expr(expr: impl Render + Send + Sync + 'static) -> Self {
         Self {
-            parts: vec![IdiomPart::Expr(expr.to_sql())],
+            parts: vec![IdiomPart::Expr(Fragment::new(expr))],
         }
     }
 
@@ -212,38 +219,38 @@ fn push_pointer_segment(pointer: &mut String, segment: &str) {
 }
 
 impl Render for Field {
-    fn render(&self, sql: &mut Sql) {
+    fn render(&self, out: &mut Renderer) {
         for (index, part) in self.parts.iter().enumerate() {
             match part {
                 IdiomPart::Raw(text) => {
-                    sql.push_str(text);
+                    out.push_str(text);
                 }
                 IdiomPart::Expr(expr) => {
-                    sql.push(expr);
+                    out.push(expr);
                 }
                 IdiomPart::Field(name) => {
                     if index > 0 {
-                        sql.push_str(".");
+                        out.push_str(".");
                     }
-                    sql.push(name);
+                    out.push(name);
                 }
                 IdiomPart::AllFields => {
-                    sql.push_str(if index > 0 { ".*" } else { "*" });
+                    out.push_str(if index > 0 { ".*" } else { "*" });
                 }
                 IdiomPart::All => {
-                    sql.push_str("[*]");
+                    out.push_str("[*]");
                 }
                 IdiomPart::Last => {
-                    sql.push_str("[$]");
+                    out.push_str("[$]");
                 }
                 IdiomPart::Index(position) => {
-                    sql.push_str("[").push(position).push_str("]");
+                    out.push_str("[").push(position).push_str("]");
                 }
                 IdiomPart::Where(condition) => {
-                    sql.push_str("[WHERE ").push(condition).push_str("]");
+                    out.push_str("[WHERE ").push(condition).push_str("]");
                 }
                 IdiomPart::Graph(graph) => {
-                    sql.push(graph);
+                    out.push(graph);
                 }
             }
         }
@@ -300,7 +307,7 @@ impl From<Ident> for Field {
 
 impl From<&Param> for Field {
     fn from(param: &Param) -> Self {
-        Self::from_expr(param)
+        Self::from_expr(param.clone())
     }
 }
 
