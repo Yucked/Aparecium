@@ -2,7 +2,7 @@ use std::fmt::{self, Display};
 
 use surrealdb::types::Value;
 
-use crate::{Ident, Renderer};
+use crate::{Renderer, User};
 
 use super::{Statement, impl_definition};
 
@@ -60,7 +60,7 @@ impl Display for Password {
 ///     "DEFINE USER alice ON ROOT PASSWORD 'example-password' ROLES OWNER;"
 /// );
 /// ```
-pub fn define_user(name: impl Into<Ident>) -> DefineUserStatement {
+pub fn define_user(name: impl Into<User>) -> DefineUserStatement {
     DefineUserStatement {
         name: name.into(),
         user_type: None,
@@ -142,7 +142,7 @@ pub enum UserCredential {
 
 /// Define a new database user.
 pub struct DefineUserStatement {
-    name: Ident,
+    name: User,
     user_type: Option<UserType>,
     credential: Option<UserCredential>,
     role: Option<UserRole>,
