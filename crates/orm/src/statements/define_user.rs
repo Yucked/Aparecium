@@ -2,7 +2,7 @@ use std::fmt::{self, Display};
 
 use surrealdb::types::Value;
 
-use crate::{Ident, Sql};
+use crate::{Ident, Renderer};
 
 use super::{Statement, impl_definition};
 
@@ -45,7 +45,7 @@ impl Display for Password {
 /// Examples:
 ///
 /// ```rust
-/// use aparecium::{*, statements::{define_user, UserRole}};
+/// use umbriel::{*, statements::{define_user, UserRole}};
 ///
 /// let statement = define_user("alice")
 ///     .on_database()
@@ -187,28 +187,28 @@ impl DefineUserStatement {
 }
 
 impl Statement for DefineUserStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("DEFINE USER ").push(&self.name);
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("DEFINE USER ").push(&self.name);
 
         if let Some(user_type) = &self.user_type {
-            sql.push_str(" ON ").push_display(user_type);
+            out.push_str(" ON ").push_display(user_type);
         }
 
         // SurrealQL takes the credential as a string literal; the definition inlines it.
         match &self.credential {
             Some(UserCredential::Password(password)) => {
-                sql.push_str(" PASSWORD ")
-                    .push_value(Value::String(password.0.clone()));
+                out.push_str(" PASSWORD ")
+                    .push_value(&Value::String(password.0.clone()));
             }
             Some(UserCredential::Passhash(hash)) => {
-                sql.push_str(" PASSHASH ")
-                    .push_value(Value::String(hash.0.clone()));
+                out.push_str(" PASSHASH ")
+                    .push_value(&Value::String(hash.0.clone()));
             }
             None => {}
         }
 
         if let Some(role) = &self.role {
-            sql.push_str(" ROLES ").push_display(role);
+            out.push_str(" ROLES ").push_display(role);
         }
     }
 }
