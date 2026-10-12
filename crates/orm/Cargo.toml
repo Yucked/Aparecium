@@ -26,6 +26,9 @@ scripting = ["surrealdb/scripting"]
 http = ["surrealdb/http"]
 jwks = ["surrealdb/jwks"]
 
+# Exposes internals to `crates/tests`; not part of the public API.
+test-support = []
+
 # Schema migrations and their CLI (`umbriel::migrations`).
 migrations = [
   "dep:sha2",

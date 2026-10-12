@@ -1,4 +1,3 @@
-
 use surrealdb::{
     Connection, Surreal,
     types::{self, SurrealValue, Table, ToSql},
@@ -7,6 +6,7 @@ use surrealdb::{
 use crate::{
     Alias, All, Conditional, Error, Field, Filter, ModelPatch, NodeClause, Raw, RecordId,
     RecordKey, Render, Result, StoredFields, count,
+    execution::execute,
     statements::{
         SelectStatementMini,
         delete::{DeleteStatementMini, delete},
@@ -108,7 +108,10 @@ pub trait SurrealCrud: Model + Send {
     }
 
     /// Deletes this record, returning it as it was before deletion.
-    fn delete(&self, db: &Surreal<impl Connection>) -> impl Future<Output = Result<Option<Self>>> + Send
+    fn delete(
+        &self,
+        db: &Surreal<impl Connection>,
+    ) -> impl Future<Output = Result<Option<Self>>> + Send
     where
         Self: Sync,
     {
@@ -149,14 +152,7 @@ pub trait SurrealCrud: Model + Send {
             } else {
                 update::<Self>(id).set(setters).to_query()?
             };
-            let (sql, vars) = query.into_parts();
-            let mut response = db
-                .query(sql)
-                .bind(vars)
-                .await
-                .and_then(|response| response.check())
-                .map_err(Error::Query)?;
-            response.take(0).map_err(Error::Conversion)
+            execute(db, query).await?.take(0).map_err(Error::Conversion)
         }
     }
 

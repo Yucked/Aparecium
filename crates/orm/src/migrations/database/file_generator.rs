@@ -1,4 +1,3 @@
-
 use std::{collections::BTreeMap, ops::Deref};
 
 use crate::{statements::info_for, *};
@@ -97,7 +96,7 @@ impl MigratorDatabase {
 
     pub async fn execute(&self, query: String) -> MigrationResult<()> {
         log::info!("Executing query: {}", query);
-        self.db().query(query).await?;
+        Raw::new(query).run(self.db()).await?;
         Ok(())
     }
 

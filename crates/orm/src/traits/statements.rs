@@ -1,5 +1,7 @@
-use crate::{Error, Field, Model, Projections, Queryable, Render, Result, ReturnType};
-use surrealdb::{Connection, Surreal, types::SurrealValue};
+use crate::{
+    Error, Field, Model, Projections, Queryable, Render, Result, ReturnType, execution::execute,
+};
+use surrealdb::{Connection, IndexedResults, Surreal, types::SurrealValue};
 
 // Create, Update, Relate, Delete
 // [ RETURN [ NONE | BEFORE | AFTER | DIFF | @projections ... ]
@@ -17,21 +19,20 @@ pub trait Runnable
 where
     Self: Queryable,
 {
-    /// Runs the statement against the database.
+    /// Runs the query against the database. Succeeds only when every statement succeeded;
+    /// otherwise returns [`Error::Statement`].
     fn run(
         &self,
         db: Surreal<impl surrealdb::Connection>,
-    ) -> impl Future<Output = Result<surrealdb::Response>> + Send
+    ) -> impl Future<Output = Result<IndexedResults>> + Send
     where
         Self: Sync,
     {
-        async move {
-            let (sql, vars) = self.to_query()?.into_parts();
-            db.query(sql).bind(vars).await.map_err(Error::Query)
-        }
+        async move { execute(&db, self.to_query()?).await }
     }
 
-    /// Runs the statement against the database and returns the deserialized result.
+    /// Runs the query, checks the complete response as [`run`](Self::run) does, and decodes the
+    /// result of its first statement.
     fn get_data<T>(
         &self,
         db: Surreal<impl surrealdb::Connection>,
@@ -171,15 +172,9 @@ where
                 .chain(
                     linked_fields_to_fetch
                         .into_iter()
-                        // We use double i.e `.*.*` to also work for fetching array of links since it
-                        // also works for a single link as well. If we do it once i.e `.*` then
-                        // it will not work for array of links but only for a single link fields
-                        // fetching.
-                        // For array of list, the first set of `.*` says that we want all
-                        // array items and the second set of `.*` says that we want all fields of
-                        // all the arrays. If you want only a specific index, you would do link[0].*
-                        // to get all fields of the first link and link[0].name to get only the name.
-                        .map(|field| field.all().all())
+                        // One `.*` fetches a single link and, since SurrealDB 3, every link of an
+                        // array too (2.x needed `.*.*` for arrays).
+                        .map(|field| field.all())
                         .collect::<Vec<_>>(),
                 )
                 .collect::<Vec<_>>()
@@ -265,10 +260,7 @@ where
 
     /// Runs the statement against the database and returns the one result.
     /// Returns an error if the result is not exactly one.
-    fn get_one(
-        self,
-        db: Surreal<impl Connection>,
-    ) -> impl Future<Output = Result<T>> + Send {
+    fn get_one(self, db: Surreal<impl Connection>) -> impl Future<Output = Result<T>> + Send {
         async move {
             let response = self.run(db).await?;
             get_one::<T>(response)?.ok_or_else(|| Error::RecordNotFound(self.to_debug_sql()))
@@ -287,10 +279,7 @@ where
     }
 
     /// Runs the statement against the database and returns no result.
-    fn return_none(
-        &self,
-        db: Surreal<impl Connection>,
-    ) -> impl Future<Output = Result<()>> + Send {
+    fn return_none(&self, db: Surreal<impl Connection>) -> impl Future<Output = Result<()>> + Send {
         async move {
             self.run(db).await?;
             Ok(())
@@ -369,10 +358,7 @@ where
 /// selct statements.
 pub trait ReturnableSelect: Runnable {
     /// Runs the statement against the database and returns no result.
-    fn return_none(
-        &self,
-        db: Surreal<impl Connection>,
-    ) -> impl Future<Output = Result<()>> + Send
+    fn return_none(&self, db: Surreal<impl Connection>) -> impl Future<Output = Result<()>> + Send
     where
         Self: Sync,
     {
@@ -443,37 +429,31 @@ pub trait ReturnableSelect: Runnable {
     }
 }
 
-fn get_one<T>(mut response: surrealdb::Response) -> Result<Option<T>>
+fn get_one<T>(mut response: IndexedResults) -> Result<Option<T>>
 where
     T: SurrealValue,
 {
-    let mut value = response
-        .take::<Vec<T>>(0)
-        .map_err(Error::Conversion)?;
+    let mut value = response.take::<Vec<T>>(0).map_err(Error::Conversion)?;
     if value.len() > 1 {
         return Err(Error::TooManyItemsReturned { expected: 1 });
     }
     Ok(value.pop())
 }
 
-fn get_many<T>(mut response: surrealdb::Response) -> Result<Vec<T>>
+fn get_many<T>(mut response: IndexedResults) -> Result<Vec<T>>
 where
     T: SurrealValue,
 {
-    let value = response
-        .take::<Vec<T>>(0)
-        .map_err(Error::Conversion)?;
+    let value = response.take::<Vec<T>>(0).map_err(Error::Conversion)?;
 
     Ok(value)
 }
 
-fn get_first<T>(mut response: surrealdb::Response) -> Result<Option<T>>
+fn get_first<T>(mut response: IndexedResults) -> Result<Option<T>>
 where
     T: SurrealValue,
 {
-    let mut value = response
-        .take::<Vec<T>>(0)
-        .map_err(Error::Conversion)?;
+    let mut value = response.take::<Vec<T>>(0).map_err(Error::Conversion)?;
 
     let value = if !value.is_empty() {
         Some(value.swap_remove(0))
@@ -484,13 +464,11 @@ where
     Ok(value)
 }
 
-fn get_last<T>(mut response: surrealdb::Response) -> Result<Option<T>>
+fn get_last<T>(mut response: IndexedResults) -> Result<Option<T>>
 where
     T: SurrealValue,
 {
-    let mut value = response
-        .take::<Vec<T>>(0)
-        .map_err(Error::Conversion)?;
+    let mut value = response.take::<Vec<T>>(0).map_err(Error::Conversion)?;
 
     let value = if !value.is_empty() { value.pop() } else { None };
 

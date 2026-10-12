@@ -1,4 +1,3 @@
-
 use thiserror::Error;
 
 /// Errors returned by Umbriel.
@@ -19,6 +18,20 @@ pub enum Error {
     /// The database rejected or failed to run the query.
     #[error("query failed: {0}")]
     Query(#[source] surrealdb::Error),
+
+    /// A statement of the query failed.
+    #[error("statement {index} failed: {source}{}", related_note(.related))]
+    Statement {
+        /// The position of the statement in the query, from 0.
+        index: usize,
+        /// The statement's error. Boxed so `Error`, and every `Result` carrying it, stays small.
+        #[source]
+        source: Box<surrealdb::Error>,
+        /// Every other statement error of the response, in statement order. Kept because the
+        /// detailed cause can sit on another statement, such as the closing `COMMIT` of a
+        /// transaction whose commit failed.
+        related: Vec<(usize, surrealdb::Error)>,
+    },
 
     /// A value returned by the database did not convert into the requested type.
     #[error("unexpected value from the database: {0}")]
@@ -44,6 +57,14 @@ pub enum Error {
 impl From<crate::migrations::MigrationError> for Error {
     fn from(error: crate::migrations::MigrationError) -> Self {
         Self::Migration(Box::new(error))
+    }
+}
+
+fn related_note(related: &[(usize, surrealdb::Error)]) -> String {
+    match related.len() {
+        0 => String::new(),
+        1 => " (1 related statement error)".to_owned(),
+        count => format!(" ({count} related statement errors)"),
     }
 }
 
