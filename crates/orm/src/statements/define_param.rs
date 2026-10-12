@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use crate::{Param, Sql, ValueLike};
+use crate::{Param, Renderer, ValueLike};
 
 use super::{Statement, impl_definition};
 
@@ -23,7 +23,7 @@ use super::{Statement, impl_definition};
 /// Example
 ///
 /// ```rust
-/// use aparecium::{*, statements::{define_param}};
+/// use umbriel::{*, statements::{define_param}};
 ///   // First create the param name as rust function i.e endpoint_base()
 ///   create_param_name_fn!(endpoint_base);
 ///   // Can also we wwriten as below if you want to add a doc comment.
@@ -62,8 +62,8 @@ impl DefineParamStatementBuilder {
 }
 
 impl Statement for DefineParamStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("DEFINE PARAM ")
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("DEFINE PARAM ")
             .push(&self.name)
             .push_str(" VALUE ")
             .push(&self.value);
