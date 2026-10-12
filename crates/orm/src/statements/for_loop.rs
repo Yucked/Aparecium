@@ -1,4 +1,4 @@
-use crate::{Block, Expression, Param, Sql};
+use crate::{Block, Expression, Param, Renderer};
 
 use super::{Statement, impl_statement};
 
@@ -39,7 +39,7 @@ impl From<&Param> for ForParam {
 /// You are encouraged to use for loop within
 /// chain! macro or use for_! macro.
 /// ```rust, ignore
-/// use aparecium::{*, statements::for_};
+/// use umbriel::{*, statements::for_};
 ///
 /// let query = for_(vec![param!(name), param!(age)])
 ///    .in_(vec![1, 2, 3, 4, 5]);
@@ -90,8 +90,8 @@ pub struct ForLoopStatement {
 }
 
 impl Statement for ForLoopStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("FOR ")
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("FOR ")
             .push(&self.params)
             .push_str(" IN ")
             .push(&self.iterable)
