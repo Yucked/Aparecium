@@ -1,6 +1,9 @@
 use std::str::FromStr;
 
-use convert_case::{Case, Casing};
+use heck::{
+    ToKebabCase, ToLowerCamelCase, ToShoutyKebabCase, ToShoutySnakeCase, ToSnakeCase,
+    ToUpperCamelCase,
+};
 use strum_macros::EnumString;
 use syn::Attribute;
 
@@ -46,19 +49,19 @@ pub enum CaseString {
 }
 
 impl CaseString {
-    /// The stored name of a field, cased as the SDK's derive cases it: `lowercase` and
-    /// `UPPERCASE` only change letter case, the others re-split the words.
+    /// The stored name of a field, cased with the same `heck` conversions as the SDK's derive, so
+    /// the schema names exactly the keys `SurrealValue` writes.
     pub fn apply(self, ident: &str) -> String {
         match self {
             CaseString::None => ident.to_owned(),
             CaseString::Lower => ident.to_lowercase(),
             CaseString::Upper => ident.to_uppercase(),
-            CaseString::Camel => ident.to_case(Case::Camel),
-            CaseString::Snake => ident.to_case(Case::Snake),
-            CaseString::Pascal => ident.to_case(Case::Pascal),
-            CaseString::ScreamingSnake => ident.to_case(Case::UpperSnake),
-            CaseString::Kebab => ident.to_case(Case::Kebab),
-            CaseString::ScreamingKebab => ident.to_case(Case::UpperKebab),
+            CaseString::Camel => ident.to_lower_camel_case(),
+            CaseString::Snake => ident.to_snake_case(),
+            CaseString::Pascal => ident.to_upper_camel_case(),
+            CaseString::ScreamingSnake => ident.to_shouty_snake_case(),
+            CaseString::Kebab => ident.to_kebab_case(),
+            CaseString::ScreamingKebab => ident.to_shouty_kebab_case(),
         }
     }
 }

@@ -1,5 +1,5 @@
 
-use convert_case::{Case, Casing};
+use heck::ToSnakeCase;
 
 use crate::models::*;
 
@@ -12,7 +12,7 @@ impl TableNameIdent {
         relax_table: &Option<bool>,
     ) -> ExtractorResult<&Self> {
         let table = self;
-        let expected_table = struct_name_ident.to_string().to_case(Case::Snake);
+        let expected_table = struct_name_ident.to_string().to_snake_case();
         if !relax_table.unwrap_or(false) && self.to_string() != expected_table {
             return Err(syn::Error::new(
                 table.span(),

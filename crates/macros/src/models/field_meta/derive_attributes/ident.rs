@@ -1,6 +1,6 @@
 
 use crate::models::*;
-use convert_case::{Case, Casing};
+use heck::ToUpperCamelCase;
 use quote::format_ident;
 
 use super::{FieldIdentNormalized, FieldNamePascalized, MyFieldReceiver};
@@ -37,7 +37,7 @@ impl MyFieldReceiver {
             field_name_normalized
                 .to_string()
                 .trim_start_matches("r#")
-                .to_case(Case::Pascal)
+                .to_upper_camel_case()
         );
 
         Ok(field_name_pascalized.into())
