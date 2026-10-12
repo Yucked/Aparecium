@@ -2,13 +2,13 @@
 mod tests {
     use select::select_value;
 
-    use aparecium::{
+    use umbriel::{
         Field, Model, Operatable, Table, TestUser, ToRaw, block, bracket, chain,
         functions::{count, math},
         statements::{define_field, let_, select},
     };
 
-    use aparecium::{statements::*, *};
+    use umbriel::{statements::*, *};
 
     #[test]
     fn test_return() {
@@ -19,7 +19,7 @@ mod tests {
 
     #[test]
     fn test_return_with_record() {
-        let user = TestUser::create_id("oyelowo");
+        let user = TestUser::create_id("charlie");
         let account = Field::new("account");
         let connection = Field::new("connection");
 
@@ -30,7 +30,7 @@ mod tests {
         );
         assert_eq!(
             query.to_raw().build(),
-            "RETURN user:oyelowo FETCH account, connection;"
+            "RETURN user:charlie FETCH account, connection;"
         );
     }
 
