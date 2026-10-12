@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::*;
-    use aparecium::{functions::math::*, *};
+    use umbriel::*;
+    use umbriel::{functions::math::*, *};
     #[test]
     fn test_fixed_fn_with_field_data() {
         let land_size = Field::new("land_size");
@@ -101,9 +101,9 @@ macro_rules! create_test_for_fn_with_single_arg_tests {
     ($(#[$attr:meta])* => $function_name: expr) => {
         paste::paste! {
             mod [<test_ $function_name>] {
-                use aparecium::functions::math::*;
-                use aparecium::*;
-                use aparecium::functions::math;
+                use umbriel::functions::math::*;
+                use umbriel::*;
+                use umbriel::functions::math;
 
                 #[test]
                 fn [<test_ $function_name _fn_with_field_data >] () {
@@ -190,9 +190,9 @@ macro_rules! create_test_for_fn_with_single_array_arg_tests {
     ($(#[$attr:meta])* => $function_name: expr) => {
         paste::paste! {
             mod [<test_ $function_name>] {
-                use aparecium::functions::math::*;
-                use aparecium::*;
-                use aparecium::functions::math;
+                use umbriel::functions::math::*;
+                use umbriel::*;
+                use umbriel::functions::math;
 
                 #[test]
                 fn [<test_ $function_name _fn_with_field_data >] () {
@@ -214,11 +214,11 @@ macro_rules! create_test_for_fn_with_single_array_arg_tests {
                 #[test]
                 fn [<test_ $function_name _fn_with_mixed_array>]() {
                     let age = Field::new("age");
-                    let arr = arr![1, 2, "4334", "Oyelowo", age];
+                    let arr = arr![1, 2, "4334", "Charlie", age];
                     let result = math::[<$function_name _fn>](arr);
                     assert_eq!(result.fine_tune_params(),
                         format!("math::{}([$_param_00000001, $_param_00000002, $_param_00000003, $_param_00000004, age])", $function_name));
-                    assert_eq!(result.to_raw().build(), format!("math::{}([1, 2, '4334', 'Oyelowo', age])", $function_name));
+                    assert_eq!(result.to_raw().build(), format!("math::{}([1, 2, '4334', 'Charlie', age])", $function_name));
                 }
 
                 // Macro version
@@ -251,11 +251,11 @@ macro_rules! create_test_for_fn_with_single_array_arg_tests {
                 #[test]
                 fn [<test_ $function_name _macro_with_mixed_array>]() {
                     let age = Field::new("age");
-                    let arr = arr![1, 2, "4334", "Oyelowo", age];
+                    let arr = arr![1, 2, "4334", "Charlie", age];
                     let result = math::[<$function_name>]!(arr);
                     assert_eq!(result.fine_tune_params(),
                         format!("math::{}([$_param_00000001, $_param_00000002, $_param_00000003, $_param_00000004, age])", $function_name));
-                    assert_eq!(result.to_raw().build(), format!("math::{}([1, 2, '4334', 'Oyelowo', age])", $function_name));
+                    assert_eq!(result.to_raw().build(), format!("math::{}([1, 2, '4334', 'Charlie', age])", $function_name));
                 }
             }
         }
