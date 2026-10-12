@@ -1,4 +1,3 @@
-
 /// This macro is used to create the different operators that can be used in the query builder.
 #[macro_export]
 macro_rules! q {
@@ -16,18 +15,6 @@ macro_rules! q {
     };
     (*=) => {
         "*="
-    };
-    (~) => {
-        "~"
-    };
-    (!~) => {
-        "!~"
-    };
-    (?~) => {
-        "?~"
-    };
-    (*~) => {
-        "*~"
     };
     (<) => {
         "<"

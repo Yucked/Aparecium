@@ -1,4 +1,3 @@
-
 use crate::{Function, ValueLike};
 // Count functions
 // These functions can be used when counting field values and expressions.
@@ -48,7 +47,7 @@ pub fn count_fn(countable: impl Into<ValueLike>) -> Function {
 /// # let email = Field::new("email");
 /// # let age = Field::new("age");
 /// # let student_count = AliasName::new("student_count");
-/// count!(cond(age.greater_than(15)).and(email.like("charlie@example.com")))
+/// count!(cond(age.greater_than(15)).and(email.equal("charlie@example.com")))
 ///     .__as__(student_count);
 ///
 /// count!(1);

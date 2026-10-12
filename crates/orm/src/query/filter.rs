@@ -1,4 +1,3 @@
-
 use std::{borrow::Cow, sync::Arc};
 
 use crate::{Conditional, Render, Renderer, ValueLike};
@@ -20,7 +19,7 @@ use super::Empty;
 /// # let title = Field::new("title");
 ///
 /// let filter = cond(age.greater_than(18))
-///                 .and(name.like("%Charlie%"))
+///                 .and(name.contains("Charlie"))
 ///                 .or(title.equal("Professor"));
 /// ```
 pub fn cond(filterable: impl Conditional) -> Filter {
@@ -43,7 +42,7 @@ pub fn cond(filterable: impl Conditional) -> Filter {
 /// # let name = Field::new("name");
 /// # let title = Field::new("title");
 ///
-/// let filter = cond!((age > 18) AND (name ~ "%Charlie%") OR (title == "Professor"));
+/// let filter = cond!((age > 18) AND (name = "Charlie") OR (title == "Professor"));
 /// let filter_simple = cond!(age > 18);
 /// let filter_mixed = cond!((age.or(4).or(545).or(232)) OR (title = "Professor") AND (age < 100));
 /// ```
@@ -70,18 +69,6 @@ macro_rules! cond {
     };
     ($field:ident *= $value:expr) => {
         $field.all_equal($value)
-    };
-    ($field:ident ~ $value:expr) => {
-        $field.like($value)
-    };
-    ($field:ident !~ $value:expr) => {
-        $field.not_like($value)
-    };
-    ($field:ident ?~ $value:expr) => {
-        $field.any_like($value)
-    };
-    ($field:ident *~ $value:expr) => {
-        $field.all_like($value)
     };
     ($field:ident > $value:expr) => {
         $field.greater_than($value)
@@ -256,18 +243,6 @@ macro_rules! cond {
     };
     (($field:ident *= $value:expr)) => {
         $field.all_equal($value)
-    };
-    (($field:ident ~ $value:expr)) => {
-        $field.like($value)
-    };
-    (($field:ident !~ $value:expr)) => {
-        $field.not_like($value)
-    };
-    (($field:ident ?~ $value:expr)) => {
-        $field.any_like($value)
-    };
-    (($field:ident *~ $value:expr)) => {
-        $field.all_like($value)
     };
     (($field:ident > $value:expr)) => {
         $field.greater_than($value)

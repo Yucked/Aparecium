@@ -68,10 +68,10 @@ impl ForStart {
 /// # let country = Field::new("country");
 ///
 ///  // You can create for a single crud operation
-/// let statement = for_permission(Create).where_(name.like("Alice"));
+/// let statement = for_permission(Create).where_(name.is("Alice"));
 ///
 ///  // You can also create for a  list of crud operations
-/// let statement = for_permission(&[Create, Delete, Select, Update]).where_(country.like("Canada"));
+/// let statement = for_permission(&[Create, Delete, Select, Update]).where_(country.is("Canada"));
 ///
 /// assert!(!statement.to_debug_sql().is_empty());
 /// ```
@@ -165,7 +165,8 @@ impl Render for PermissionsClause {
         } else if self.full {
             out.push_str(" PERMISSIONS FULL");
         } else if !self.fors.is_empty() {
-            out.push_str("\nPERMISSIONS\n").push_joined(&self.fors, "\n");
+            out.push_str("\nPERMISSIONS\n")
+                .push_joined(&self.fors, "\n");
         }
     }
 }
