@@ -1,4 +1,4 @@
-use crate::{Database, Sql};
+use crate::{Database, Renderer};
 
 use super::{Statement, impl_definition};
 
@@ -10,7 +10,7 @@ use super::{Statement, impl_definition};
 ///
 /// # Example
 /// ```rust
-///  use aparecium::{*, statements::define_database};
+///  use umbriel::{*, statements::define_database};
 ///  assert_eq!(
 ///          define_database("acme").to_debug_sql(),
 ///          "DEFINE DATABASE acme;"
@@ -34,8 +34,8 @@ pub struct DefineDatabaseStatement {
 }
 
 impl Statement for DefineDatabaseStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("DEFINE DATABASE ").push(&self.database);
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("DEFINE DATABASE ").push(&self.database);
     }
 }
 
