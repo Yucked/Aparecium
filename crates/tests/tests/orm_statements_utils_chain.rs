@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::{All, Buildable, Field, Operatable, ToRaw, chain, cond, statements::select};
+    use umbriel::{All, Buildable, Field, Operatable, ToRaw, chain, cond, statements::select};
     use insta::assert_snapshot;
     use select::CanOrder;
     use surrealdb::sql;
@@ -10,8 +10,8 @@ mod tests {
         let age = Field::new("age");
         let country = Field::new("country");
         let city = Field::new("city");
-        let fake_id = sql::Thing::from(("user".to_string(), "oyelowo".to_string()));
-        let fake_id2 = sql::Thing::from(("user".to_string(), "oyedayo".to_string()));
+        let fake_id = sql::Thing::from(("user".to_string(), "charlie".to_string()));
+        let fake_id2 = sql::Thing::from(("user".to_string(), "bennett".to_string()));
         let fake_id3 = sql::Thing::from(("user".to_string(), "4".to_string()));
 
         let statement1 = select(All)
