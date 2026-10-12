@@ -1,5 +1,5 @@
 
-use crate::{Render, Sql, ValueLike, statements::Subquery};
+use crate::{Render, Renderer, ValueLike, statements::Subquery};
 
 /// An expression is a value or statement that can be used within another query.
 #[derive(Clone, Debug)]
@@ -11,10 +11,10 @@ pub enum Expression {
 }
 
 impl Render for Expression {
-    fn render(&self, sql: &mut Sql) {
+    fn render(&self, out: &mut Renderer) {
         match self {
-            Expression::Value(value) => value.render(sql),
-            Expression::Subquery(subquery) => subquery.render(sql),
+            Expression::Value(value) => value.render(out),
+            Expression::Subquery(subquery) => subquery.render(out),
         }
     }
 }

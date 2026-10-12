@@ -1,5 +1,5 @@
 
-use crate::{Field, Render, Sql};
+use crate::{Field, Fragment, Render, ValueLike};
 
 /// Denoted by `.*`. Used for accessing all nested fields and arrays and links
 pub trait AllGetter {
@@ -7,37 +7,33 @@ pub trait AllGetter {
     fn all(&self) -> Field;
 }
 
-impl<B: Render> AllGetter for B {
+impl<B: Render + Clone + Send + Sync + 'static> AllGetter for B {
     fn all(&self) -> Field {
-        Field::from_expr(self).all()
+        Field::from_expr(self.clone()).all()
     }
 }
 
 /// Used for statements
-pub trait Queryable: Render {}
+pub trait Queryable: Render {
+    /// The statement as a node another query can hold: a chain, block or transaction.
+    #[doc(hidden)]
+    fn into_fragment(self) -> Fragment
+    where
+        Self: Sized;
+}
 
-impl<T: Queryable + ?Sized> Queryable for &T {}
-
-/// Used for filters
-pub trait Conditional: Render {
-    /// Writes the node as a condition. A `LET` statement stands for its parameter here.
-    fn render_condition(&self, sql: &mut Sql) {
-        self.render(sql);
-    }
-
-    /// Whether the condition is already a single parenthesized group.
-    fn is_grouped(&self) -> bool {
-        false
+impl<T: Queryable + Clone> Queryable for &T {
+    fn into_fragment(self) -> Fragment {
+        self.clone().into_fragment()
     }
 }
 
-impl<T: Conditional + ?Sized> Conditional for &T {
-    fn render_condition(&self, sql: &mut Sql) {
-        (**self).render_condition(sql);
-    }
-
+/// Used for filters. A condition is the node's expression form, so a `LET` statement stands for
+/// its parameter and a statement for its subquery.
+pub trait Conditional: Render + Into<ValueLike> {
+    /// Whether the condition is already a single parenthesized group.
     fn is_grouped(&self) -> bool {
-        (**self).is_grouped()
+        false
     }
 }
 

@@ -1,4 +1,4 @@
-use crate::{Render, Sql, ValueLike};
+use crate::{Render, Renderer, ValueLike};
 
 /// Represents a future: a value computed when the record is read.
 #[derive(Debug, Clone)]
@@ -13,15 +13,20 @@ impl std::ops::Deref for Future {
 }
 
 impl Render for Future {
-    fn render(&self, sql: &mut Sql) {
-        sql.push(&self.0);
+    fn render(&self, out: &mut Renderer) {
+        out.push(&self.0);
     }
 }
 
 /// Wraps a value in a future: `<future> { value }`.
 pub fn future(value: impl Into<ValueLike>) -> Future {
-    let value: ValueLike = value.into();
-    let mut sql = Sql::new();
-    sql.push_str("<future> { ").push(&value).push_str(" }");
-    Future(ValueLike::new(sql))
+    Future(ValueLike::new(FutureBody(value.into())))
+}
+
+struct FutureBody(ValueLike);
+
+impl Render for FutureBody {
+    fn render(&self, out: &mut Renderer) {
+        out.push_str("<future> { ").push(&self.0).push_str(" }");
+    }
 }

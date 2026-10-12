@@ -1,13 +1,13 @@
 
 use std::borrow::Cow;
 
-use crate::{Aliasable, Render, Sql};
+use crate::{Aliasable, Render, Renderer, ValueLike};
 
 /// A function call, e.g. `math::sum(age)`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Function {
     name: Cow<'static, str>,
-    args: Vec<Sql>,
+    args: Vec<ValueLike>,
     /// The JavaScript body of an embedded `function(…) { … }`, written verbatim.
     body: Option<String>,
 }
@@ -23,8 +23,8 @@ impl Function {
     }
 
     /// Appends an argument.
-    pub(crate) fn arg(mut self, arg: impl Render) -> Self {
-        self.args.push(arg.to_sql());
+    pub(crate) fn arg(mut self, arg: impl Into<ValueLike>) -> Self {
+        self.args.push(arg.into());
         self
     }
 
@@ -37,7 +37,7 @@ impl Function {
     /// A call to the custom function `fn::<name>`; used by the helpers `define_function!`
     /// generates.
     #[doc(hidden)]
-    pub fn __custom(name: &str, args: Vec<Sql>) -> Self {
+    pub fn __custom(name: &str, args: Vec<ValueLike>) -> Self {
         Self {
             name: Cow::Owned(format!("fn::{name}")),
             args,
@@ -47,13 +47,13 @@ impl Function {
 }
 
 impl Render for Function {
-    fn render(&self, sql: &mut Sql) {
-        sql.push_str(&self.name)
+    fn render(&self, out: &mut Renderer) {
+        out.push_str(&self.name)
             .push_str("(")
-            .push_joined(&self.args, ", ")
+            .push(&self.args)
             .push_str(")");
         if let Some(body) = &self.body {
-            sql.push_str(" ").push_str(body);
+            out.push_str(" ").push_str(body);
         }
     }
 }

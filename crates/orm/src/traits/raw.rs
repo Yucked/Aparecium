@@ -1,7 +1,7 @@
 
 use std::fmt::{Display, Formatter};
 
-use crate::{Queryable, Render, Sql};
+use crate::{Fragment, Queryable, Render, Renderer, render::render_inline};
 
 /// SurrealQL written by the caller, rendered verbatim.
 ///
@@ -28,11 +28,8 @@ impl Raw {
     /// they fail the query the text later runs in.
     #[doc(hidden)]
     pub fn inline(definition: &(impl Render + ?Sized)) -> Self {
-        let sql = definition.to_sql();
-        Self {
-            text: sql.to_debug_sql(),
-            errors: sql.errors().to_vec(),
-        }
+        let (text, errors) = render_inline(definition);
+        Self { text, errors }
     }
 
     /// Returns true if the query is empty.
@@ -47,15 +44,19 @@ impl Raw {
 }
 
 impl Render for Raw {
-    fn render(&self, sql: &mut Sql) {
+    fn render(&self, out: &mut Renderer) {
         for error in &self.errors {
-            sql.push_error(error.as_str());
+            out.push_error(error.as_str());
         }
-        sql.push_raw(&self.text);
+        out.push_raw(&self.text);
     }
 }
 
-impl Queryable for Raw {}
+impl Queryable for Raw {
+    fn into_fragment(self) -> Fragment {
+        Fragment::new(self)
+    }
+}
 
 impl Display for Raw {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

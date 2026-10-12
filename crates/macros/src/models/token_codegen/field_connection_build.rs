@@ -37,6 +37,8 @@ impl Codegen<'_> {
             quote!(#field_ident_normalized: #___________path.clone().with_field(#field_name_serialized).into(),)
                 .into(),
         );
+        self.schema_field_idents
+            .push(quote!(#field_ident_normalized));
 
         Ok(())
     }

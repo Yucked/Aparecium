@@ -1,5 +1,5 @@
 
-use crate::{Alias, Field, Function, Param, Render, Sql, ValueLike};
+use crate::{Alias, Field, Function, Param, Render, Renderer, ValueLike};
 
 /// Used to represent a list of projections to access fields of a table or
 /// those of foreign tables and can even include filters.
@@ -15,8 +15,8 @@ impl std::ops::Deref for Projections {
 }
 
 impl Render for Projections {
-    fn render(&self, sql: &mut Sql) {
-        self.0.render(sql);
+    fn render(&self, out: &mut Renderer) {
+        self.0.render(out);
     }
 }
 

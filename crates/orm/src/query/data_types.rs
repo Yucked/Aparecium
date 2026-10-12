@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, HashMap};
 use surrealdb::types::{self, SurrealValue};
 
 use crate::{
-    Edge, Field, Function, Model, Node, Operation, Param, RecordId, Render, Sql, ValueLike,
+    Edge, Field, Function, Model, Node, Operation, Param, RecordId, Render, Renderer, ValueLike,
     statements::{
         CreateStatement, DeleteStatement, IfElseStatement, InsertStatement, LetStatement,
         RelateStatement, SelectStatement, Subquery, UpdateStatement,
@@ -19,8 +19,8 @@ pub type IndexName = Field;
 pub struct NULL;
 
 impl Render for NULL {
-    fn render(&self, sql: &mut Sql) {
-        sql.push_str("NULL");
+    fn render(&self, out: &mut Renderer) {
+        out.push_str("NULL");
     }
 }
 
@@ -29,8 +29,8 @@ impl Render for NULL {
 pub struct NONE;
 
 impl Render for NONE {
-    fn render(&self, sql: &mut Sql) {
-        sql.push_str("NONE");
+    fn render(&self, out: &mut Renderer) {
+        out.push_str("NONE");
     }
 }
 
@@ -44,8 +44,8 @@ macro_rules! typed_expression {
         pub struct $name(ValueLike);
 
         impl Render for $name {
-            fn render(&self, sql: &mut Sql) {
-                self.0.render(sql);
+            fn render(&self, out: &mut Renderer) {
+                self.0.render(out);
             }
         }
 
@@ -210,9 +210,15 @@ impl<const N: usize, T: SurrealValue + Clone> From<&[T; N]> for ArrayLike {
 /// An array literal whose elements are expressions, e.g. `[1, age, $limit]`.
 impl From<Vec<ValueLike>> for ArrayLike {
     fn from(values: Vec<ValueLike>) -> Self {
-        let mut sql = Sql::new();
-        sql.push_str("[").push_joined(&values, ", ").push_str("]");
-        Self(ValueLike::new(sql))
+        Self(ValueLike::new(ArrayLiteral(values)))
+    }
+}
+
+struct ArrayLiteral(Vec<ValueLike>);
+
+impl Render for ArrayLiteral {
+    fn render(&self, out: &mut Renderer) {
+        out.push_str("[").push(&self.0).push_str("]");
     }
 }
 
@@ -224,8 +230,15 @@ pub type SetLike = ArrayLike;
 pub struct ArgsList(Vec<ValueLike>);
 
 impl Render for ArgsList {
-    fn render(&self, sql: &mut Sql) {
-        sql.push_joined(&self.0, ", ");
+    fn render(&self, out: &mut Renderer) {
+        out.push(&self.0);
+    }
+}
+
+/// The arguments are written in place, as a function's trailing arguments.
+impl From<ArgsList> for ValueLike {
+    fn from(args: ArgsList) -> Self {
+        ValueLike::new(args)
     }
 }
 

@@ -1,11 +1,11 @@
 
-use crate::{Render, Sql};
+use crate::{Render, Renderer};
 
 /// A SurrealQL statement. Its body renders without the trailing `;`, so the same rendering
 /// serves top-level statements and subqueries.
 pub(crate) trait Statement {
     /// Writes the statement without its trailing `;`.
-    fn render_body(&self, sql: &mut Sql);
+    fn render_body(&self, out: &mut Renderer);
 }
 
 pub(crate) mod break_;
@@ -68,23 +68,31 @@ pub(crate) mod utils_chain;
 macro_rules! impl_statement {
     ([$($generics:tt)*] $statement:ty) => {
         impl<$($generics)*> $crate::Render for $statement {
-            fn render(&self, sql: &mut $crate::Sql) {
-                $crate::statements::Statement::render_body(self, sql);
-                sql.push_str(";");
+            fn render(&self, out: &mut $crate::Renderer) {
+                $crate::statements::Statement::render_body(self, out);
+                out.push_str(";");
             }
         }
 
-        impl<$($generics)*> $crate::Queryable for $statement {}
+        impl<$($generics)*> $crate::Queryable for $statement {
+            fn into_fragment(self) -> $crate::Fragment {
+                $crate::Fragment::new(self)
+            }
+        }
     };
     ($statement:ty) => {
         impl $crate::Render for $statement {
-            fn render(&self, sql: &mut $crate::Sql) {
-                $crate::statements::Statement::render_body(self, sql);
-                sql.push_str(";");
+            fn render(&self, out: &mut $crate::Renderer) {
+                $crate::statements::Statement::render_body(self, out);
+                out.push_str(";");
             }
         }
 
-        impl $crate::Queryable for $statement {}
+        impl $crate::Queryable for $statement {
+            fn into_fragment(self) -> $crate::Fragment {
+                $crate::Fragment::new(self)
+            }
+        }
     };
 }
 pub(crate) use impl_statement;
@@ -95,18 +103,29 @@ pub(crate) use impl_statement;
 macro_rules! impl_definition {
     ($statement:ty) => {
         impl $crate::Render for $statement {
-            fn render(&self, sql: &mut $crate::Sql) {
-                let mut body = $crate::Sql::new();
-                $crate::statements::Statement::render_body(self, &mut body);
-                sql.push_inlined(&body);
-                sql.push_str(";");
+            fn render(&self, out: &mut $crate::Renderer) {
+                out.push_inlined(&$crate::statements::StatementBody(self));
+                out.push_str(";");
             }
         }
 
-        impl $crate::Queryable for $statement {}
+        impl $crate::Queryable for $statement {
+            fn into_fragment(self) -> $crate::Fragment {
+                $crate::Fragment::new(self)
+            }
+        }
     };
 }
 pub(crate) use impl_definition;
+
+/// A statement's body as a node of its own.
+pub(crate) struct StatementBody<'a, S: ?Sized>(pub(crate) &'a S);
+
+impl<S: Statement + ?Sized> Render for StatementBody<'_, S> {
+    fn render(&self, out: &mut Renderer) {
+        self.0.render_body(out);
+    }
+}
 
 pub use break_::{BreakStatement, break_};
 pub use continue_::{ContinueStatement, continue_};
@@ -180,8 +199,8 @@ pub enum NamespaceOrDatabase {
 }
 
 impl Render for NamespaceOrDatabase {
-    fn render(&self, sql: &mut Sql) {
-        sql.push_str(match self {
+    fn render(&self, out: &mut Renderer) {
+        out.push_str(match self {
             NamespaceOrDatabase::Namespace => "NAMESPACE",
             NamespaceOrDatabase::Database => "DATABASE",
         });

@@ -1,6 +1,6 @@
 use std::fmt::{self, Display};
 
-use crate::{Render, Sql};
+use crate::{Render, Renderer};
 
 /// CRUD operation type
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -34,7 +34,7 @@ impl Display for CrudType {
 }
 
 impl Render for CrudType {
-    fn render(&self, sql: &mut Sql) {
-        sql.push_str(self.as_str());
+    fn render(&self, out: &mut Renderer) {
+        out.push_str(self.as_str());
     }
 }

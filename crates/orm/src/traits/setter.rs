@@ -1,8 +1,7 @@
 use surrealdb::types::SurrealValue;
 
 use crate::{
-    Block, Conditional, Edge, Field, Node, Operator, Param, Render, Sql, ValueLike,
-    render::sql,
+    Block, Conditional, Edge, Field, Node, Operator, Param, Render, Renderer, ValueLike,
     statements::{
         DeleteStatement, IfElseStatement, InsertStatement, LetStatement, RelateStatement,
         SelectStatement, Subquery, UpdateStatement,
@@ -11,17 +10,33 @@ use crate::{
 
 /// An assignment, e.g. `name = $_p0`, used in `SET` clauses.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Setter(Sql);
+pub struct Setter {
+    field: Field,
+    operator: Operator,
+    value: ValueLike,
+}
 
 impl Setter {
-    pub(crate) fn new(sql: Sql) -> Self {
-        Self(sql)
+    pub(crate) fn new(field: Field, operator: Operator, value: ValueLike) -> Self {
+        Self {
+            field,
+            operator,
+            value,
+        }
+    }
+
+    pub(crate) fn into_parts(self) -> (Field, Operator, ValueLike) {
+        (self.field, self.operator, self.value)
     }
 }
 
 impl Render for Setter {
-    fn render(&self, sql: &mut Sql) {
-        sql.push(&self.0);
+    fn render(&self, out: &mut Renderer) {
+        out.push(&self.field)
+            .push_str(" ")
+            .push(&self.operator)
+            .push_str(" ")
+            .push(&self.value);
     }
 }
 
@@ -115,12 +130,11 @@ fn assign<T: SurrealValue>(
     operator: Operator,
     value: impl Into<SetterArg<T>>,
 ) -> Setter {
-    let mut sql = sql!(field, " ", operator, " ");
-    match value.into() {
-        SetterArg::Value(value) => sql.push_value(value.into_value()),
-        SetterArg::Expression(expression) => sql.push(&expression),
+    let value = match value.into() {
+        SetterArg::Value(value) => ValueLike::value(value),
+        SetterArg::Expression(expression) => expression,
     };
-    Setter(sql)
+    Setter::new(field.clone(), operator, value)
 }
 
 /// A trait for assigning values to a field used in `SET`

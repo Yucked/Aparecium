@@ -2,7 +2,7 @@
 use surrealdb::types::{self, SurrealValue, Value};
 
 use super::Field;
-use crate::{Render, Sql, ValueLike};
+use crate::{Render, Renderer, ValueLike};
 
 /// A value that can be ordered: a number, datetime or geometry, or a field holding one.
 #[derive(Debug, Clone, PartialEq)]
@@ -14,13 +14,13 @@ pub enum Ordinal {
 }
 
 impl Render for Ordinal {
-    fn render(&self, sql: &mut Sql) {
+    fn render(&self, out: &mut Renderer) {
         match self {
             Ordinal::Value(value) => {
-                sql.push_value(value.clone());
+                out.push_value(value);
             }
             Ordinal::Field(field) => {
-                sql.push(field);
+                out.push(field);
             }
         }
     }
@@ -28,7 +28,10 @@ impl Render for Ordinal {
 
 impl From<Ordinal> for ValueLike {
     fn from(value: Ordinal) -> Self {
-        ValueLike::new(value)
+        match value {
+            Ordinal::Value(value) => ValueLike::value(value),
+            Ordinal::Field(field) => field.into(),
+        }
     }
 }
 

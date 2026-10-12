@@ -11,7 +11,7 @@ use surrealdb::types::{
     self, ConversionError, Kind, RecordIdKey, RecordIdKeyRange, SurrealValue, ToSql, Value,
 };
 
-use crate::{Model, Render, Sql};
+use crate::{Model, Render, Renderer};
 
 mod sealed {
     pub trait Sealed {}
@@ -272,14 +272,14 @@ fn key_of<T>(id: &impl Borrow<RecordId<T>>) -> RecordIdKey {
 }
 
 impl<T: Model> Render for RecordRange<T> {
-    fn render(&self, sql: &mut Sql) {
+    fn render(&self, out: &mut Renderer) {
         let is_range = |bound: &Bound<RecordIdKey>| {
             matches!(bound, Bound::Included(key) | Bound::Excluded(key) if key.is_range())
         };
         if is_range(&self.range.start) || is_range(&self.range.end) {
-            sql.push_error("record range bounds must be single keys");
+            out.push_error("record range bounds must be single keys");
         }
-        sql.push_value(Value::RecordId(types::RecordId::new(
+        out.push_value(&Value::RecordId(types::RecordId::new(
             T::table(),
             RecordIdKey::Range(Box::new(self.range.clone())),
         )));

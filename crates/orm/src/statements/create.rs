@@ -1,7 +1,8 @@
 use std::marker::PhantomData;
 
 use crate::{
-    DurationLike, Node, ReturnType, ReturnableDefault, ReturnableStandard, Setter, Sql, ValueLike,
+    DurationLike, Node, Renderer, ReturnType, ReturnableDefault, ReturnableStandard, Setter,
+    ValueLike,
 };
 
 use super::{Statement, impl_statement};
@@ -49,7 +50,7 @@ pub struct CreateStatementInit<T: Node> {
     return_type: Option<ReturnType>,
     timeout: Option<DurationLike>,
     parallel: bool,
-    model: PhantomData<T>,
+    model: PhantomData<fn() -> T>,
 }
 
 impl<T: Node> CreateStatementInit<T> {
@@ -100,34 +101,34 @@ impl<T: Node> CreateStatement<T> {
 }
 
 impl<T: Node> Statement for CreateStatement<T> {
-    fn render_body(&self, sql: &mut Sql) {
+    fn render_body(&self, out: &mut Renderer) {
         let statement = &self.0;
-        sql.push_str("CREATE ");
+        out.push_str("CREATE ");
         if statement.is_only {
-            sql.push_str("ONLY ");
+            out.push_str("ONLY ");
         }
-        sql.push(&T::table());
+        out.push(&T::table());
 
         match &statement.data {
             Data::None => {}
             Data::Content(content) => {
-                sql.push_str(" CONTENT ").push(content);
+                out.push_str(" CONTENT ").push(content);
             }
             Data::Set(setters) => {
-                sql.push_str(" SET ").push(setters);
+                out.push_str(" SET ").push(setters);
             }
         }
 
         if let Some(return_type) = &statement.return_type {
-            sql.push_str(" ").push(return_type);
+            out.push_str(" ").push(return_type);
         }
 
         if let Some(timeout) = &statement.timeout {
-            sql.push_str(" TIMEOUT ").push_inlined(timeout);
+            out.push_str(" TIMEOUT ").push_inlined(timeout);
         }
 
         if statement.parallel {
-            sql.push_str(" PARALLEL");
+            out.push_str(" PARALLEL");
         }
     }
 }

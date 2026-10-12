@@ -1,4 +1,4 @@
-use crate::{Render, Sql};
+use crate::{Render, Renderer};
 
 /// Direction of the connection edge
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -29,8 +29,8 @@ pub enum Arrow {
 }
 
 impl Render for Arrow {
-    fn render(&self, sql: &mut Sql) {
-        sql.push_str(match self {
+    fn render(&self, out: &mut Renderer) {
+        out.push_str(match self {
             Arrow::Right => "->",
             Arrow::Left => "<-",
         });

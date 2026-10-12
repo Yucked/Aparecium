@@ -8,8 +8,8 @@
 use std::marker::PhantomData;
 
 use crate::{
-    Conditional, DurationLike, Filter, Model, ReturnType, ReturnableDefault, ReturnableStandard,
-    Sql,
+    Conditional, DurationLike, Filter, Model, Renderer, ReturnType, ReturnableDefault,
+    ReturnableStandard, ValueLike, render::Checked,
 };
 
 use super::{Statement, impl_statement, update::TargettablesForUpdate};
@@ -49,13 +49,13 @@ pub fn delete_only<T: Model>(targettables: impl Into<TargettablesForUpdate>) -> 
 /// Define the API for delete Statement
 #[derive(Debug, Clone)]
 pub struct DeleteStatement<T: Model> {
-    target: Sql,
+    target: Checked<ValueLike>,
     is_only: bool,
     where_: Option<Filter>,
     return_type: Option<ReturnType>,
     timeout: Option<DurationLike>,
     parallel: bool,
-    model: PhantomData<T>,
+    model: PhantomData<fn() -> T>,
 }
 
 impl<T: Model> DeleteStatement<T> {
@@ -96,27 +96,27 @@ impl<T: Model> DeleteStatement<T> {
 }
 
 impl<T: Model> Statement for DeleteStatement<T> {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("DELETE ");
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("DELETE ");
         if self.is_only {
-            sql.push_str("ONLY ");
+            out.push_str("ONLY ");
         }
-        sql.push(&self.target);
+        out.push(&self.target);
 
         if let Some(condition) = &self.where_ {
-            sql.push_str(" WHERE ").push(condition);
+            out.push_str(" WHERE ").push(condition);
         }
 
         if let Some(return_type) = &self.return_type {
-            sql.push_str(" ").push(return_type);
+            out.push_str(" ").push(return_type);
         }
 
         if let Some(timeout) = &self.timeout {
-            sql.push_str(" TIMEOUT ").push_inlined(timeout);
+            out.push_str(" TIMEOUT ").push_inlined(timeout);
         }
 
         if self.parallel {
-            sql.push_str(" PARALLEL");
+            out.push_str(" PARALLEL");
         }
     }
 }
@@ -150,8 +150,8 @@ impl<T: Model> From<DeleteStatement<T>> for DeleteStatementMini<T> {
 }
 
 impl<T: Model> Statement for DeleteStatementMini<T> {
-    fn render_body(&self, sql: &mut Sql) {
-        self.0.render_body(sql);
+    fn render_body(&self, out: &mut Renderer) {
+        self.0.render_body(out);
     }
 }
 

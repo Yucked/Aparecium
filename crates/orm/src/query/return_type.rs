@@ -1,5 +1,5 @@
 
-use crate::{Projections, Render, Sql, ValueLike};
+use crate::{Projections, Render, Renderer, ValueLike};
 
 /// Return type
 #[derive(Debug, Clone, PartialEq)]
@@ -23,23 +23,23 @@ impl From<Vec<ValueLike>> for ReturnType {
 }
 
 impl Render for ReturnType {
-    fn render(&self, sql: &mut Sql) {
-        sql.push_str("RETURN ");
+    fn render(&self, out: &mut Renderer) {
+        out.push_str("RETURN ");
         match self {
             ReturnType::None => {
-                sql.push_str("NONE");
+                out.push_str("NONE");
             }
             ReturnType::Before => {
-                sql.push_str("BEFORE");
+                out.push_str("BEFORE");
             }
             ReturnType::After => {
-                sql.push_str("AFTER");
+                out.push_str("AFTER");
             }
             ReturnType::Diff => {
-                sql.push_str("DIFF");
+                out.push_str("DIFF");
             }
             ReturnType::Projections(projections) => {
-                sql.push(projections);
+                out.push(projections);
             }
         }
     }

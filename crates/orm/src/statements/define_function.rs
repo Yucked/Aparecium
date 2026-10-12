@@ -1,6 +1,6 @@
 use surrealdb::types::Kind;
 
-use crate::{Block, Param, Sql};
+use crate::{Block, Param, Renderer};
 
 use super::{Statement, impl_definition};
 
@@ -53,20 +53,20 @@ pub fn define_function(name: impl Into<String>) -> DefineFunctionStatement {
 }
 
 impl Statement for DefineFunctionStatement {
-    fn render_body(&self, sql: &mut Sql) {
+    fn render_body(&self, out: &mut Renderer) {
         // The name is a `::`-separated path, written as given.
-        sql.push_str("DEFINE FUNCTION fn::")
+        out.push_str("DEFINE FUNCTION fn::")
             .push_str(&self.name)
             .push_str("(");
         for (index, FunctionArgument { name, type_ }) in self.args.iter().enumerate() {
             if index > 0 {
-                sql.push_str(", ");
+                out.push_str(", ");
             }
-            sql.push(name).push_str(": ").push(type_);
+            out.push(name).push_str(": ").push(type_);
         }
-        sql.push_str(") ");
+        out.push_str(") ");
         if let Some(body) = &self.body {
-            sql.push(body);
+            out.push(body);
         }
     }
 }

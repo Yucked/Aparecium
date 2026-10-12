@@ -13,7 +13,7 @@ use std::{
 use surrealdb::types::Value;
 
 use crate::{
-    Node, ReturnType, ReturnableDefault, ReturnableStandard, Sql, Updateables, Updater,
+    Node, Renderer, ReturnType, ReturnableDefault, ReturnableStandard, Updateables, Updater,
 };
 
 use super::{SelectStatement, Statement, Subquery, impl_statement};
@@ -24,7 +24,7 @@ pub struct InsertStatement<T: Node> {
     data: Data,
     on_duplicate_key_update: Vec<Updater>,
     return_type: Option<ReturnType>,
-    model: PhantomData<T>,
+    model: PhantomData<fn() -> T>,
 }
 
 #[derive(Debug, Clone)]
@@ -218,12 +218,12 @@ impl<T: Node> InsertStatement<T> {
 }
 
 impl<T: Node> Statement for InsertStatement<T> {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("INSERT INTO ").push(&T::table()).push_str(" ");
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("INSERT INTO ").push(&T::table()).push_str(" ");
 
         match &self.data {
             Data::Select(query) => {
-                sql.push(query);
+                out.push(query);
             }
             Data::Rows {
                 fields,
@@ -231,39 +231,39 @@ impl<T: Node> Statement for InsertStatement<T> {
                 errors,
             } => {
                 for error in errors {
-                    sql.push_error(error.as_str());
+                    out.push_error(error.as_str());
                 }
-                sql.push_str("(");
+                out.push_str("(");
                 for (index, field) in fields.iter().enumerate() {
                     if index > 0 {
-                        sql.push_str(", ");
+                        out.push_str(", ");
                     }
-                    sql.push_ident(field);
+                    out.push_ident(field);
                 }
-                sql.push_str(") VALUES ");
+                out.push_str(") VALUES ");
                 for (index, row) in rows.iter().enumerate() {
                     if index > 0 {
-                        sql.push_str(", ");
+                        out.push_str(", ");
                     }
-                    sql.push_str("(");
+                    out.push_str("(");
                     for (index, value) in row.iter().enumerate() {
                         if index > 0 {
-                            sql.push_str(", ");
+                            out.push_str(", ");
                         }
-                        sql.push_value(value.clone());
+                        out.push_value(value);
                     }
-                    sql.push_str(")");
+                    out.push_str(")");
                 }
             }
         }
 
         if !self.on_duplicate_key_update.is_empty() {
-            sql.push_str(" ON DUPLICATE KEY UPDATE ")
+            out.push_str(" ON DUPLICATE KEY UPDATE ")
                 .push(&self.on_duplicate_key_update);
         }
 
         if let Some(return_type) = &self.return_type {
-            sql.push_str(" ").push(return_type);
+            out.push_str(" ").push(return_type);
         }
     }
 }

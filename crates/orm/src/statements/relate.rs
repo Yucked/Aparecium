@@ -10,8 +10,8 @@
 use std::marker::PhantomData;
 
 use crate::{
-    DurationLike, Edge, Render, ReturnType, ReturnableDefault, ReturnableStandard, Setter, Sql,
-    ValueLike,
+    DurationLike, Edge, Field, Renderer, ReturnType, ReturnableDefault, ReturnableStandard,
+    Setter, ValueLike,
 };
 
 use super::{Statement, impl_statement};
@@ -42,9 +42,9 @@ use super::{Statement, impl_statement};
 /// ).content(write)
 /// // Generates e.g RELATE (select * from student)->writes->(select * from book) CONTENT {...}
 /// ```
-pub fn relate<T: Edge>(connection: impl Render) -> RelateStatement<T> {
+pub fn relate<T: Edge>(connection: impl Into<Field>) -> RelateStatement<T> {
     RelateStatement {
-        relation: connection.to_sql(),
+        relation: connection.into(),
         is_only: false,
         data: Data::None,
         return_type: None,
@@ -55,7 +55,7 @@ pub fn relate<T: Edge>(connection: impl Render) -> RelateStatement<T> {
 }
 
 /// Creates a new RELATE ONLY statement, which returns a single edge.
-pub fn relate_only<T: Edge>(connection: impl Render) -> RelateStatement<T> {
+pub fn relate_only<T: Edge>(connection: impl Into<Field>) -> RelateStatement<T> {
     let mut relate_statement = relate(connection);
     relate_statement.is_only = true;
     relate_statement
@@ -71,13 +71,14 @@ enum Data {
 /// Relate statement initialization builder
 #[derive(Debug, Clone)]
 pub struct RelateStatement<T: Edge> {
-    relation: Sql,
+    /// The graph path `from->edge->to`.
+    relation: Field,
     is_only: bool,
     data: Data,
     return_type: Option<ReturnType>,
     timeout: Option<DurationLike>,
     parallel: bool,
-    model: PhantomData<T>,
+    model: PhantomData<fn() -> T>,
 }
 
 impl<T: Edge> RelateStatement<T> {
@@ -146,33 +147,33 @@ impl<T: Edge> RelateStatement<T> {
 }
 
 impl<T: Edge> Statement for RelateStatement<T> {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("RELATE ");
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("RELATE ");
         if self.is_only {
-            sql.push_str("ONLY ");
+            out.push_str("ONLY ");
         }
-        sql.push(&self.relation);
+        out.push(&self.relation);
 
         match &self.data {
             Data::None => {}
             Data::Content(content) => {
-                sql.push_str(" CONTENT ").push(content);
+                out.push_str(" CONTENT ").push(content);
             }
             Data::Set(setters) => {
-                sql.push_str(" SET ").push(setters);
+                out.push_str(" SET ").push(setters);
             }
         }
 
         if let Some(return_type) = &self.return_type {
-            sql.push_str(" ").push(return_type);
+            out.push_str(" ").push(return_type);
         }
 
         if let Some(timeout) = &self.timeout {
-            sql.push_str(" TIMEOUT ").push_inlined(timeout);
+            out.push_str(" TIMEOUT ").push_inlined(timeout);
         }
 
         if self.parallel {
-            sql.push_str(" PARALLEL");
+            out.push_str(" PARALLEL");
         }
     }
 }

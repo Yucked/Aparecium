@@ -2,7 +2,7 @@
 use std::{borrow::Cow, fmt};
 
 use crate::{
-    Clause, Field, GENERATED_PARAM_PREFIX, Index, Operatable, Render, SchemaGetter, Sql,
+    Clause, Field, GENERATED_PARAM_PREFIX, Index, Operatable, Render, Renderer, SchemaGetter,
 };
 
 /// Why a caller-supplied parameter name was rejected.
@@ -122,11 +122,11 @@ impl From<&Param> for Param {
 }
 
 impl Render for Param {
-    fn render(&self, sql: &mut Sql) {
+    fn render(&self, out: &mut Renderer) {
         if let Err(error) = Self::check(&self.0) {
-            sql.push_error(format!("invalid parameter `${}`: {error}", self.0));
+            out.push_error(format!("invalid parameter `${}`: {error}", self.0));
         }
-        sql.push_str("$").push_str(&self.0);
+        out.push_str("$").push_str(&self.0);
     }
 }
 

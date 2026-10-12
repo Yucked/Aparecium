@@ -1,4 +1,4 @@
-use crate::{Render, Sql, ValueLike};
+use crate::{Render, Renderer, ValueLike};
 
 /// A code block. Surrounds the code with brackets.
 #[derive(Debug, Clone, PartialEq)]
@@ -10,8 +10,8 @@ pub fn bracket(code: impl Into<ValueLike>) -> Bracket {
 }
 
 impl Render for Bracket {
-    fn render(&self, sql: &mut Sql) {
-        sql.push_str("(").push(&self.0).push_str(")");
+    fn render(&self, out: &mut Renderer) {
+        out.push_str("(").push(&self.0).push_str(")");
     }
 }
 

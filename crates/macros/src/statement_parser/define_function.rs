@@ -205,7 +205,7 @@ impl DefineFunctionStatementParser {
 
                 #crate_name::Function::__custom(
                     stringify!(#function_name),
-                    ::std::vec![#( #crate_name::Render::to_sql(&#arg_names) ),*],
+                    ::std::vec![#( #crate_name::ValueLike::from(#arg_names) ),*],
                 )
             }
         );

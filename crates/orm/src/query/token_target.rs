@@ -1,6 +1,6 @@
 use std::fmt::{self, Display};
 
-use crate::{Render, Scope, Sql};
+use crate::{Render, Renderer, Scope};
 
 /// A token's signature algorithm.
 #[expect(missing_docs, reason = "each variant is the algorithm's own name")]
@@ -49,8 +49,8 @@ impl Display for TokenType {
 }
 
 impl Render for TokenType {
-    fn render(&self, sql: &mut Sql) {
-        sql.push_str(self.as_str());
+    fn render(&self, out: &mut Renderer) {
+        out.push_str(self.as_str());
     }
 }
 
@@ -66,16 +66,16 @@ pub enum TokenTarget {
 }
 
 impl Render for TokenTarget {
-    fn render(&self, sql: &mut Sql) {
+    fn render(&self, out: &mut Renderer) {
         match self {
             TokenTarget::Namespace => {
-                sql.push_str("NAMESPACE");
+                out.push_str("NAMESPACE");
             }
             TokenTarget::Database => {
-                sql.push_str("DATABASE");
+                out.push_str("DATABASE");
             }
             TokenTarget::Scope(scope) => {
-                sql.push_str("SCOPE ").push(scope);
+                out.push_str("SCOPE ").push(scope);
             }
         }
     }

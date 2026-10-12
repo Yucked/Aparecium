@@ -2,7 +2,7 @@
 
 use surrealdb::types::{Kind, SurrealValue, Value};
 
-use crate::{Field, Model, Setter, render::sql};
+use crate::{Field, Model, NONE, NULL, Operator, Setter, ValueLike};
 
 /// How a partial update treats one field.
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -29,16 +29,14 @@ impl<T: SurrealValue> Patch<T> {
     /// The assignment for `field`, or `None` when the field is kept.
     #[doc(hidden)]
     pub fn into_setter(self, field: impl Into<Field>) -> Option<Setter> {
-        let field: Field = field.into();
-        let mut sql = sql!(field, " = ");
-        match self {
+        let value = match self {
             Patch::Keep => return None,
             // Assigning `NONE` deletes the field.
-            Patch::None => sql.push_str("NONE"),
-            Patch::Null => sql.push_str("NULL"),
-            Patch::Set(value) => sql.push_value(value.into_value()),
+            Patch::None => ValueLike::from(NONE),
+            Patch::Null => ValueLike::from(NULL),
+            Patch::Set(value) => ValueLike::value(value),
         };
-        Some(Setter::new(sql))
+        Some(Setter::new(field.into(), Operator::Equal, value))
     }
 }
 

@@ -1,4 +1,4 @@
-use crate::{Render, Sql, ValueLike};
+use crate::{Render, Renderer, ValueLike};
 
 /// Represents a cast function.
 #[derive(Debug, Clone)]
@@ -13,8 +13,20 @@ impl std::ops::Deref for Cast {
 }
 
 impl Render for Cast {
-    fn render(&self, sql: &mut Sql) {
-        sql.push(&self.0);
+    fn render(&self, out: &mut Renderer) {
+        out.push(&self.0);
+    }
+}
+
+/// `<kind> value`
+struct CastExpression {
+    prefix: &'static str,
+    value: ValueLike,
+}
+
+impl Render for CastExpression {
+    fn render(&self, out: &mut Renderer) {
+        out.push_str(self.prefix).push(&self.value);
     }
 }
 
@@ -23,10 +35,10 @@ macro_rules! create_cast_function {
         paste::paste! {
             $(#[$attr])*
             pub fn [<$function_name>](value: impl Into<ValueLike>) -> Cast {
-                let value: ValueLike = value.into();
-                let mut sql = Sql::new();
-                sql.push_str(concat!("<", $function_name, "> ")).push(&value);
-                Cast(ValueLike::new(sql))
+                Cast(ValueLike::new(CastExpression {
+                    prefix: concat!("<", $function_name, "> "),
+                    value: value.into(),
+                }))
             }
         }
     };

@@ -1,5 +1,5 @@
 
-use crate::{Block, Edge, Model, Node, Render, Sql};
+use crate::{Block, Edge, Fragment, Model, Node, Render, Renderer};
 
 use super::{
     CreateStatement, DeleteStatement, IfElseStatement, InsertStatement, RelateStatement,
@@ -8,27 +8,39 @@ use super::{
 
 /// A statement nested inside another query, rendered in parentheses with its own values.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Subquery(Sql);
+pub struct Subquery(Fragment);
+
+/// `(statement)`, without the statement's trailing `;`.
+struct Parenthesized<S>(S);
+
+impl<S: Statement> Render for Parenthesized<S> {
+    fn render(&self, out: &mut Renderer) {
+        out.push_str("(");
+        self.0.render_body(out);
+        out.push_str(")");
+    }
+}
 
 impl Subquery {
-    fn of(statement: &impl Statement) -> Self {
-        let mut sql = Sql::new();
-        sql.push_str("(");
-        statement.render_body(&mut sql);
-        sql.push_str(")");
-        Self(sql)
+    fn of(statement: impl Statement + Send + Sync + 'static) -> Self {
+        Self(Fragment::new(Parenthesized(statement)))
+    }
+
+    /// The subquery as a node another path or expression holds.
+    pub(crate) fn into_fragment(self) -> Fragment {
+        self.0
     }
 }
 
 impl Render for Subquery {
-    fn render(&self, sql: &mut Sql) {
-        sql.push(&self.0);
+    fn render(&self, out: &mut Renderer) {
+        out.push(&self.0);
     }
 }
 
 impl From<Block> for Subquery {
     fn from(block: Block) -> Self {
-        Self(block.to_sql())
+        Self(Fragment::new(block))
     }
 }
 
@@ -37,14 +49,14 @@ macro_rules! subquery_from {
     ([$($generics:tt)*] $statement:ty) => {
         impl<$($generics)*> From<$statement> for Subquery {
             fn from(statement: $statement) -> Self {
-                Self::of(&statement)
+                Self::of(statement)
             }
         }
     };
     ($statement:ty) => {
         impl From<$statement> for Subquery {
             fn from(statement: $statement) -> Self {
-                Self::of(&statement)
+                Self::of(statement)
             }
         }
     };

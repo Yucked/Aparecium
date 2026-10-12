@@ -1,5 +1,5 @@
 use crate::{
-    DurationLike, Node, ReturnType, ReturnableDefault, ReturnableStandard, Setter, Sql,
+    DurationLike, Node, Renderer, ReturnType, ReturnableDefault, ReturnableStandard, Setter,
 };
 
 use super::{CreateStatement, Statement, create, impl_statement};
@@ -81,8 +81,8 @@ impl<T: Node> CreateStatementV2<T> {
 }
 
 impl<T: Node> Statement for CreateStatementV2<T> {
-    fn render_body(&self, sql: &mut Sql) {
-        self.0.render_body(sql);
+    fn render_body(&self, out: &mut Renderer) {
+        self.0.render_body(out);
     }
 }
 

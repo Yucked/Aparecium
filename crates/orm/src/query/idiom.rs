@@ -3,7 +3,7 @@ use std::{borrow::Cow, fmt};
 
 use surrealdb::types::{Kind, Table};
 
-use crate::{Render, Sql};
+use crate::{Render, Renderer};
 
 /// A SurrealQL identifier, rendered bare when it is a plain identifier and escaped otherwise.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -22,8 +22,8 @@ impl Ident {
 }
 
 impl Render for Ident {
-    fn render(&self, sql: &mut Sql) {
-        sql.push_ident(&self.0);
+    fn render(&self, out: &mut Renderer) {
+        out.push_ident(&self.0);
     }
 }
 
@@ -52,18 +52,18 @@ impl fmt::Display for Ident {
 }
 
 impl Render for Table {
-    fn render(&self, sql: &mut Sql) {
+    fn render(&self, out: &mut Renderer) {
         if self.as_str().is_empty() {
-            sql.push_error("table names cannot be empty");
+            out.push_error("table names cannot be empty");
         }
-        sql.push_syntax(self);
+        out.push_syntax(self);
     }
 }
 
 /// A type in SurrealDB's canonical syntax, e.g. `none | string`, `record<user>`.
 impl Render for Kind {
-    fn render(&self, sql: &mut Sql) {
-        sql.push_syntax(self);
+    fn render(&self, out: &mut Renderer) {
+        out.push_syntax(self);
     }
 }
 
@@ -87,8 +87,8 @@ macro_rules! define_names {
             }
 
             impl Render for $name {
-                fn render(&self, sql: &mut Sql) {
-                    self.0.render(sql);
+                fn render(&self, out: &mut Renderer) {
+                    self.0.render(out);
                 }
             }
 
@@ -173,7 +173,7 @@ impl From<Tables> for Vec<Table> {
 }
 
 impl Render for Tables {
-    fn render(&self, sql: &mut Sql) {
-        sql.push_joined(&self.0, ", ");
+    fn render(&self, out: &mut Renderer) {
+        out.push_joined(&self.0, ", ");
     }
 }
