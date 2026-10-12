@@ -1,11 +1,11 @@
 // -- Define a global function which can be used in any query
 
-use aparecium::{
+use umbriel::{
     All, Buildable, Field, Model, NONE, Operatable, Param, SchemaGetter, SetterAssignable, ToRaw,
     cond, define_function, object,
     statements::{create, if_, select},
 };
-use aparecium_tests::SpaceShip;
+use umbriel_tests::SpaceShip;
 use chrono::TimeZone;
 use pretty_assertions::assert_eq;
 
@@ -39,25 +39,25 @@ define_function!(get_or_create_spaceship(
 #[test]
 fn test_function_definition_with_idiomatic_if_statement() {
     let dt = chrono::Utc.timestamp_opt(61, 0).unwrap();
-    let spaceship = get_or_create_spaceship_fn("Oyelowo", "Oyedayo", dt, 5);
+    let spaceship = get_or_create_spaceship_fn("Charlie", "Bennett", dt, 5);
     insta::assert_snapshot!(spaceship.to_raw().build());
     insta::assert_snapshot!(spaceship.fine_tune_params());
 
-    let spaceship = get_or_create_spaceship_fn("Oyelowo", "Oyedayo", Param::new("birthday"), 5);
+    let spaceship = get_or_create_spaceship_fn("Charlie", "Bennett", Param::new("birthday"), 5);
     insta::assert_snapshot!(spaceship.to_raw().build());
     insta::assert_snapshot!(spaceship.fine_tune_params());
 
-    let spaceship = get_or_create_spaceship_fn("Oyelowo", "Oyedayo", Field::new("birthday"), 5);
+    let spaceship = get_or_create_spaceship_fn("Charlie", "Bennett", Field::new("birthday"), 5);
     insta::assert_snapshot!(spaceship.to_raw().build());
     insta::assert_snapshot!(spaceship.fine_tune_params());
 
-    let spaceship = get_or_create_spaceship!("Oyelowo", "Oyedayo", dt, 5);
+    let spaceship = get_or_create_spaceship!("Charlie", "Bennett", dt, 5);
     insta::assert_snapshot!(spaceship.to_raw().build());
     insta::assert_snapshot!(spaceship.fine_tune_params());
 
     let spaceship = get_or_create_spaceship!(
         Field::new("first_name"),
-        "Oyedayo",
+        "Bennett",
         Param::new("birthday"),
         5
     );
@@ -65,7 +65,7 @@ fn test_function_definition_with_idiomatic_if_statement() {
     insta::assert_snapshot!(spaceship.fine_tune_params());
 
     let spaceship = get_or_create_spaceship!(
-        "Oyelowo",
+        "Charlie",
         Param::new("last_name"),
         Field::new("birthday"),
         5
@@ -75,7 +75,7 @@ fn test_function_definition_with_idiomatic_if_statement() {
 
     assert_eq!(
         spaceship.to_raw().build(),
-        "fn::get_or_create_spaceship('Oyelowo', $last_name, birthday, 5)"
+        "fn::get_or_create_spaceship('Charlie', $last_name, birthday, 5)"
     );
     assert_eq!(
         spaceship.fine_tune_params(),
@@ -111,12 +111,12 @@ define_function!(get_person(first_arg: string, last_arg: string, birthday_arg: s
 
 #[test]
 fn test_function_definition() {
-    let person = get_person!("Oyelowo", "Oyedayo", "2022-09-21");
+    let person = get_person!("Charlie", "Bennett", "2022-09-21");
     insta::assert_snapshot!(person.to_raw().build());
     insta::assert_snapshot!(person.fine_tune_params());
     assert_eq!(
         person.to_raw().build(),
-        "fn::get_person('Oyelowo', 'Oyedayo', '2022-09-21')"
+        "fn::get_person('Charlie', 'Bennett', '2022-09-21')"
     );
     assert_eq!(
         person.fine_tune_params(),
