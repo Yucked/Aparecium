@@ -1,13 +1,13 @@
 // Statement syntax
 // DEFINE INDEX @name ON [ TABLE ] @table [ FIELDS | COLUMNS ] @fields
-// 	[ UNIQUE | SEARCH ANALYZER @analyzer [ BM25 [(@k1, @b)] ] [ HIGHLIGHTS ] ]
+// 	[ UNIQUE | FULLTEXT ANALYZER @analyzer [ BM25 [(@k1, @b)] ] [ HIGHLIGHTS ] ]
 //
 // -- Make sure that email addresses in the user table are always unique
 // DEFINE INDEX userEmailIndex ON TABLE user COLUMNS email UNIQUE;
 
 use surrealdb::types::Table;
 
-use crate::{Field, Ident, NumberLike, Render, Renderer, TableIndex, ValueLike};
+use crate::{Field, Ident, Render, Renderer, TableIndex, ValueLike};
 
 use super::{Statement, impl_definition};
 
@@ -39,7 +39,7 @@ pub fn define_index(index_name: impl Into<TableIndex>) -> DefineIndexStatement {
         fields: vec![],
         columns: vec![],
         unique: false,
-        search_analyzer: None,
+        fulltext: None,
     }
 }
 
@@ -106,7 +106,7 @@ pub struct DefineIndexStatement {
     fields: Vec<Field>,
     columns: Vec<Field>,
     unique: bool,
-    search_analyzer: Option<SearchAnalyzer>,
+    fulltext: Option<FullTextAnalyzer>,
 }
 
 impl DefineIndexStatement {
@@ -136,9 +136,9 @@ impl DefineIndexStatement {
         self
     }
 
-    /// Set the search analyzer for the index
-    pub fn search_analyzer(mut self, search_analyzer: SearchAnalyzer) -> Self {
-        self.search_analyzer = Some(search_analyzer);
+    /// Makes this a full-text index using the given analyzer.
+    pub fn fulltext(mut self, fulltext: FullTextAnalyzer) -> Self {
+        self.fulltext = Some(fulltext);
         self
     }
 }
@@ -161,137 +161,74 @@ impl Statement for DefineIndexStatement {
 
         if self.unique {
             out.push_str(" UNIQUE");
-        } else if let Some(search_analyzer) = &self.search_analyzer {
-            out.push_str(" ").push(search_analyzer);
+        } else if let Some(fulltext) = &self.fulltext {
+            out.push_str(" ").push(fulltext);
         }
     }
 }
 
 impl_definition!(DefineIndexStatement);
 
-/// Scoring for search
-pub enum Scoring {
-    /// BestMatching25
-    Bm25(NumberLike, NumberLike),
-    /// VectorSearch
-    Vs,
-}
-
-impl Render for Scoring {
-    fn render(&self, out: &mut Renderer) {
-        match self {
-            Scoring::Bm25(k1, b) => {
-                out.push_str("BM25 ").push(k1).push_str(" ").push(b);
-            }
-            Scoring::Vs => {
-                out.push_str("VS");
-            }
-        }
-    }
-}
-
-/// The full-text search options of an index.
-pub struct SearchAnalyzer {
+/// The full-text options of an index: `FULLTEXT ANALYZER @analyzer [ BM25(@k1, @b) ] [ HIGHLIGHTS ]`.
+pub struct FullTextAnalyzer {
     analyzer: Ident,
-    highlight: bool,
-    scoring: Option<Scoring>,
-    doc_ids_order: Option<NumberLike>,
-    doc_lengths_order: Option<NumberLike>,
-    postings_order: Option<NumberLike>,
-    terms_order: Option<NumberLike>,
+    bm25: Option<(f32, f32)>,
+    highlights: bool,
 }
 
-impl SearchAnalyzer {
-    /// Enables `HIGHLIGHTS`.
-    pub fn highlight(mut self) -> Self {
-        self.highlight = true;
+impl FullTextAnalyzer {
+    /// Enables `HIGHLIGHTS`, which `search::highlight` needs.
+    pub fn highlights(mut self) -> Self {
+        self.highlights = true;
         self
     }
 
-    /// Scores with BM25.
-    pub fn bm25(mut self, k1: impl Into<NumberLike>, b: impl Into<NumberLike>) -> Self {
-        self.scoring = Some(Scoring::Bm25(k1.into(), b.into()));
-        self
-    }
-
-    /// Scores with vector search.
-    pub fn vs(mut self) -> Self {
-        self.scoring = Some(Scoring::Vs);
-        self
-    }
-
-    /// Sets `DOC_IDS_ORDER`.
-    pub fn doc_ids_order(mut self, doc_ids_order: impl Into<NumberLike>) -> Self {
-        self.doc_ids_order = Some(doc_ids_order.into());
-        self
-    }
-
-    /// Sets `DOC_LENGTHS_ORDER`.
-    pub fn doc_lengths_order(mut self, doc_lengths_order: impl Into<NumberLike>) -> Self {
-        self.doc_lengths_order = Some(doc_lengths_order.into());
-        self
-    }
-
-    /// Sets `POSTINGS_ORDER`.
-    pub fn postings_order(mut self, postings_order: impl Into<NumberLike>) -> Self {
-        self.postings_order = Some(postings_order.into());
-        self
-    }
-
-    /// Sets `TERMS_ORDER`.
-    pub fn terms_order(mut self, terms_order: impl Into<NumberLike>) -> Self {
-        self.terms_order = Some(terms_order.into());
+    /// Scores with BM25 using the given `k1` and `b` parameters. They are literals of the
+    /// definition, as SurrealDB stores them with the index.
+    pub fn bm25(mut self, k1: f32, b: f32) -> Self {
+        self.bm25 = Some((k1, b));
         self
     }
 }
 
-impl Render for SearchAnalyzer {
+impl Render for FullTextAnalyzer {
     fn render(&self, out: &mut Renderer) {
-        out.push_str("SEARCH ANALYZER ").push(&self.analyzer);
+        out.push_str("FULLTEXT ANALYZER ").push(&self.analyzer);
 
-        if self.highlight {
+        if let Some((k1, b)) = &self.bm25 {
+            out.push_str(" BM25(")
+                .push_display(k1)
+                .push_str(", ")
+                .push_display(b)
+                .push_str(")");
+        }
+
+        if self.highlights {
             out.push_str(" HIGHLIGHTS");
         }
-
-        if let Some(scoring) = &self.scoring {
-            out.push_str(" ").push(scoring);
-        }
-
-        let orders = [
-            (" DOC_IDS_ORDER ", &self.doc_ids_order),
-            (" DOC_LENGTHS_ORDER ", &self.doc_lengths_order),
-            (" POSTINGS_ORDER ", &self.postings_order),
-            (" TERMS_ORDER ", &self.terms_order),
-        ];
-        for (keyword, order) in orders {
-            if let Some(order) = order {
-                out.push_str(keyword).push(order);
-            }
-        }
     }
 }
 
-/// Function to start building a SearchParams object with an analyzer
+/// Starts the full-text options of an index with the analyzer it uses.
 ///
 /// ```rust
-/// use umbriel::{statements::search_analyzer};
+/// use umbriel::{*, statements::{define_index, fulltext_analyzer}};
+/// # let content = Field::new("content");
 ///
-/// search_analyzer("my_analyzer")
-///    .highlight()
-///    .bm25(1.2, 0.75)
-///    .doc_ids_order(1)
-///    .doc_lengths_order(1)
-///    .postings_order(1)
-///    .terms_order(1);
+/// let query = define_index("post_content")
+///     .on_table(Table::from("post"))
+///     .fields(content)
+///     .fulltext(fulltext_analyzer("ascii").bm25(1.2, 0.75).highlights());
+///
+/// assert_eq!(
+///     query.to_debug_sql(),
+///     "DEFINE INDEX post_content ON TABLE post FIELDS content FULLTEXT ANALYZER ascii BM25(1.2, 0.75) HIGHLIGHTS;"
+/// );
 /// ```
-pub fn search_analyzer(analyzer_name: impl Into<Ident>) -> SearchAnalyzer {
-    SearchAnalyzer {
+pub fn fulltext_analyzer(analyzer_name: impl Into<Ident>) -> FullTextAnalyzer {
+    FullTextAnalyzer {
         analyzer: analyzer_name.into(),
-        highlight: false,
-        scoring: None,
-        doc_ids_order: None,
-        doc_lengths_order: None,
-        postings_order: None,
-        terms_order: None,
+        bm25: None,
+        highlights: false,
     }
 }
