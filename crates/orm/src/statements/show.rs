@@ -1,6 +1,6 @@
 use surrealdb::types::Table;
 
-use crate::{DatetimeLike, NumberLike, Sql};
+use crate::{DatetimeLike, NumberLike, Renderer};
 
 use super::{Statement, impl_statement};
 
@@ -8,7 +8,7 @@ use super::{Statement, impl_statement};
 ///
 /// Examples
 /// ```rust
-/// use aparecium::{*, statements::show_changes_for_table};
+/// use umbriel::{*, statements::show_changes_for_table};
 ///
 /// let timestamp = chrono::DateTime::from_timestamp(4343434434, 232).unwrap();
 /// let statement = show_changes_for_table("reading").since(timestamp).limit(10);
@@ -46,13 +46,13 @@ impl ShowChangesStatement {
 }
 
 impl Statement for ShowChangesStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("SHOW CHANGES FOR TABLE ").push(&self.table);
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("SHOW CHANGES FOR TABLE ").push(&self.table);
         if let Some(timestamp) = &self.since {
-            sql.push_str(" SINCE ").push_inlined(timestamp);
+            out.push_str(" SINCE ").push_inlined(timestamp);
         }
         if let Some(limit) = &self.limit {
-            sql.push_str(" LIMIT ").push(limit);
+            out.push_str(" LIMIT ").push(limit);
         }
     }
 }
