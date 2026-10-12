@@ -1,6 +1,6 @@
 use std::fmt::{self, Display};
 
-use crate::{Ident, Sql};
+use crate::{Ident, Renderer};
 
 use super::{Statement, impl_definition};
 
@@ -109,7 +109,7 @@ pub struct DefineAnalyzerStatement {
 
 /// Create a new `DefineAnalyzerStatement`
 /// ```
-/// use aparecium::{Render, statements::{define_analyzer, AnalyzerFilter, SnowballLanguage, Tokenizer}};
+/// use umbriel::{Render, statements::{define_analyzer, AnalyzerFilter, SnowballLanguage, Tokenizer}};
 ///
 /// let analyzer = define_analyzer("ascii").tokenizers([Tokenizer::Class]).filters([
 ///    AnalyzerFilter::Lowercase,
@@ -145,27 +145,27 @@ impl DefineAnalyzerStatement {
 }
 
 /// Writes `items` separated by `,`.
-fn push_list(sql: &mut Sql, items: &[impl Display]) {
+fn push_list(out: &mut Renderer, items: &[impl Display]) {
     for (index, item) in items.iter().enumerate() {
         if index > 0 {
-            sql.push_str(",");
+            out.push_str(",");
         }
-        sql.push_display(item);
+        out.push_display(item);
     }
 }
 
 impl Statement for DefineAnalyzerStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("DEFINE ANALYZER ").push(&self.name);
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("DEFINE ANALYZER ").push(&self.name);
 
         if !self.tokenizers.is_empty() {
-            sql.push_str(" TOKENIZERS ");
-            push_list(sql, &self.tokenizers);
+            out.push_str(" TOKENIZERS ");
+            push_list(out, &self.tokenizers);
         }
 
         if !self.filters.is_empty() {
-            sql.push_str(" FILTERS ");
-            push_list(sql, &self.filters);
+            out.push_str(" FILTERS ");
+            push_list(out, &self.filters);
         }
     }
 }
