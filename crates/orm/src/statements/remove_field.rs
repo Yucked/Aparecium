@@ -1,6 +1,6 @@
 use surrealdb::types::Table;
 
-use crate::{Field, Sql};
+use crate::{Field, Renderer};
 
 use super::{Statement, impl_definition};
 
@@ -11,7 +11,7 @@ use super::{Statement, impl_definition};
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, statements::remove_field};
+/// use umbriel::{*, statements::remove_field};
 /// # let user = Table::new("user");
 /// # let name = Field::new("name");
 ///
@@ -40,10 +40,10 @@ impl RemoveFieldStatement {
 }
 
 impl Statement for RemoveFieldStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("REMOVE FIELD ").push(&self.field);
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("REMOVE FIELD ").push(&self.field);
         if let Some(table) = &self.table {
-            sql.push_str(" ON TABLE ").push(table);
+            out.push_str(" ON TABLE ").push(table);
         }
     }
 }
