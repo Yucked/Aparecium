@@ -1,12 +1,12 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::{statements::*, *};
+    use umbriel::{statements::*, *};
 
     #[test]
     fn test_define_statement() {
         assert_eq!(
-            define_database("oyelowo").build(),
-            "DEFINE DATABASE oyelowo;"
+            define_database("charlie").build(),
+            "DEFINE DATABASE charlie;"
         );
     }
 }
