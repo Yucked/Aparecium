@@ -1,4 +1,4 @@
-use crate::{Scope, Sql, Token, TokenTarget};
+use crate::{Scope, Renderer, Token, TokenTarget};
 
 use super::{Statement, impl_definition};
 
@@ -10,7 +10,7 @@ use super::{Statement, impl_definition};
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, statements::remove_token};
+/// use umbriel::{*, statements::remove_token};
 /// let token = Token::new("token");
 /// let statement = remove_token(token).on_namespace();
 /// assert_eq!(statement.to_debug_sql(), "REMOVE TOKEN token ON NAMESPACE;");
@@ -61,8 +61,8 @@ pub struct RemoveTokenStatement {
 }
 
 impl Statement for RemoveTokenStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("REMOVE TOKEN ")
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("REMOVE TOKEN ")
             .push(&self.token)
             .push_str(" ON ")
             .push(&self.on);
