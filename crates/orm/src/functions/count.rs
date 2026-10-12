@@ -36,7 +36,7 @@ pub fn count_fn(countable: impl Into<ValueLike>) -> Function {
 ///
 /// # Examples
 /// ```rust
-/// # use aparecium::{*, functions::count, statements::let_};
+/// # use umbriel::{*, functions::count, statements::let_};
 /// count!();
 ///
 /// # let email = Field::new("email");
@@ -48,7 +48,7 @@ pub fn count_fn(countable: impl Into<ValueLike>) -> Function {
 /// # let email = Field::new("email");
 /// # let age = Field::new("age");
 /// # let student_count = AliasName::new("student_count");
-/// count!(cond(age.greater_than(15)).and(email.like("oyelowo@example.com")))
+/// count!(cond(age.greater_than(15)).and(email.like("charlie@example.com")))
 ///     .__as__(student_count);
 ///
 /// count!(1);
@@ -59,7 +59,7 @@ pub fn count_fn(countable: impl Into<ValueLike>) -> Function {
 /// # let email_field = Field::new("email_field");
 /// count!(email_field);
 ///
-/// let email_param = let_("email_param").equal_to("oyelowo@codebreather.com").get_param();
+/// let email_param = let_("email_param").equal_to("charlie@example.com").get_param();
 /// count!(email_param);
 #[macro_export]
 macro_rules! count {
