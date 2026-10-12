@@ -1,6 +1,6 @@
 use std::fmt::{self, Display};
 
-use crate::{Sql, User};
+use crate::{Renderer, User};
 
 use super::{Statement, impl_definition};
 
@@ -12,7 +12,7 @@ use super::{Statement, impl_definition};
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, statements::remove_user};
+/// use umbriel::{*, statements::remove_user};
 /// let statement = remove_user("alice").on_namespace();
 /// assert_eq!(statement.to_debug_sql(), "REMOVE USER alice ON NAMESPACE;");
 ///
@@ -80,8 +80,8 @@ pub struct RemoveUserStatement {
 }
 
 impl Statement for RemoveUserStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("REMOVE USER ")
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("REMOVE USER ")
             .push(&self.user)
             .push_str(" ON ")
             .push_display(&self.on);
