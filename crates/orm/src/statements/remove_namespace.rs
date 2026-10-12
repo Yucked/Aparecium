@@ -1,4 +1,4 @@
-use crate::{Namespace, Sql};
+use crate::{Namespace, Renderer};
 
 use super::{Statement, impl_definition};
 
@@ -10,7 +10,7 @@ use super::{Statement, impl_definition};
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, statements::remove_namespace};
+/// use umbriel::{*, statements::remove_namespace};
 ///
 /// # let namespace = Namespace::new("acme");
 /// let statement = remove_namespace(namespace);
@@ -28,8 +28,8 @@ pub struct RemoveNamespaceStatement {
 }
 
 impl Statement for RemoveNamespaceStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("REMOVE NAMESPACE ").push(&self.namespace);
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("REMOVE NAMESPACE ").push(&self.namespace);
     }
 }
 
