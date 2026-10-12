@@ -1,18 +1,18 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::{functions::crypto::*, *};
-    use aparecium::{statements::let_, *};
+    use umbriel::{functions::crypto::*, *};
+    use umbriel::{statements::let_, *};
 
     #[test]
     fn test_argon2_compare() {
-        let result = argon2::compare_fn("Oyelowo", "Oyedayo");
+        let result = argon2::compare_fn("Charlie", "Bennett");
         assert_eq!(
             result.fine_tune_params(),
             "crypto::argon2::compare($_param_00000001, $_param_00000002)"
         );
         assert_eq!(
             result.to_raw().build(),
-            "crypto::argon2::compare('Oyelowo', 'Oyedayo')"
+            "crypto::argon2::compare('Charlie', 'Bennett')"
         );
     }
 
@@ -34,14 +34,14 @@ mod tests {
 
     #[test]
     fn test_argon2_generate() {
-        let result = argon2::generate_fn("Oyelowo");
+        let result = argon2::generate_fn("Charlie");
         assert_eq!(
             result.fine_tune_params(),
             "crypto::argon2::generate($_param_00000001)"
         );
         assert_eq!(
             result.to_raw().build(),
-            "crypto::argon2::generate('Oyelowo')"
+            "crypto::argon2::generate('Charlie')"
         );
     }
 
@@ -95,14 +95,14 @@ mod tests {
 
     #[test]
     fn test_argon2_generate_fn() {
-        let result = argon2::generate!("Oyelowo");
+        let result = argon2::generate!("Charlie");
         assert_eq!(
             result.fine_tune_params(),
             "crypto::argon2::generate($_param_00000001)"
         );
         assert_eq!(
             result.to_raw().build(),
-            "crypto::argon2::generate('Oyelowo')"
+            "crypto::argon2::generate('Charlie')"
         );
     }
 
@@ -125,14 +125,14 @@ mod tests {
 
     #[test]
     fn test_pbkdf2_generate() {
-        let result = pbkdf2::generate_fn("Oyelowo");
+        let result = pbkdf2::generate_fn("Charlie");
         assert_eq!(
             result.fine_tune_params(),
             "crypto::pbkdf2::generate($_param_00000001)"
         );
         assert_eq!(
             result.to_raw().build(),
-            "crypto::pbkdf2::generate('Oyelowo')"
+            "crypto::pbkdf2::generate('Charlie')"
         );
     }
 
@@ -186,14 +186,14 @@ mod tests {
 
     #[test]
     fn test_pbkdf2_generate_fn() {
-        let result = pbkdf2::generate!("Oyelowo");
+        let result = pbkdf2::generate!("Charlie");
         assert_eq!(
             result.fine_tune_params(),
             "crypto::pbkdf2::generate($_param_00000001)"
         );
         assert_eq!(
             result.to_raw().build(),
-            "crypto::pbkdf2::generate('Oyelowo')"
+            "crypto::pbkdf2::generate('Charlie')"
         );
     }
 
@@ -215,14 +215,14 @@ mod tests {
 
     #[test]
     fn test_scrypt_generate() {
-        let result = scrypt::generate_fn("Oyelowo");
+        let result = scrypt::generate_fn("Charlie");
         assert_eq!(
             result.fine_tune_params(),
             "crypto::scrypt::generate($_param_00000001)"
         );
         assert_eq!(
             result.to_raw().build(),
-            "crypto::scrypt::generate('Oyelowo')"
+            "crypto::scrypt::generate('Charlie')"
         );
     }
 
@@ -276,14 +276,14 @@ mod tests {
 
     #[test]
     fn test_scrypt_generate_fn() {
-        let result = scrypt::generate!("Oyelowo");
+        let result = scrypt::generate!("Charlie");
         assert_eq!(
             result.fine_tune_params(),
             "crypto::scrypt::generate($_param_00000001)"
         );
         assert_eq!(
             result.to_raw().build(),
-            "crypto::scrypt::generate('Oyelowo')"
+            "crypto::scrypt::generate('Charlie')"
         );
     }
 
@@ -307,14 +307,14 @@ mod tests {
 
     #[test]
     fn test_bcrypt_generate() {
-        let result = bcrypt::generate_fn("Oyelowo");
+        let result = bcrypt::generate_fn("Charlie");
         assert_eq!(
             result.fine_tune_params(),
             "crypto::bcrypt::generate($_param_00000001)"
         );
         assert_eq!(
             result.to_raw().build(),
-            "crypto::bcrypt::generate('Oyelowo')"
+            "crypto::bcrypt::generate('Charlie')"
         );
     }
 
@@ -368,14 +368,14 @@ mod tests {
 
     #[test]
     fn test_bcrypt_generate_fn() {
-        let result = bcrypt::generate!("Oyelowo");
+        let result = bcrypt::generate!("Charlie");
         assert_eq!(
             result.fine_tune_params(),
             "crypto::bcrypt::generate($_param_00000001)"
         );
         assert_eq!(
             result.to_raw().build(),
-            "crypto::bcrypt::generate('Oyelowo')"
+            "crypto::bcrypt::generate('Charlie')"
         );
     }
 }
@@ -384,26 +384,26 @@ macro_rules! create_fn_with_single_arg_value_tests {
     ($(#[$attr:meta])* => $function_name: expr) => {
         paste::paste! {
             mod [<test_ $function_name>] {
-                use aparecium::functions::crypto::*;
-                use aparecium::*;
+                use umbriel::functions::crypto::*;
+                use umbriel::*;
 
                 #[test]
                 fn [<test_ $function_name _with_str>]() {
-                    let result = [<$function_name _fn>]("Oyelowo");
+                    let result = [<$function_name _fn>]("Charlie");
                     assert_eq!(result.fine_tune_params(), format!("crypto::{}($_param_00000001)", $function_name));
-                    assert_eq!(result.to_raw().build(), format!("crypto::{}('Oyelowo')", $function_name));
+                    assert_eq!(result.to_raw().build(), format!("crypto::{}('Charlie')", $function_name));
                 }
 
                 #[test]
                 fn [<test_ $function_name _with_macro>]() {
-                    let result = [<$function_name>]!("Oyelowo");
+                    let result = [<$function_name>]!("Charlie");
                     assert_eq!(result.fine_tune_params(), format!("crypto::{}($_param_00000001)", $function_name));
-                    assert_eq!(result.to_raw().build(), format!("crypto::{}('Oyelowo')", $function_name));
+                    assert_eq!(result.to_raw().build(), format!("crypto::{}('Charlie')", $function_name));
                 }
 
                 #[test]
                 fn [<test_ $function_name _with_field>]() {
-                    let title = aparecium::Field::new("title");
+                    let title = umbriel::Field::new("title");
                     let result = [<$function_name _fn>](title);
                     assert_eq!(result.fine_tune_params(), format!("crypto::{}(title)", $function_name));
                     assert_eq!(result.to_raw().build(), format!("crypto::{}(title)", $function_name));
@@ -411,7 +411,7 @@ macro_rules! create_fn_with_single_arg_value_tests {
 
                 #[test]
                 fn [<test_ $function_name _macro_with_field>]() {
-                    let title = aparecium::Field::new("title");
+                    let title = umbriel::Field::new("title");
                     let result = [<$function_name>]!(title);
                     assert_eq!(result.fine_tune_params(), format!("crypto::{}(title)", $function_name));
                     assert_eq!(result.to_raw().build(), format!("crypto::{}(title)", $function_name));
