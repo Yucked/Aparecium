@@ -1,4 +1,4 @@
-
+pub(crate) mod access;
 pub(crate) mod alias;
 pub(crate) mod arithmetic;
 pub(crate) mod arrow;
@@ -23,9 +23,9 @@ pub(crate) mod patch;
 pub(crate) mod projection;
 pub(crate) mod record_id;
 pub(crate) mod return_type;
-pub(crate) mod token_target;
 pub(crate) mod value_like;
 
+pub use access::*;
 pub use alias::*;
 pub use arrow::*;
 pub use bracket::*;
@@ -48,5 +48,4 @@ pub use patch::*;
 pub use projection::*;
 pub use record_id::*;
 pub use return_type::*;
-pub use token_target::*;
 pub use value_like::*;

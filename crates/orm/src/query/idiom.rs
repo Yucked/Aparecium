@@ -1,4 +1,3 @@
-
 use std::{borrow::Cow, fmt};
 
 use surrealdb::types::{Kind, Table};
@@ -124,14 +123,10 @@ define_names!(
     Namespace,
     /// A database name.
     Database,
-    /// A login name.
-    Login,
-    /// A token name.
-    Token,
+    /// An access method name.
+    Access,
     /// A user name.
     User,
-    /// A scope name.
-    Scope,
     /// An event name.
     Event,
     /// An index name.
