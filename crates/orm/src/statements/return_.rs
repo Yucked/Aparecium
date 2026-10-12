@@ -1,4 +1,4 @@
-use crate::{Field, Sql, ValueLike};
+use crate::{Field, Renderer, ValueLike};
 
 use super::{Statement, impl_statement, select::Fetchables};
 
@@ -9,7 +9,7 @@ use super::{Statement, impl_statement, select::Fetchables};
 ///
 /// # Examples
 /// ```
-/// use aparecium::{*, statements::*, functions::*, types::RecordId};
+/// use umbriel::{*, statements::*, functions::*, types::RecordId};
 ///
 /// let user = RecordId::new("user", "alice");
 /// let account = Field::new("account");
@@ -44,10 +44,10 @@ impl ReturnStatement {
 }
 
 impl Statement for ReturnStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("RETURN ").push(&self.return_value);
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("RETURN ").push(&self.return_value);
         if !self.fetch.is_empty() {
-            sql.push_str(" FETCH ").push(&self.fetch);
+            out.push_str(" FETCH ").push(&self.fetch);
         }
     }
 }
