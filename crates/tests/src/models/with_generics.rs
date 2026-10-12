@@ -1,11 +1,11 @@
-use aparecium::*;
+use umbriel::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 #[derive(Node, Serialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 #[orm(table = planet_with_generics)]
-pub struct PlanetWithGenerics<'a, T: Serialize + Default + Clone + aparecium::validators::Int> {
+pub struct PlanetWithGenerics<'a, T: Serialize + Default + Clone + umbriel::validators::Int> {
     pub id: SurrealSimpleId<Self>,
     pub name: String,
     #[orm(ty = "float")]
@@ -24,7 +24,7 @@ type Strength = f64;
 
 #[derive(Object, Serialize, Deserialize, Debug, Clone, Default)]
 // #[serde(rename_all = "camelCase")]
-pub struct RocketWithGenerics<'a, T: Serialize + Default + Clone + aparecium::validators::Int> {
+pub struct RocketWithGenerics<'a, T: Serialize + Default + Clone + umbriel::validators::Int> {
     name: String,
     #[orm(ty = "int")]
     something: T,
@@ -33,7 +33,7 @@ pub struct RocketWithGenerics<'a, T: Serialize + Default + Clone + aparecium::va
     something2: Option<&'a str>,
 
     nana: &'static str,
-    #[serde(rename = "lowo")]
+    #[serde(rename = "rlie")]
     fav_number: Option<i32>,
     #[orm(ty = "set<int>")]
     field_set: HashSet<i32>,
@@ -60,7 +60,7 @@ fn _test_partial_ob() {
 // type Lala<'a, T> = <Weapon<'a, T> as PartialUpdater>::StructPartial;
 // fn xfd(arg1: String) -> DefineFieldStatement {
 //     let x = &mut Weapon::partial_builder()
-//         .name("Oyelowo".into())
+//         .name("Charlie".into())
 //         .something(45)
 //         // .strength(2.0)
 //         .rocket(Rocket::partial_builder().something2(None).build())
