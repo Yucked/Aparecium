@@ -1,4 +1,4 @@
-use crate::Sql;
+use crate::Renderer;
 
 use super::{
     Statement,
@@ -10,7 +10,7 @@ use super::{
 ///
 /// Examples
 /// ```rust
-/// use aparecium::{*, statements::remove_model};
+/// use umbriel::{*, statements::remove_model};
 ///
 /// assert_eq!(
 ///     remove_model("recommendation").version("1.0.0").to_debug_sql(),
@@ -39,10 +39,10 @@ impl RemoveModelStatement {
 }
 
 impl Statement for RemoveModelStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("REMOVE MODEL ml::").push(&self.name);
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("REMOVE MODEL ml::").push(&self.name);
         if let Some(version) = &self.version {
-            sql.push_str("<").push(version).push_str(">");
+            out.push_str("<").push(version).push_str(">");
         }
     }
 }
