@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::{statements::*, *};
+    use umbriel::{statements::*, *};
 
     use CrudType::*;
-    use aparecium::{
+    use umbriel::{
         statements::{for_permission, select},
         *,
     };
@@ -49,7 +49,7 @@ mod tests {
         let user_table = Table::from("user");
         let age = Field::new("age");
         let country = Field::new("country");
-        let fake_id2 = sql::Thing::from(("user".to_string(), "oyedayo".to_string()));
+        let fake_id2 = sql::Thing::from(("user".to_string(), "bennett".to_string()));
 
         let statement = define_table(user_table)
             .drop()
@@ -63,9 +63,9 @@ mod tests {
             )
             .schemafull()
             .permissions(for_permission(Select).where_(age.greater_than_or_equal(18))) // Single works
-            .permissions(for_permission([Create, Delete]).where_(name.is("Oyedayo"))) //Multiple
+            .permissions(for_permission([Create, Delete]).where_(name.is("Bennett"))) //Multiple
             .permissions([
-                for_permission([Create, Delete]).where_(name.is("Oyedayo")),
+                for_permission([Create, Delete]).where_(name.is("Bennett")),
                 for_permission(Update).where_(age.less_than_or_equal(130)),
             ]);
 
@@ -81,11 +81,11 @@ mod tests {
 
         assert_eq!(
             statement.to_raw().build(),
-            "DEFINE TABLE user DROP SCHEMAFULL AS \n\tSELECT * FROM user:oyedayo \
+            "DEFINE TABLE user DROP SCHEMAFULL AS \n\tSELECT * FROM user:bennett \
                 WHERE country IS 'INDONESIA' ORDER BY age NUMERIC DESC LIMIT 20 \
                 START AT 5\nPERMISSIONS\nFOR select\n\tWHERE age >= 18\n\
-                FOR create, delete\n\tWHERE name IS 'Oyedayo'\n\
-                FOR create, delete\n\tWHERE name IS 'Oyedayo'\nFOR update\n\tWHERE age <= 130;"
+                FOR create, delete\n\tWHERE name IS 'Bennett'\n\
+                FOR create, delete\n\tWHERE name IS 'Bennett'\nFOR update\n\tWHERE age <= 130;"
         );
         assert_eq!(statement.get_bindings().len(), 8);
     }
