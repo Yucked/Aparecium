@@ -1,4 +1,3 @@
-
 // HTTP functions
 // These functions can be used when opening and submitting remote web requests, and webhooks.
 //
@@ -99,7 +98,7 @@ create_fn_with_url_and_head!(
     /// # let ur_param = Param::new("url_param");
     /// http::head!(ur_param);
     ///
-    /// let headers = HashMap::from([("x-my-header".to_string(), "some unique string".into())]);
+    /// let headers = HashMap::from([("x-my-header".to_string(), "some unique string".to_string())]);
     /// http::head!("https://example.com", headers);
     => "head"
 );
@@ -132,7 +131,7 @@ create_fn_with_url_and_head!(
     /// # let url_param = Param::new("url_param");
     /// http::delete!(url_param);
     ///
-    /// let headers = HashMap::from([("x-my-header".to_string(), "some unique string".into())]);
+    /// let headers = HashMap::from([("x-my-header".to_string(), "some unique string".to_string())]);
     /// http::get!("https://example.com", headers);
     => "get"
 );
@@ -164,7 +163,7 @@ create_fn_with_url_and_head!(
     /// # let url_param = Param::new("url_param");
     /// http::delete!(url_param);
     ///
-    /// let headers = HashMap::from([("x-my-header".to_string(), "some unique string".into())]);
+    /// let headers = HashMap::from([("x-my-header".to_string(), "some unique string".to_string())]);
     /// http::delete!("https://example.com", headers);
     => "delete"
 );
@@ -222,9 +221,9 @@ create_fn_with_3args_url_body_and_head!(
     /// use umbriel::{*, functions::http};
     /// use std::collections::hash_map::HashMap;
     ///
-    /// http::post!("https://example.com", HashMap::from([("id".to_string(), 1.into())]));
+    /// http::post!("https://example.com", HashMap::from([("id".to_string(), 1)]));
     ///
-    /// http::post!("https://example.com", HashMap::from([("id".to_string(), 1.into())]), HashMap::from([("x-my-header".to_string(), "some unique string".into())]));
+    /// http::post!("https://example.com", HashMap::from([("id".to_string(), 1)]), HashMap::from([("x-my-header".to_string(), "some unique string".to_string())]));
     ///
     /// # let body_field = Field::new("body_field");
     /// # let headers_param = Param::new("headers_param");
@@ -257,9 +256,9 @@ create_fn_with_3args_url_body_and_head!(
     /// use umbriel::{*, functions::http};
     /// use std::collections::hash_map::HashMap;
     ///
-    /// http::put!("https://example.com", HashMap::from([("id".to_string(), 1.into())]));
+    /// http::put!("https://example.com", HashMap::from([("id".to_string(), 1)]));
     ///
-    /// http::put!("https://example.com", HashMap::from([("id".to_string(), 1.into())]), HashMap::from([("x-my-header".to_string(), "some unique string".into())]));
+    /// http::put!("https://example.com", HashMap::from([("id".to_string(), 1)]), HashMap::from([("x-my-header".to_string(), "some unique string".to_string())]));
     /// ```
 => "put"
 );
@@ -288,9 +287,9 @@ create_fn_with_3args_url_body_and_head!(
     /// use umbriel::{*, functions::http};
     /// use std::collections::hash_map::HashMap;
     ///
-    /// let result = http::patch!("https://example.com", HashMap::from([("id".to_string(), 1.into())]));
+    /// let result = http::patch!("https://example.com", HashMap::from([("id".to_string(), 1)]));
     ///
-    /// let result = http::patch!("https://example.com", HashMap::from([("id".to_string(), 1.into())]), HashMap::from([("x-my-header".to_string(), "some unique string".into())]));
+    /// let result = http::patch!("https://example.com", HashMap::from([("id".to_string(), 1)]), HashMap::from([("x-my-header".to_string(), "some unique string".to_string())]));
     /// ```
 => "patch"
 );

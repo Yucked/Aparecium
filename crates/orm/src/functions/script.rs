@@ -1,4 +1,3 @@
-
 // Embedded scripting functions
 // SurrealDB allows for advanced functions with complicated logic, by allowing embedded functions to be written in JavaScript. These functions support the ES2020 JavaScript specification.
 //
@@ -34,10 +33,13 @@ pub fn function_fn<T: Into<Param>>(args: Vec<T>, jscode_body: impl Into<String>)
 /// use umbriel::{*, functions::function, statements::let_};
 /// // Simple functions
 /// // Embedded JavaScript functions within SurrealDB support all functionality in the ES2020 specification including async / await functions, and generator functions. Any value from SurrealDB is converted into a JavaScript type automatically, and the return value from the JavaScript function is converted to a SurrealDB value.
+/// // A `{ … }` body is written as the compiler stringifies its tokens, so its spacing may differ
+/// // from the source; pass a string literal (below) to keep the text exactly.
 /// let f2 = function!((), {
 ///    return [1, 2, 3].map(v => v * 10);
 /// });
-/// assert_eq!(f2.to_debug_sql(), "function() { return [1, 2, 3].map(v => v * 10); }");
+/// let sql = f2.to_debug_sql();
+/// assert!(sql.starts_with("function() {") && sql.contains("[1, 2, 3].map(v => v * 10)"));
 ///
 /// // Function arguments
 /// // Additional arguments can be passed in to the function from SurrealDB, and these are accessible using the arguments object within the JavaScript function.

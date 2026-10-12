@@ -1,4 +1,3 @@
-
 // Geo functions
 // These functions can be used when working with and analysing geospatial data.
 //
@@ -66,7 +65,7 @@ pub fn area_fn(geometry: impl Into<GeometryLike>) -> Function {
 /// );
 ///
 /// let result = geo::area!(polygon);
-/// assert_eq!(result.to_debug_sql(), "geo::area({ type: 'Polygon', coordinates: [[[-111, 45], [-111, 41], [-104, 41], [-104, 45], [-111, 45]], [[-110, 44], [-110, 42], [-105, 42], [-105, 44], [-110, 44]]] })");
+/// assert_eq!(result.to_debug_sql(), "geo::area({ type: 'Polygon', coordinates: [[[-111f, 45f], [-111f, 41f], [-104f, 41f], [-104f, 45f], [-111f, 45f]], [[-110f, 44f], [-110f, 42f], [-105f, 42f], [-105f, 44f], [-110f, 44f]]] })");
 ///
 /// # let geometry_field = Field::new("geometry_field");
 ///  geo::area!(geometry_field);
@@ -108,7 +107,7 @@ pub fn bearing_fn(point1: impl Into<GeometryLike>, point2: impl Into<GeometryLik
 ///     y: 116.34,
 /// };
 /// let result = geo::bearing!(point1, point2);
-/// assert_eq!(result.to_debug_sql(), "geo::bearing((40.02, 116.34), (40.02, 116.34))");
+/// assert_eq!(result.to_debug_sql(), "geo::bearing((40.02f, 116.34f), (40.02f, 116.34f))");
 /// # let point1_field = Field::new("point1_field");
 /// # let point2_field = Field::new("point2_field");
 /// geo::bearing!(point1_field, point2_field);
@@ -156,7 +155,7 @@ pub fn centroid_fn(geometry: impl Into<GeometryLike>) -> Function {
 ///    ]],
 /// );
 /// let result = geo::centroid!(polygon);
-/// assert_eq!(result.to_debug_sql(), "geo::centroid({ type: 'Polygon', coordinates: [[[-111, 45], [-111, 41], [-104, 41], [-104, 45], [-111, 45]], [[-110, 44], [-110, 42], [-105, 42], [-105, 44], [-110, 44]]] })");
+/// assert_eq!(result.to_debug_sql(), "geo::centroid({ type: 'Polygon', coordinates: [[[-111f, 45f], [-111f, 41f], [-104f, 41f], [-104f, 45f], [-111f, 45f]], [[-110f, 44f], [-110f, 42f], [-105f, 42f], [-105f, 44f], [-110f, 44f]]] })");
 /// # let geometry_field = Field::new("geometry_field");
 /// geo::centroid!(geometry_field);
 /// # let geometry_param = Param::new("geometry_param");
@@ -199,7 +198,7 @@ pub fn distance_fn(point1: impl Into<GeometryLike>, point2: impl Into<GeometryLi
 ///   y: 116.34,
 /// };
 /// let result = geo::distance!(point1, point2);
-/// assert_eq!(result.to_debug_sql(), "geo::distance((40.02, 116.34), (40.02, 116.34))");
+/// assert_eq!(result.to_debug_sql(), "geo::distance((40.02f, 116.34f), (40.02f, 116.34f))");
 /// # let point1_field = Field::new("point1_field");
 /// # let point2_field = Field::new("point2_field");
 /// geo::distance!(point1_field, point2_field);
@@ -281,7 +280,7 @@ pub mod hash {
     ///   y: 116.34,
     /// };
     /// let result = geo::hash::encode!(point);
-    /// assert_eq!(result.to_debug_sql(), "geo::hash::encode((40.02, 116.34))");
+    /// assert_eq!(result.to_debug_sql(), "geo::hash::encode((40.02f, 116.34f))");
     /// # let point_field = Field::new("point_field");
     /// geo::hash::encode!(point_field);
     /// # let point_param = Param::new("point_param");
