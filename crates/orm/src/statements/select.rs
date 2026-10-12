@@ -28,8 +28,8 @@ use surrealdb::{
 
 use crate::{
     Aliasable, All, Conditional, DurationLike, Field, Filter, Function, IndexName, Model,
-    NumberLike, Projections, RecordId, RecordRange, Render, Result, ReturnType, ReturnableSelect,
-    ReturnableStandard, Sql, ValueLike,
+    NumberLike, Projections, RecordId, RecordRange, Render, Renderer, Result, ReturnType,
+    ReturnableSelect, ReturnableStandard, ValueLike,
 };
 
 use super::{Statement, Subquery, impl_statement};
@@ -51,7 +51,7 @@ use super::{Statement, Subquery, impl_statement};
 /// # Example
 ///
 /// ```rust
-/// use aparecium::{*, statements::{order, select}};
+/// use umbriel::{*, statements::{order, select}};
 /// # let age = Field::new("age");
 /// # let score = Field::new("score");
 /// # let name = Field::new("name");
@@ -144,17 +144,17 @@ impl Order {
 }
 
 impl Render for Order {
-    fn render(&self, sql: &mut Sql) {
-        sql.push(&self.field);
+    fn render(&self, out: &mut Renderer) {
+        out.push(&self.field);
         if let Some(option) = self.option {
-            sql.push_str(match option {
+            out.push_str(match option {
                 OrderOption::Rand => " RAND()",
                 OrderOption::Collate => " COLLATE",
                 OrderOption::Numeric => " NUMERIC",
             });
         }
         if let Some(direction) = self.direction {
-            sql.push_str(match direction {
+            out.push_str(match direction {
                 OrderDirection::Asc => " ASC",
                 OrderDirection::Desc => " DESC",
             });
@@ -207,56 +207,55 @@ enum OrderOption {
 
 /// What a `SELECT` reads from: tables, record ids, record ranges, subqueries or functions.
 #[derive(Debug, Clone, PartialEq)]
-pub struct TargettablesForSelect(Vec<Sql>);
+pub struct TargettablesForSelect(Vec<ValueLike>);
 
 impl TargettablesForSelect {
-    fn one(node: impl Render) -> Self {
-        Self(vec![node.to_sql()])
+    fn one(node: impl Into<ValueLike>) -> Self {
+        Self(vec![node.into()])
+    }
+
+    fn tables<'a>(tables: impl IntoIterator<Item = &'a Table>) -> Self {
+        Self(tables.into_iter().cloned().map(ValueLike::table).collect())
     }
 
     fn values<V: SurrealValue>(values: impl IntoIterator<Item = V>) -> Self {
-        Self(
-            values
-                .into_iter()
-                .map(|value| ValueLike::value(value).to_sql())
-                .collect(),
-        )
+        Self(values.into_iter().map(ValueLike::value).collect())
     }
 }
 
 impl From<Table> for TargettablesForSelect {
     fn from(value: Table) -> Self {
-        Self::one(value)
+        Self::one(ValueLike::table(value))
     }
 }
 
 impl From<&Table> for TargettablesForSelect {
     fn from(value: &Table) -> Self {
-        Self::one(value)
+        Self::tables([value])
     }
 }
 
 impl From<Vec<Table>> for TargettablesForSelect {
     fn from(value: Vec<Table>) -> Self {
-        Self(value.iter().map(Render::to_sql).collect())
+        Self(value.into_iter().map(ValueLike::table).collect())
     }
 }
 
 impl From<Vec<&Table>> for TargettablesForSelect {
     fn from(value: Vec<&Table>) -> Self {
-        Self(value.iter().map(Render::to_sql).collect())
+        Self::tables(value)
     }
 }
 
 impl<const N: usize> From<&[Table; N]> for TargettablesForSelect {
     fn from(value: &[Table; N]) -> Self {
-        Self(value.iter().map(Render::to_sql).collect())
+        Self::tables(value)
     }
 }
 
 impl<const N: usize> From<&[&Table; N]> for TargettablesForSelect {
     fn from(value: &[&Table; N]) -> Self {
-        Self(value.iter().map(Render::to_sql).collect())
+        Self::tables(value.iter().copied())
     }
 }
 
@@ -334,7 +333,7 @@ impl<const N: usize, T: Model> From<&[&RecordId<T>; N]> for TargettablesForSelec
 
 impl<T: Model> From<RecordRange<T>> for TargettablesForSelect {
     fn from(value: RecordRange<T>) -> Self {
-        Self::one(value)
+        Self::one(ValueLike::new(value))
     }
 }
 
@@ -344,13 +343,13 @@ macro_rules! targets_from_id_ranges {
         $(
             impl<T: Model> From<std::ops::$range<RecordId<T>>> for TargettablesForSelect {
                 fn from(value: std::ops::$range<RecordId<T>>) -> Self {
-                    Self::one(RecordRange::from(value))
+                    RecordRange::from(value).into()
                 }
             }
 
             impl<T: Model> From<std::ops::$range<&RecordId<T>>> for TargettablesForSelect {
                 fn from(value: std::ops::$range<&RecordId<T>>) -> Self {
-                    Self::one(RecordRange::from(value))
+                    RecordRange::from(value).into()
                 }
             }
         )*
@@ -361,7 +360,7 @@ targets_from_id_ranges!(Range, RangeInclusive, RangeFrom, RangeTo, RangeToInclus
 
 impl<T: Into<Subquery>> From<T> for TargettablesForSelect {
     fn from(value: T) -> Self {
-        Self::one(value.into())
+        Self::one(Into::<Subquery>::into(value))
     }
 }
 
@@ -443,65 +442,71 @@ impl<T: Into<Field>> From<T> for Splittables {
 }
 
 /// Items that can be selected
-pub struct Selectables(Sql);
+pub struct Selectables(Vec<ValueLike>);
+
+impl Selectables {
+    fn fields<'a>(fields: impl IntoIterator<Item = &'a Field>) -> Self {
+        Self(fields.into_iter().map(ValueLike::from).collect())
+    }
+}
 
 impl<T: Into<Field>> From<T> for Selectables {
     fn from(value: T) -> Self {
-        Self(value.into().to_sql())
+        Self(vec![ValueLike::from(Into::<Field>::into(value))])
     }
 }
 
 impl From<Vec<ValueLike>> for Selectables {
     fn from(value: Vec<ValueLike>) -> Self {
-        Self(value.to_sql())
+        Self(value)
     }
 }
 
 impl From<&All> for Selectables {
-    fn from(value: &All) -> Self {
-        Self(value.to_sql())
+    fn from(_: &All) -> Self {
+        Self(vec![All.into()])
     }
 }
 
 impl From<All> for Selectables {
     fn from(value: All) -> Self {
-        Self(value.to_sql())
+        Self(vec![value.into()])
     }
 }
 
 impl<const N: usize> From<&[Field; N]> for Selectables {
     fn from(value: &[Field; N]) -> Self {
-        Self(value.to_sql())
+        Self::fields(value)
     }
 }
 
 impl<const N: usize> From<&[&Field; N]> for Selectables {
     fn from(value: &[&Field; N]) -> Self {
-        Self(value.to_sql())
+        Self::fields(value.iter().copied())
     }
 }
 
 impl From<Vec<&Field>> for Selectables {
     fn from(value: Vec<&Field>) -> Self {
-        Self(value.to_sql())
+        Self::fields(value)
     }
 }
 
 impl From<Vec<Field>> for Selectables {
     fn from(value: Vec<Field>) -> Self {
-        Self(value.to_sql())
+        Self(value.into_iter().map(ValueLike::from).collect())
     }
 }
 
 impl From<Function> for Selectables {
     fn from(value: Function) -> Self {
-        Self(value.to_sql())
+        Self(vec![value.into()])
     }
 }
 
 impl From<&Function> for Selectables {
     fn from(value: &Function) -> Self {
-        Self(value.to_sql())
+        Self(vec![value.clone().into()])
     }
 }
 
@@ -528,8 +533,8 @@ enum ExplainMode {
 #[derive(Debug, Clone, PartialEq)]
 pub struct SelectStatementInit {
     selection_type: SelectionType,
-    projections: Sql,
-    targets: Vec<Sql>,
+    projections: Vec<ValueLike>,
+    targets: Vec<ValueLike>,
     only: bool,
     where_: Option<Filter>,
     split: Vec<Field>,
@@ -546,13 +551,7 @@ pub struct SelectStatementInit {
     explain_mode: Option<ExplainMode>,
 }
 
-impl Aliasable for SelectStatement {
-    fn render_aliasable(&self, sql: &mut Sql) {
-        sql.push_str("(");
-        self.render_body(sql);
-        sql.push_str(")");
-    }
-}
+impl Aliasable for SelectStatement {}
 
 impl ReturnableSelect for SelectStatement {}
 
@@ -566,13 +565,13 @@ impl Conditional for SelectStatement {}
 ///
 /// Examples
 /// ```rust
-/// use aparecium::{*, statements::{order, select}, functions::{math}, types::RecordId};
+/// use umbriel::{*, statements::{order, select}, functions::{math}, types::RecordId};
 /// # let name = Field::new("name");
 /// # let age = Field::new("age");
 /// # let country = Field::new("country");
 /// # let city = Field::new("city");
-/// # let ref fake_id = RecordId::new("user", "oyelowo");
-/// # let fake_id2 = RecordId::new("user", "oyedayo");
+/// # let ref fake_id = RecordId::new("user", "charlie");
+/// # let fake_id2 = RecordId::new("user", "bennett");
 ///
 ///  select(All)
 ///     .from(fake_id)
@@ -692,10 +691,10 @@ impl SelectStatementInit {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::{*, statements::{order, select}, types::RecordId};
+    /// # use umbriel::{*, statements::{order, select}, types::RecordId};
     /// # let user = Table::new("user");
     /// # let alien = Table::new("alien");
-    /// # let user_id1 = RecordId::new("user", "oyelowo");
+    /// # let user_id1 = RecordId::new("user", "charlie");
     ///  //  Can select from a table name
     ///  select(All).from(user);
     ///
@@ -754,13 +753,13 @@ impl SelectStatement {
     ///
     /// Examples
     /// ```rust
-    /// # use aparecium::{*, statements::{order, select}, types::RecordId};
+    /// # use umbriel::{*, statements::{order, select}, types::RecordId};
     /// # let name = Field::new("name");
     /// # let age = Field::new("age");
     /// # let country = Field::new("country");
     /// # let city = Field::new("city");
-    /// # let fake_id = RecordId::new("user", "oyelowo");
-    /// # let fake_id2 = RecordId::new("user", "oyedayo");
+    /// # let fake_id = RecordId::new("user", "charlie");
+    /// # let fake_id2 = RecordId::new("user", "bennett");
     /// // Supports simpler where clause without `cond` helper function
     /// # let select2 = select(All)
     /// #   .from(fake_id)
@@ -802,7 +801,7 @@ impl SelectStatement {
     /// # Examples: For multiple fields
     ///
     /// ```rust
-    /// # use aparecium::{*, statements::{order, select}};
+    /// # use umbriel::{*, statements::{order, select}};
     /// # let user = Table::new("user");
     /// # let country = Table::new("country");
     /// # let emails = Field::new("emails");
@@ -837,7 +836,7 @@ impl SelectStatement {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::{*, statements::{order, select}, functions::{count, math}};
+    /// # use umbriel::{*, statements::{order, select}, functions::{count, math}};
     /// # let user = Table::new("user");
     /// # let country = Field::new("country");
     ///
@@ -916,7 +915,7 @@ impl SelectStatement {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::{*, statements::{order, select}};
+    /// # use umbriel::{*, statements::{order, select}};
     /// # let user = Table::new("user");
     /// # let age = Field::new("age");
     /// # let country = Field::new("country");
@@ -959,7 +958,7 @@ impl SelectStatement {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::{*, statements::select};
+    /// # use umbriel::{*, statements::select};
     /// # let user = Table::new("user");
     /// select(All)
     ///     .from(user)
@@ -986,7 +985,7 @@ impl SelectStatement {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::{*, statements::select};
+    /// # use umbriel::{*, statements::select};
     /// # let user = Table::new("user");
     ///
     /// // When using the LIMIT clause, it is possible to paginate results by using the START clause to start from a specific record from the result set.
@@ -1015,7 +1014,7 @@ impl SelectStatement {
     /// # Example
     ///
     /// ```rust
-    /// # use aparecium::{*, statements::select};
+    /// # use umbriel::{*, statements::select};
     /// # let user = Table::new("user");
     /// # let account = Field::new("account");
     /// # let friend = Field::new("friend");
@@ -1084,81 +1083,81 @@ impl SelectStatement {
 }
 
 impl Statement for SelectStatement {
-    fn render_body(&self, sql: &mut Sql) {
+    fn render_body(&self, out: &mut Renderer) {
         let statement = &self.0;
-        sql.push_str(match statement.selection_type {
+        out.push_str(match statement.selection_type {
             SelectionType::Select => "SELECT ",
             SelectionType::SelectValue => "SELECT VALUE ",
             SelectionType::SelectDiff => "SELECT DIFF ",
         });
-        sql.push(&statement.projections).push_str(" ");
+        out.push(&statement.projections).push_str(" ");
 
         if !statement.omitted_fields.is_empty() {
-            sql.push_str("OMIT ")
+            out.push_str("OMIT ")
                 .push(&statement.omitted_fields)
                 .push_str(" ");
         }
 
-        sql.push_str("FROM ");
+        out.push_str("FROM ");
         if statement.only {
-            sql.push_str("ONLY ");
+            out.push_str("ONLY ");
         }
-        sql.push(&statement.targets);
+        out.push(&statement.targets);
 
         match &statement.with_index_type {
             Some(WithIndexType::NoIndex) => {
-                sql.push_str(" WITH NO INDEX");
+                out.push_str(" WITH NO INDEX");
             }
             Some(WithIndexType::Indexes(indexes)) => {
-                sql.push_str(" WITH INDEX ").push(indexes);
+                out.push_str(" WITH INDEX ").push(indexes);
             }
             None => {}
         }
 
         if let Some(condition) = &statement.where_ {
-            sql.push_str(" WHERE ").push(condition);
+            out.push_str(" WHERE ").push(condition);
         }
 
         if !statement.split.is_empty() {
-            sql.push_str(" SPLIT ").push(&statement.split);
+            out.push_str(" SPLIT ").push(&statement.split);
         }
 
         if !statement.group_by.is_empty() {
-            sql.push_str(" GROUP BY ").push(&statement.group_by);
+            out.push_str(" GROUP BY ").push(&statement.group_by);
         } else if statement.group_all {
-            sql.push_str(" GROUP ALL");
+            out.push_str(" GROUP ALL");
         }
 
         if !statement.order_by.is_empty() {
-            sql.push_str(" ORDER BY ").push(&statement.order_by);
+            out.push_str(" ORDER BY ").push(&statement.order_by);
         }
 
         if let Some(limit) = &statement.limit {
-            sql.push_str(" LIMIT ").push(limit);
+            out.push_str(" LIMIT ").push(limit);
         }
 
         if let Some(start) = &statement.start {
-            sql.push_str(" START AT ").push(start);
+            out.push_str(" START AT ").push(start);
         }
 
         if !statement.fetch.is_empty() {
-            sql.push_str(" FETCH ").push(&statement.fetch);
+            out.push_str(" FETCH ").push(&statement.fetch);
         }
 
         if let Some(timeout) = &statement.timeout {
-            sql.push_str(" TIMEOUT ").push_inlined(timeout);
+            out.push_str(" TIMEOUT ").push_inlined(timeout);
         }
 
         if statement.parallel {
-            sql.push_str(" PARALLEL");
+            out.push_str(" PARALLEL");
         }
 
         match statement.explain_mode {
             Some(ExplainMode::Simple) => {
-                sql.push_str(" EXPLAIN");
+                out.push_str(" EXPLAIN");
             }
             Some(ExplainMode::Full) => {
-                sql.push_str(" EXPLAIN FULL");
+                out.push_str(" EXPLAIN FULL");
             }
             None => {}
         }
@@ -1169,7 +1168,7 @@ impl_statement!(SelectStatement);
 
 /// A mini version of the select statement used as Model convenience method for building select statements.
 #[derive(Debug, Clone)]
-pub struct SelectStatementMini<T: Model>(SelectStatement, PhantomData<T>);
+pub struct SelectStatementMini<T: Model>(SelectStatement, PhantomData<fn() -> T>);
 
 impl<T: Model> SelectStatementMini<T> {
     /// Order the results by the given fields
@@ -1204,8 +1203,8 @@ impl<T: Model> From<SelectStatement> for SelectStatementMini<T> {
 }
 
 impl<T: Model> Statement for SelectStatementMini<T> {
-    fn render_body(&self, sql: &mut Sql) {
-        self.0.render_body(sql);
+    fn render_body(&self, out: &mut Renderer) {
+        self.0.render_body(out);
     }
 }
 
@@ -1216,9 +1215,8 @@ where
     T: Model + Send + Sync,
 {
     fn set_return_type(mut self, return_type: ReturnType) -> Self {
-        if let ReturnType::Projections(projections) = return_type {
-            let projections: Projections = projections;
-            self.0.0.projections.push_str(", ").push(&projections);
+        if let ReturnType::Projections(Projections(projections)) = return_type {
+            self.0.0.projections.extend(projections);
         }
         self
     }
@@ -1241,8 +1239,8 @@ impl SelectStatementCount {
 }
 
 impl Statement for SelectStatementCount {
-    fn render_body(&self, sql: &mut Sql) {
-        self.0.render_body(sql);
+    fn render_body(&self, out: &mut Renderer) {
+        self.0.render_body(out);
     }
 }
 
