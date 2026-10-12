@@ -1,8 +1,8 @@
-use aparecium::migrations::{
+use umbriel::migrations::{
     FastForwardDelta, Informational, Init, MigrationFilename, MockPrompter, Mode,
 };
-use aparecium_tests::migrations::Resources;
-use aparecium_tests::migrator_support::{AssertionArg, TestConfig, current_function};
+use umbriel_tests::migrations::Resources;
+use umbriel_tests::migrator_support::{AssertionArg, TestConfig, current_function};
 use pretty_assertions::assert_eq;
 use tempfile::tempdir;
 use test_case::test_case;
@@ -168,7 +168,7 @@ async fn test_run_up_after_init_with_no_run(mode: Mode, reversible: bool) {
     assert_eq!(tokens.get_names(), vec!["token2"]);
 
     let users = db_state.resources.users();
-    assert_eq!(users.get_names(), vec!["oyelowo"]);
+    assert_eq!(users.get_names(), vec!["charlie"]);
 
     conf.run_up(&FastForwardDelta::default()).await;
     conf.assert_with_db_instance(AssertionArg {
