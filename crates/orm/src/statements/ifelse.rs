@@ -7,7 +7,7 @@
 // 	@expression ]
 // END
 
-use crate::{Conditional, Expression, Filter, QueryChain, Render, Sql};
+use crate::{Conditional, Expression, Filter, QueryChain, Render, Renderer};
 
 use super::{Statement, impl_statement};
 
@@ -19,7 +19,7 @@ use super::{Statement, impl_statement};
 ///
 /// Examples
 /// ```rust
-/// use aparecium::{*, statements::{if_, order, select}, types::RecordId};
+/// use umbriel::{*, statements::{if_, order, select}, types::RecordId};
 ///         # let age = Field::new("age");
 /// // Can create simple if statement
 /// if_(age.greater_than_or_equal(18))
@@ -102,10 +102,10 @@ impl From<QueryChain> for Body {
 }
 
 impl Render for Body {
-    fn render(&self, sql: &mut Sql) {
+    fn render(&self, out: &mut Renderer) {
         match self {
-            Self::Expression(expr) => expr.render(sql),
-            Self::QueryChain(body) => body.render(sql),
+            Self::Expression(expr) => expr.render(out),
+            Self::QueryChain(body) => body.render(out),
         }
     }
 }
@@ -199,16 +199,16 @@ impl ElseStatement {
 pub struct IfElseStatement(Branches);
 
 impl Statement for IfElseStatement {
-    fn render_body(&self, sql: &mut Sql) {
+    fn render_body(&self, out: &mut Renderer) {
         let branches = &self.0;
-        sql.push_str("IF ")
+        out.push_str("IF ")
             .push(&branches.if_.condition)
             .push_str(" \n\t{ ")
             .push(&branches.if_.body)
             .push_str(" }");
 
         for branch in &branches.else_ifs {
-            sql.push_str("\nELSE IF ")
+            out.push_str("\nELSE IF ")
                 .push(&branch.condition)
                 .push_str(" \n\t{ ")
                 .push(&branch.body)
@@ -216,7 +216,7 @@ impl Statement for IfElseStatement {
         }
 
         if let Some(body) = &branches.else_ {
-            sql.push_str("\nELSE\n\t{ ").push(body).push_str(" }");
+            out.push_str("\nELSE\n\t{ ").push(body).push_str(" }");
         }
     }
 }
