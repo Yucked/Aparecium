@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::{CrudType::*, statements::for_permission};
-    use aparecium::{Field, Operatable, ToRaw};
-    use aparecium::{statements::*, *};
+    use umbriel::{CrudType::*, statements::for_permission};
+    use umbriel::{Field, Operatable, ToRaw};
+    use umbriel::{statements::*, *};
     use pretty_assertions::assert_eq;
 
     #[test]
@@ -15,9 +15,9 @@ mod tests {
             .version("1.2.3")
             .comment("My ultimate goal in life is to die empty. Share all my ideas, experiences, and values with the world. And leave nothing left inside of me. I want to die empty.")
             .permissions(for_permission(Select).where_(age.greater_than_or_equal(18))) // Single works
-            .permissions(for_permission([Create, Update]).where_(name.is("Oyedayo"))) //Multiple
+            .permissions(for_permission([Create, Update]).where_(name.is("Bennett"))) //Multiple
             .permissions([
-                for_permission([Create, Delete]).where_(name.is("Oyedayo")),
+                for_permission([Create, Delete]).where_(name.is("Bennett")),
                 for_permission(Update).where_(age.less_than_or_equal(130)),
             ]);
 
@@ -38,8 +38,8 @@ mod tests {
                 COMMENT 'My ultimate goal in life is to die empty. Share all my ideas, experiences, and values with the world. And leave nothing left inside of me. I want to die empty.'\n\
                 PERMISSIONS\n\
                 FOR select\n\tWHERE age >= 18\n\
-                FOR create, update\n\tWHERE name IS 'Oyedayo'\n\
-                FOR create, delete\n\tWHERE name IS 'Oyedayo'\n\
+                FOR create, update\n\tWHERE name IS 'Bennett'\n\
+                FOR create, delete\n\tWHERE name IS 'Bennett'\n\
                 FOR update\n\tWHERE age <= 130;"
         );
         insta::assert_snapshot!(statement.fine_tune_params());
