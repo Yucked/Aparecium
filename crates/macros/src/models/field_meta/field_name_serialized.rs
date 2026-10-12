@@ -1,4 +1,3 @@
-
 use std::fmt::{Display, Formatter};
 
 use proc_macro2::TokenStream;
@@ -28,24 +27,8 @@ impl DbFieldName {
         self.0 == "id"
     }
 
-    pub fn is_in_edge_node(&self, model_type: DataType) -> bool {
-        model_type.is_edge() && self.0 == "in"
-    }
-
-    pub fn is_out_edge_node(&self, model_type: DataType) -> bool {
-        model_type.is_edge() && self.0 == "out"
-    }
-
     pub fn is_in_or_out_edge_node(&self, model_type: &DataType) -> bool {
         model_type.is_edge() && (self.0 == "in" || self.0 == "out")
-    }
-
-    // TODO: Confirm in new surrealdb version if we can now update in and out fields
-    // in edge tables and id field in all tables(i doubt we should be able to for id field but
-    // maybe for in and out).
-    pub fn is_updateable_by_default(&self, model_type: &DataType) -> bool {
-        let not_updateable = self.is_id() || self.is_in_or_out_edge_node(model_type);
-        !not_updateable
     }
 }
 

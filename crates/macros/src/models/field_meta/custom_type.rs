@@ -1,12 +1,10 @@
-
 use std::{fmt::Display, ops::Deref};
 
 use darling::FromMeta;
-use surrealdb_types::GeometryKind;
 use quote::ToTokens;
+use surrealdb_types::GeometryKind;
 use syn::{
-    self, Expr, GenericArgument, Ident, Lifetime, Path, PathArguments, Token, Type, TypeReference,
-    parse_quote, spanned::Spanned, visit::Visit, visit_mut::VisitMut,
+    self, Expr, GenericArgument, Ident, PathArguments, Token, Type, parse_quote, spanned::Spanned,
 };
 
 use crate::models::*;
@@ -27,27 +25,6 @@ impl CustomTypeNoSelf {
 
     pub fn inner(&self) -> &CustomType {
         &self.0
-    }
-
-    pub fn type_name(&self) -> ExtractorResult<Ident> {
-        self.0.type_name()
-    }
-
-    pub fn to_basic_type(&self) -> &Type {
-        self.0.inner()
-    }
-
-    pub fn to_path(&self) -> ExtractorResult<Path> {
-        match &self.to_basic_type() {
-            Type::Path(type_path) => Ok(type_path.path.clone()),
-            _ => Err(
-                syn::Error::new(self.0.to_token_stream().span(), "Expected a struct type").into(),
-            ),
-        }
-    }
-
-    pub fn inner_angle_bracket_type(&self) -> ExtractorResult<Option<CustomTypeInnerAngleBracket>> {
-        self.0.inner_angle_bracket_type()
     }
 }
 
@@ -135,14 +112,6 @@ impl CustomType {
         Self(ty)
     }
 
-    pub fn into_inner(self) -> Type {
-        self.0
-    }
-
-    pub fn to_basic_type(&self) -> &Type {
-        &self.0
-    }
-
     pub fn inner(&self) -> &Type {
         &self.0
     }
@@ -161,21 +130,6 @@ impl CustomType {
                 Err(syn::Error::new(self.to_token_stream().span(), "Expected a struct type").into())
             }
         }
-    }
-
-    pub fn remove_non_static_lifetime_and_reference(&self) -> Self {
-        let ty = match self.inner() {
-            Type::Reference(TypeReference { elem, lifetime, .. }) => match lifetime {
-                // Dont remove static lifetime for "str" from &'static would be
-                // invalid thus, a compile error. We could potentially keep this restriction only
-                // for str and not other type but leaving as is for now.
-                // 28th March, 2024. Charlie Bennett
-                Some(lt) if lt.ident == "static" => self.inner(),
-                _ => elem.as_ref(),
-            },
-            _ => self.inner(),
-        };
-        Self(ty.clone())
     }
 
     // e.g Option<User> or ::std::option::Option<User> to User
@@ -287,20 +241,6 @@ impl CustomType {
         )
     }
 
-    pub fn extract_generics_for_complex_type(
-        &self,
-        model_attributes: &ModelAttributes,
-        // field_ty: &CustomType,
-    ) -> CustomGenerics {
-        let mut generics = GenericTypeExtractor {
-            struct_generics: model_attributes.generics(),
-            field_generics: Default::default(),
-        };
-        generics.visit_type(self.inner());
-        // generics.visit_type(&field_ty.to_basic_type());
-        generics.field_generics.0
-    }
-
     // pub fn get_generics_meta<'a>(
     //     &self,
     //     model_attributes: &'a ModelAttributes,
@@ -372,22 +312,6 @@ impl CustomType {
             _ => self.inner().clone(),
         };
         Self(stripped_ty)
-    }
-
-    pub fn replace_lifetimes_with_underscore(&self) -> Self {
-        struct ReplaceLifetimesVisitor;
-        impl VisitMut for ReplaceLifetimesVisitor {
-            fn visit_lifetime_mut(&mut self, i: &mut Lifetime) {
-                *i = Lifetime::new("'_", i.apostrophe);
-            }
-        }
-
-        let ty = &self.0;
-        let mut ty = ty.clone();
-        let mut visitor = ReplaceLifetimesVisitor;
-
-        visitor.visit_type_mut(&mut ty);
-        ty.into()
     }
 
     pub fn is_numeric(&self) -> bool {
@@ -642,30 +566,6 @@ impl CustomType {
         }
     }
 
-    pub fn raw_type_is_geometry(&self) -> bool {
-        let ty = &self.inner();
-        match ty {
-            syn::Type::Path(path) => {
-                let last_seg = path
-                    .path
-                    .segments
-                    .last()
-                    .expect("Must have at least one segment");
-                last_seg.ident == "Geometry"
-                    || last_seg.ident == "Point"
-                    || last_seg.ident == "LineString"
-                    || last_seg.ident == "Polygon"
-                    || last_seg.ident == "MultiPoint"
-                    || last_seg.ident == "MultiLineString"
-                    || last_seg.ident == "MultiLine"
-                    || last_seg.ident == "MultiPolygon"
-                    || last_seg.ident == "GeometryCollection"
-            }
-            syn::Type::Array(_) => true,
-            _ => false,
-        }
-    }
-
     /// The geometry kinds a geometry type holds; empty for `Geometry`, which holds any.
     pub fn raw_type_geometry_kind(&self) -> Option<Vec<GeometryKind>> {
         let ty = &self.inner();
@@ -758,80 +658,6 @@ impl CustomType {
             syn::Type::Array(array) => Some(array.elem.deref().clone().into()),
             _ => None,
         }
-    }
-
-    pub fn get_option_item_type(&self) -> Option<CustomType> {
-        let ty = &self.inner();
-
-        let item_ty = match ty {
-            syn::Type::Path(type_path) => {
-                let last_segment = type_path
-                    .path
-                    .segments
-                    .last()
-                    .expect("Must have at least one segment");
-                if last_segment.ident != RustType::Option.to_string() {
-                    return None;
-                }
-                let item_ty = match last_segment.arguments {
-                    syn::PathArguments::AngleBracketed(ref args) => args.args.first(),
-                    _ => None,
-                };
-                match item_ty {
-                    Some(syn::GenericArgument::Type(ty)) => ty,
-                    _ => return None,
-                }
-            }
-            _ => return None,
-        };
-        Some(item_ty.clone().into())
-    }
-
-    pub fn type_is_inferrable_primitive(
-        &self,
-        field_receiver: &MyFieldReceiver,
-        model_attributes: &ModelAttributes,
-    ) -> bool {
-        let is_db_field = model_attributes.casing().is_ok_and(|casing| {
-            field_receiver.db_field_name(&casing).is_ok_and(|dfn| {
-                dfn.is_id() || dfn.is_in_or_out_edge_node(&model_attributes.to_data_type())
-            })
-        });
-
-        field_receiver.to_relation_type(model_attributes).is_some()
-            || is_db_field
-            || self.raw_type_is_float()
-            || self.raw_type_is_integer()
-            || self.raw_type_is_string()
-            || self.raw_type_is_bool()
-            || self.raw_type_is_duration()
-            || self.raw_type_is_datetime()
-    }
-
-    pub fn type_is_inferrable(
-        &self,
-        field_receiver: &MyFieldReceiver,
-        model_attributes: &ModelAttributes,
-    ) -> bool {
-        let is_db_field = model_attributes.casing().is_ok_and(|casing| {
-            field_receiver.db_field_name(&casing).is_ok_and(|dfn| {
-                dfn.is_id() || dfn.is_in_or_out_edge_node(&model_attributes.to_data_type())
-            })
-        });
-
-        field_receiver.to_relation_type(model_attributes).is_some()
-            || is_db_field
-            || self.raw_type_is_float()
-            || self.raw_type_is_integer()
-            || self.raw_type_is_string()
-            || self.raw_type_is_bool()
-            || self.is_array()
-            || self.raw_type_is_set()
-            || self.raw_type_is_object()
-            || self.raw_type_is_optional()
-            || self.raw_type_is_duration()
-            || self.raw_type_is_datetime()
-            || self.raw_type_is_geometry()
     }
 }
 

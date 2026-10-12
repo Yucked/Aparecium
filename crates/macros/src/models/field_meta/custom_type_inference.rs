@@ -63,9 +63,7 @@ impl<'a> FieldTypeInference<'a> {
         let crate_name = get_crate_name(false);
         let binding = field_ty.replace_self_with_current_struct_concrete_type(self.model_attrs)?;
         let ty = &binding.inner();
-        let assert = |assertion: proc_macro2::TokenStream| {
-            quote!(#crate_name::validators::#assertion::<#ty>();)
-        };
+        let assert = |assertion: proc_macro2::TokenStream| quote!(#crate_name::validators::#assertion::<#ty>(););
 
         let meta = if field_ty.raw_type_is_bool() {
             DbFieldTypeAstMeta::new(Kind::Bool, assert(quote!(assert_type_is_bool)))
@@ -78,7 +76,7 @@ impl<'a> FieldTypeInference<'a> {
         } else if field_ty.raw_type_is_optional() {
             let item = field_ty
                 .inner_angle_bracket_type()?
-                .map(|item| self.based_on_type_path_token_structure(&item.into_inner(), relation_type))
+                .map(|item| self.based_on_type_path_token_structure(&item, relation_type))
                 .ok_or(syn::Error::new(
                     ty.span(),
                     "Could not infer type for the optional field",
@@ -101,7 +99,7 @@ impl<'a> FieldTypeInference<'a> {
             // `Nullable<T>` holds `NULL` or a value: `null | T`.
             let item = field_ty
                 .inner_angle_bracket_type()?
-                .map(|item| self.based_on_type_path_token_structure(&item.into_inner(), relation_type))
+                .map(|item| self.based_on_type_path_token_structure(&item, relation_type))
                 .ok_or(syn::Error::new(
                     ty.span(),
                     "Could not infer type for the nullable field",
@@ -143,7 +141,7 @@ impl<'a> FieldTypeInference<'a> {
 
             let item = field_ty
                 .inner_angle_bracket_type()?
-                .map(|item| self.based_on_type_path_token_structure(&item.into_inner(), relation_type))
+                .map(|item| self.based_on_type_path_token_structure(&item, relation_type))
                 .ok_or(syn::Error::new(
                     ty.span(),
                     "Could not infer type for the array inner type",
@@ -171,7 +169,7 @@ impl<'a> FieldTypeInference<'a> {
         } else if field_ty.raw_type_is_set() {
             let item = field_ty
                 .inner_angle_bracket_type()?
-                .map(|item| self.based_on_type_path_token_structure(&item.into_inner(), relation_type))
+                .map(|item| self.based_on_type_path_token_structure(&item, relation_type))
                 .ok_or(syn::Error::new(
                     ty.span(),
                     "Could not infer type for the set inner type",
@@ -246,8 +244,8 @@ impl<'a> FieldTypeInference<'a> {
         // We are mainly interested in getting the foreign struct itself whether or not its a
         // single top-level struct, or one or deep lelve nested struct.
         let foreign_type = match relation_type {
-            RelationType::NestObject(ref_object) => Some(ref_object.inner()),
-            RelationType::NestArray(foreign_array_object) => Some(foreign_array_object.inner()),
+            RelationType::NestObject(ref_object) => Some(&**ref_object),
+            RelationType::NestArray(foreign_array_object) => Some(&**foreign_array_object),
             RelationType::Relate(_)
             | RelationType::List(_)
             | RelationType::None

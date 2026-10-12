@@ -45,10 +45,6 @@ impl FieldTypeDb {
         &self.0
     }
 
-    pub fn into_inner(self) -> Kind {
-        self.0
-    }
-
     /// Asserts that `field_type` can hold a value of this type.
     pub fn generate_static_assertion(&self, field_type: &CustomType) -> TokenStream {
         let crate_name = get_crate_name(false);

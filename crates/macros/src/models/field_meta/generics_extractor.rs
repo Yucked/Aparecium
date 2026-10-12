@@ -1,13 +1,9 @@
-
 use crate::models::*;
 use darling::FromGenerics;
 use proc_macro2::TokenStream;
 use syn::{punctuated::Punctuated, visit::Visit, *};
 
 use super::CustomType;
-
-#[derive(Debug)]
-pub struct StrippedBoundsGenerics(pub Generics);
 
 create_tokenstream_wrapper!(=>ImplGenerics);
 create_tokenstream_wrapper!(=>TypeGenerics);
@@ -44,16 +40,8 @@ impl CustomGenerics {
         }
     }
 
-    pub fn into_inner(self) -> Generics {
-        self.original_generics
-    }
-
     pub fn inner(&self) -> &Generics {
         &self.original_generics
-    }
-
-    pub fn inner_mut(&mut self) -> &mut Generics {
-        &mut self.original_generics
     }
 
     pub fn params(&self) -> &Punctuated<syn::GenericParam, Token![,]> {
@@ -89,42 +77,6 @@ impl CustomGenerics {
 
     pub fn to_basic_generics(&self) -> &Generics {
         self.inner()
-    }
-
-    pub fn strip_bounds_from_generics(original_generics: &Generics) -> StrippedBoundsGenerics {
-        let stripped_params = original_generics
-            .params
-            .iter()
-            .map(|param| {
-                match param {
-                    GenericParam::Type(type_param) => {
-                        // Keep only the type identifier
-                        let ident = &type_param.ident;
-                        let new_type_param: GenericParam = parse_quote!(#ident);
-                        new_type_param
-                    }
-                    GenericParam::Lifetime(lifetime_def) => {
-                        // Keep only the lifetime identifier
-                        let lifetime = &lifetime_def.lifetime;
-                        let new_lifetime_def: GenericParam = parse_quote!(#lifetime);
-                        new_lifetime_def
-                    }
-                    GenericParam::Const(const_param) => {
-                        // Keep only the const parameter
-                        let ident = &const_param.ident;
-                        let ty = &const_param.ty;
-                        let new_const_param: GenericParam = parse_quote! { const #ident: #ty };
-                        new_const_param
-                    }
-                }
-            })
-            .collect();
-
-        StrippedBoundsGenerics(Generics {
-            params: stripped_params,
-            where_clause: None,
-            ..*original_generics
-        })
     }
 
     pub fn to_angle_bracketed(&self) -> AngleBracketedGenericArguments {

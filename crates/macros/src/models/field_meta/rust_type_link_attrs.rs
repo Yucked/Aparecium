@@ -1,41 +1,14 @@
-
 use super::*;
 
 #[derive(Debug, Copy, Clone)]
 pub struct ListSimple;
 
+// A `CustomType` that means something specific. It derefs to the `CustomType`, whose methods
+// (including `turbo_fishize`) serve every wrapper, so the wrappers add no methods of their own.
 macro_rules! create_custom_type_wrapper {
     ($name:ident) => {
         #[derive(Debug, Clone)]
         pub struct $name(pub crate::models::CustomType);
-
-        ::paste::paste! {
-            #[derive(Debug, Clone)]
-            pub struct [<$name TurboFished>](pub crate::models::CustomTypeTurboFished);
-
-            impl ::quote::ToTokens for [<$name TurboFished>] {
-                fn to_tokens(&self, tokens: &mut ::proc_macro2::TokenStream) {
-                    self.0.to_tokens(tokens);
-                }
-            }
-        }
-
-        impl $name  {
-            pub fn into_inner(self) -> crate::models::CustomType {
-                self.0
-            }
-
-            pub fn inner(&self) -> &crate::models::CustomType {
-                &self.0
-            }
-
-            ::paste::paste! {
-                pub fn turbo_fishize(&self) -> crate::models::ExtractorResult<[<$name TurboFished>]> {
-                    Ok([<$name TurboFished>](self.0.turbo_fishize()?))
-                }
-
-            }
-        }
 
         impl ::darling::FromMeta for $name {
             fn from_meta(item: &::syn::Meta) -> ::darling::Result<Self> {
