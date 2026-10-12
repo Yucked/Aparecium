@@ -76,7 +76,7 @@ create_type!(
     /// 
     /// # Example
     /// ```
-    /// use aparecium::{*, functions::type_};
+    /// use umbriel::{*, functions::type_};
     /// let result = type_::bool!(1234);
     /// assert_eq!(result.to_debug_sql(), "type::bool(1234)");
     ///
@@ -102,7 +102,7 @@ create_type!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::type_};
+    /// use umbriel::{*, functions::type_};
     ///
     /// let dt = chrono::DateTime::from_timestamp(61, 0).unwrap();
     /// let result = type_::datetime!(dt);
@@ -131,7 +131,7 @@ create_type!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::type_};
+    /// use umbriel::{*, functions::type_};
     ///
     /// let duration = std::time::Duration::from_secs(60 * 60);
     /// let result = type_::duration!(duration);
@@ -159,7 +159,7 @@ create_type!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::type_};
+    /// use umbriel::{*, functions::type_};
     /// let result = type_::field!("name");
     /// assert_eq!(result.to_debug_sql(), "type::field('name')");
     ///
@@ -185,7 +185,7 @@ create_type!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{
+    /// use umbriel::{
     ///     *,
     ///     functions::type_,
     ///     statements::let_,
@@ -215,7 +215,7 @@ create_type!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::type_};
+    /// use umbriel::{*, functions::type_};
     /// let result = type_::float!(1234);
     /// assert_eq!(result.to_debug_sql(), "type::float(1234)");
     ///
@@ -241,7 +241,7 @@ create_type!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::type_};
+    /// use umbriel::{*, functions::type_};
     /// let result = type_::int!(1234);
     /// assert_eq!(result.to_debug_sql(), "type::int(1234)");
     ///
@@ -267,7 +267,7 @@ create_type!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::type_};
+    /// use umbriel::{*, functions::type_};
     /// let result = type_::string!(1234);
     /// assert_eq!(result.to_debug_sql(), "type::string(1234)");
     ///
@@ -293,7 +293,7 @@ create_type!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::type_};
+    /// use umbriel::{*, functions::type_};
     /// let result = type_::string!(1234);
     /// assert_eq!(result.to_debug_sql(), "type::string(1234)");
     ///
@@ -319,7 +319,7 @@ create_type!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::type_};
+    /// use umbriel::{*, functions::type_};
     /// let result = type_::regex!("/[A-Z]{3}/");
     /// assert_eq!(result.to_debug_sql(), "type::regex('/[A-Z]{3}/')");
     ///
@@ -345,7 +345,7 @@ create_type!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::type_, statements::let_};
+    /// use umbriel::{*, functions::type_, statements::let_};
     /// let result = type_::table!(Table::new("user"));
     /// assert_eq!(result.to_debug_sql(), "type::table(user)");
     ///
@@ -379,7 +379,7 @@ pub fn point_fn(point1: impl Into<NumberLike>, point2: impl Into<NumberLike>) ->
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::type_, statements::let_};
+/// use umbriel::{*, functions::type_, statements::let_};
 /// let result = type_::point!(1234, 1234);
 /// assert_eq!(result.to_debug_sql(), "type::point(1234, 1234)");
 ///
@@ -420,7 +420,7 @@ pub fn thing_fn(table: impl Into<TableLike>, value: impl Into<ValueLike>) -> Fun
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::type_, statements::let_};
+/// use umbriel::{*, functions::type_, statements::let_};
 /// let result = type_::thing!(Table::new("user"), 1234);
 /// assert_eq!(result.to_debug_sql(), "type::thing(user, 1234)");
 ///
@@ -480,7 +480,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::type_};
+        /// use umbriel::{*, functions::type_};
         /// let result = type_::is::array!(1234);
         /// assert_eq!(result.to_debug_sql(), "type::is::array(1234)");
         ///
@@ -506,7 +506,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::type_};
+        /// use umbriel::{*, functions::type_};
         /// let result = type_::is::bool!(1234);
         /// assert_eq!(result.to_debug_sql(), "type::is::bool(1234)");
         ///
@@ -532,7 +532,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::type_};
+        /// use umbriel::{*, functions::type_};
         /// let result = type_::is::bytes!(1234);
         /// assert_eq!(result.to_debug_sql(), "type::is::bytes(1234)");
         ///
@@ -558,7 +558,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::type_};
+        /// use umbriel::{*, functions::type_};
         ///
         /// let dt = chrono::DateTime::from_timestamp(61, 0).unwrap();
         /// let result = type_::is::datetime!(dt);
@@ -586,7 +586,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::type_};
+        /// use umbriel::{*, functions::type_};
         ///
         /// let result = type_::is::collection!(1234);
         /// assert_eq!(result.to_debug_sql(), "type::is::collection(1234)");
@@ -613,7 +613,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::type_};
+        /// use umbriel::{*, functions::type_};
         /// let result = type_::is::decimal!(1234);
         /// assert_eq!(result.to_debug_sql(), "type::is::decimal(1234)");
         ///
@@ -639,7 +639,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::type_};
+        /// use umbriel::{*, functions::type_};
         ///
         /// let duration = std::time::Duration::from_secs(60 * 60);
         /// let result = type_::is::duration!(duration);
@@ -667,7 +667,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::type_};
+        /// use umbriel::{*, functions::type_};
         /// let result = type_::is::float!(1234);
         /// assert_eq!(result.to_debug_sql(), "type::is::float(1234)");
         ///
@@ -693,7 +693,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::type_};
+        /// use umbriel::{*, functions::type_};
         /// let result = type_::is::int!(1234);
         /// assert_eq!(result.to_debug_sql(), "type::is::int(1234)");
         ///
@@ -719,7 +719,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::type_};
+        /// use umbriel::{*, functions::type_};
         ///
         /// let result = type_::is::null!(1234);
         /// assert_eq!(result.to_debug_sql(), "type::is::null(1234)");
@@ -746,7 +746,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::type_};
+        /// use umbriel::{*, functions::type_};
         /// let result = type_::is::number!(1234);
         /// assert_eq!(result.to_debug_sql(), "type::is::number(1234)");
         ///
@@ -773,7 +773,7 @@ pub mod is {
         /// # Example
         /// ```rust
         ///
-        /// use aparecium::{*, functions::type_};
+        /// use umbriel::{*, functions::type_};
         /// let result = type_::is::string!("Alice");
         /// assert_eq!(result.to_debug_sql(), "type::is::string('Alice')");
         ///
@@ -799,7 +799,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::type_};
+        /// use umbriel::{*, functions::type_};
         ///
         /// let result = type_::is::geometry!(geo::point!(x: 51.509865, y: -0.118092));
         /// assert_eq!(result.to_debug_sql(), "type::is::geometry((51.509865f, -0.118092f))");
@@ -826,7 +826,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::type_};
+        /// use umbriel::{*, functions::type_};
         ///
         /// let result = type_::is::line!(geo::LineString(vec![
         ///    geo::Coord {
@@ -863,7 +863,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::type_};
+        /// use umbriel::{*, functions::type_};
         ///
         /// let result = type_::is::multiline!(geo::MultiLineString(vec![]));
         /// assert_eq!(result.to_debug_sql(),
@@ -891,7 +891,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::type_};
+        /// use umbriel::{*, functions::type_};
         ///
         /// let result = type_::is::multipoint!(geo::MultiPoint(vec![(0.0, 0.0).into(), (1.0, 1.0).into(), (2.0, 35.0).into()]));
         /// assert_eq!(result.to_debug_sql(),
@@ -919,7 +919,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::type_};
+        /// use umbriel::{*, functions::type_};
         ///
         /// let result = type_::is::multipolygon!(geo::MultiPolygon(vec![]));
         ///
@@ -946,7 +946,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::type_};
+        /// use umbriel::{*, functions::type_};
         ///
         /// let result = type_::is::point!(geo::Point::new(0.0, 0.0));
         /// assert_eq!(result.to_debug_sql(), "type::is::point((0f, 0f))");
@@ -973,7 +973,7 @@ pub mod is {
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::type_};
+    /// use umbriel::{*, functions::type_};
     ///
     /// let result = type_::is::polygon!(geo::Polygon::new(
     ///    geo::LineString(vec![
@@ -1021,7 +1021,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::type_};
+        /// use umbriel::{*, functions::type_};
         ///
         /// let result = type_::is::object!(types::Object::default());
         /// assert_eq!(result.to_debug_sql(), "type::is::object({  })");
@@ -1048,7 +1048,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::type_};
+        /// use umbriel::{*, functions::type_};
         ///
         /// let result = type_::is::record!(types::RecordId::new("user", "alice"));
         /// assert_eq!(result.to_debug_sql(), "type::is::record(user:alice)");
@@ -1075,7 +1075,7 @@ pub mod is {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::type_};
+        /// use umbriel::{*, functions::type_};
         ///
         /// let result = type_::is::uuid!(uuid::Uuid::parse_str("936DA01F9ABD4d9d80C702AF85C822A8").unwrap());
         /// assert_eq!(result.to_debug_sql(), "type::is::uuid(u'936da01f-9abd-4d9d-80c7-02af85c822a8')");

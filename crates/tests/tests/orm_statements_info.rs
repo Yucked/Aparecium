@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::Buildable;
-    use aparecium::{statements::*, *};
+    use umbriel::Buildable;
+    use umbriel::{statements::*, *};
 
     #[test]
     fn test_info_for_kv_build() {

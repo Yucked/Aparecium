@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::TableIndex;
-    use aparecium::{statements::*, *};
+    use umbriel::TableIndex;
+    use umbriel::{statements::*, *};
 
     #[test]
     fn test_remove_index() {

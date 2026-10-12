@@ -31,7 +31,7 @@ pub fn function_fn<T: Into<Param>>(args: Vec<T>, jscode_body: impl Into<String>)
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::function, statements::let_};
+/// use umbriel::{*, functions::function, statements::let_};
 /// // Simple functions
 /// // Embedded JavaScript functions within SurrealDB support all functionality in the ES2020 specification including async / await functions, and generator functions. Any value from SurrealDB is converted into a JavaScript type automatically, and the return value from the JavaScript function is converted to a SurrealDB value.
 /// let f2 = function!((), {

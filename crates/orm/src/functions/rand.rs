@@ -57,7 +57,7 @@ pub fn rand_fn() -> Function {
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::rand};
+/// use umbriel::{*, functions::rand};
 ///
 /// assert_eq!(rand!().to_debug_sql(), "rand()");
 /// ```
@@ -80,7 +80,7 @@ pub fn bool_fn() -> Function {
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::rand};
+/// use umbriel::{*, functions::rand};
 /// assert_eq!(rand::bool!().to_debug_sql(), "rand::bool()");
 /// ```
 #[macro_export]
@@ -102,7 +102,7 @@ pub fn uuid_fn() -> Function {
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::rand};
+/// use umbriel::{*, functions::rand};
 /// assert_eq!(rand::uuid!().to_debug_sql(), "rand::uuid()");
 /// ```
 #[macro_export]
@@ -128,7 +128,7 @@ pub fn enum_fn<T: Into<ValueLike>>(values: Vec<T>) -> Function {
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::rand};
+/// use umbriel::{*, functions::rand};
 /// assert_eq!(rand::enum_!(1, 2, 3).to_debug_sql(), "rand::enum(1, 2, 3)");
 /// assert_eq!(rand::enum_!(arr![1, 2, 3]).to_debug_sql(), "rand::enum(1, 2, 3)");
 /// ```
@@ -171,7 +171,7 @@ pub fn float_fn(
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::rand};
+/// use umbriel::{*, functions::rand};
 /// assert_eq!(rand::float!().to_debug_sql(), "rand::float()");
 /// assert_eq!(rand::float!(1, 2).to_debug_sql(), "rand::float(1, 2)");
 ///
@@ -221,7 +221,7 @@ pub fn int_fn(from: Option<impl Into<NumberLike>>, to: Option<impl Into<NumberLi
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::rand};
+/// use umbriel::{*, functions::rand};
 /// assert_eq!(rand::int!().to_debug_sql(), "rand::int()");
 /// assert_eq!(rand::int!(1, 2).to_debug_sql(), "rand::int(1, 2)");
 /// # let minimum_field = Field::new("minimum_field");
@@ -268,7 +268,7 @@ pub fn time_fn(from: Option<impl Into<NumberLike>>, to: Option<impl Into<NumberL
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::rand};
+/// use umbriel::{*, functions::rand};
 /// assert_eq!(rand::time!().to_debug_sql(), "rand::time()");
 /// assert_eq!(rand::time!(1, 2).to_debug_sql(), "rand::time(1, 2)");
 /// # let minimum_field = Field::new("minimum_field");
@@ -323,7 +323,7 @@ pub fn string_fn(
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::rand};
+/// use umbriel::{*, functions::rand};
 ///
 /// assert_eq!(rand::string!().to_debug_sql(), "rand::string()");
 /// assert_eq!(rand::string!(1).to_debug_sql(), "rand::string(1)");
@@ -375,7 +375,7 @@ pub fn guid_fn(length: Option<impl Into<NumberLike>>) -> Function {
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::rand};
+/// use umbriel::{*, functions::rand};
 ///
 /// assert_eq!(rand::guid!().to_debug_sql(), "rand::guid()");
 /// assert_eq!(rand::guid!(1).to_debug_sql(), "rand::guid(1)");
@@ -412,7 +412,7 @@ pub mod uuid {
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::rand};
+    /// use umbriel::{*, functions::rand};
     ///
     /// assert_eq!(rand::uuid::v4!().to_debug_sql(), "rand::uuid::v4()");
     /// ```
@@ -437,7 +437,7 @@ pub mod uuid {
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::rand};
+    /// use umbriel::{*, functions::rand};
     ///
     /// assert_eq!(rand::uuid::v7!().to_debug_sql(), "rand::uuid::v7()");
     /// ```

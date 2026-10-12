@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::{Buildable, Param, ToRaw};
-    use aparecium::{statements::*, *};
+    use umbriel::{Buildable, Param, ToRaw};
+    use umbriel::{statements::*, *};
 
     #[test]
     fn test_remove_param_build() {

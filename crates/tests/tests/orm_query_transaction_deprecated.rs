@@ -1,9 +1,9 @@
 
-use aparecium::{
+use umbriel::{
     statements::{begin_transaction, create, select, update},
     *,
 };
-use aparecium_tests::{Account, Balance};
+use umbriel_tests::{Account, Balance};
 use pretty_assertions::assert_eq;
 use surrealdb::{Surreal, engine::local::Mem};
 // CREATE account:one SET balance = 135,605.16;

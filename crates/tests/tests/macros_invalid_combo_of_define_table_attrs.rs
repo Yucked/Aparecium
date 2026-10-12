@@ -11,7 +11,7 @@ mod models;
 
 use std::fmt::Display;
 
-use aparecium::assert_not;
+use umbriel::assert_not;
 use darling::FromDeriveInput;
 use models::NodeToken;
 use quote::{ToTokens, quote};

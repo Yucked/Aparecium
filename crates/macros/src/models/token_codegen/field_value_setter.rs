@@ -243,7 +243,7 @@ impl Codegen<'_> {
         let (field_impl_generics, _field_ty_generics, field_where_clause) =
             binding.split_for_impl();
 
-        // Arithmetic is the field's own, written once in `aparecium`.
+        // Arithmetic is the field's own, written once in `umbriel`.
         let arithmetic = [
             (quote!(Add), quote!(add)),
             (quote!(Sub), quote!(sub)),

@@ -21,7 +21,7 @@ impl StructIdent {
     }
 }
 
-/// A struct marked with `#[aparecium::model(..)]`. The attribute macro forwards its arguments as
+/// A struct marked with `#[umbriel::model(..)]`. The attribute macro forwards its arguments as
 /// `#[orm(node | edge | object, table = ..)]`; the other `#[orm(..)]` settings are the user's.
 #[derive(Clone, Debug, FromDeriveInput)]
 #[darling(attributes(orm), forward_attrs(surreal), supports(struct_named))]

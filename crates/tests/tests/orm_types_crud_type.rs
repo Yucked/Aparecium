@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::*;
+    use umbriel::*;
 
     #[test]
     fn crud_type_display() {

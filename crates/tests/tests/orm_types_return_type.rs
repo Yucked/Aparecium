@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::*;
-    use aparecium::*;
+    use umbriel::*;
+    use umbriel::*;
 
     #[test]
     fn test_return_type() {

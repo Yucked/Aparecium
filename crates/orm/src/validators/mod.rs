@@ -212,14 +212,14 @@ impl<T> IsHashSet for HashSet<T> {}
 impl<T> IsHashSet for &HashSet<T> {}
 
 kind_check!(
-    /// Embedded objects declared with `#[aparecium::model(object)]`.
-    IsObject, "`{Self}` is not an embedded object; declare it with `#[aparecium::model(object)]`",assert_type_is_object, assert_value_is_object
+    /// Embedded objects declared with `#[umbriel::model(object)]`.
+    IsObject, "`{Self}` is not an embedded object; declare it with `#[umbriel::model(object)]`",assert_type_is_object, assert_value_is_object
 );
 impl<T: Object> IsObject for T {}
 
 kind_check!(
-    /// Nodes declared with `#[aparecium::model(node)]`.
-    IsNode, "`{Self}` is not a node; declare it with `#[aparecium::model(node)]`",assert_type_is_node, assert_value_is_node
+    /// Nodes declared with `#[umbriel::model(node)]`.
+    IsNode, "`{Self}` is not a node; declare it with `#[umbriel::model(node)]`",assert_type_is_node, assert_value_is_node
 );
 impl<T: Node> IsNode for T {}
 

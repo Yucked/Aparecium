@@ -96,7 +96,7 @@ create_fn_with_single_vector_arg!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::vector, statements::let_};
+    /// use umbriel::{*, functions::vector, statements::let_};
     ///
     /// let name = Field::new("name");
     /// let result = vector::magnitude!(name);
@@ -120,7 +120,7 @@ create_fn_with_single_vector_arg!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::vector, statements::let_};
+    /// use umbriel::{*, functions::vector, statements::let_};
     ///
     /// let name = Field::new("name");
     /// let result = vector::normalize!(name);
@@ -144,7 +144,7 @@ create_fn_with_single_vector_arg!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::vector, statements::let_};
+    /// use umbriel::{*, functions::vector, statements::let_};
     ///
     /// let name = Field::new("name");
     /// let result = vector::project!(name);
@@ -170,7 +170,7 @@ create_fn_with_two_vectors_args!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::vector, statements::let_};
+    /// use umbriel::{*, functions::vector, statements::let_};
     ///
     /// let arr1 = Field::new("arr1");
     /// let arr2 = Field::new("arr2");
@@ -198,7 +198,7 @@ create_fn_with_two_vectors_args!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::vector, statements::let_};
+    /// use umbriel::{*, functions::vector, statements::let_};
     ///
     /// let arr1 = Field::new("arr1");
     /// let arr2 = Field::new("arr2");
@@ -226,7 +226,7 @@ create_fn_with_two_vectors_args!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::vector, statements::let_};
+    /// use umbriel::{*, functions::vector, statements::let_};
     ///
     /// let arr1 = Field::new("arr1");
     /// let arr2 = Field::new("arr2");
@@ -254,7 +254,7 @@ create_fn_with_two_vectors_args!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::vector, statements::let_};
+    /// use umbriel::{*, functions::vector, statements::let_};
     ///
     /// let arr1 = Field::new("arr1");
     /// let arr2 = Field::new("arr2");
@@ -282,7 +282,7 @@ create_fn_with_two_vectors_args!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::vector, statements::let_};
+    /// use umbriel::{*, functions::vector, statements::let_};
     ///
     /// let arr1 = Field::new("arr1");
     /// let arr2 = Field::new("arr2");
@@ -310,7 +310,7 @@ create_fn_with_two_vectors_args!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::vector, statements::let_};
+    /// use umbriel::{*, functions::vector, statements::let_};
     ///
     /// let arr1 = Field::new("arr1");
     /// let arr2 = Field::new("arr2");
@@ -338,7 +338,7 @@ create_fn_with_two_vectors_args!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::{vector, math}, statements::let_};
+    /// use umbriel::{*, functions::{vector, math}, statements::let_};
     ///
     /// let arr1 = Field::new("arr1");
     /// let arr2 = Field::new("arr2");
@@ -366,7 +366,7 @@ create_fn_with_two_vectors_args!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{
+    /// use umbriel::{
     ///     *,
     ///     functions::{vector, math},
     ///     statements::let_,
@@ -397,7 +397,7 @@ create_fn_with_two_vectors_args!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{
+    /// use umbriel::{
     ///     *,
     ///     functions::{vector, math},
     ///     statements::let_,
@@ -428,7 +428,7 @@ create_fn_with_two_vectors_args!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{
+    /// use umbriel::{
     ///     *,
     ///     functions::{vector, math},
     ///     statements::let_,
@@ -459,7 +459,7 @@ create_fn_with_two_vectors_args!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{
+    /// use umbriel::{
     ///     *,
     ///     functions::{vector, math},
     ///     statements::let_,
@@ -501,7 +501,7 @@ create_fn_with_two_vectors_args!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{
+    /// use umbriel::{
     ///     *,
     ///     functions::{vector, math},
     ///     statements::let_,
@@ -534,7 +534,7 @@ create_fn_with_two_vectors_args!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{
+    /// use umbriel::{
     ///     *,
     ///     functions::vector,
     ///     statements::let_,
@@ -573,7 +573,7 @@ pub fn distance_minkowski_fn(
 
 /// The vector::distance::minkowski function computes the Minkowski distance between two vectors, a generalization of other distance metrics such as Euclidean and Manhattan when parameterized with different values of p.
 /// ```rust
-/// use aparecium::{*, functions::vector};
+/// use umbriel::{*, functions::vector};
 ///
 /// let arr1 = Field::new("arr1");
 /// let arr2 = Field::new("arr2");

@@ -2,9 +2,9 @@
 mod tests {
     use std::time::Duration;
 
-    use aparecium::ToRaw;
+    use umbriel::ToRaw;
 
-    use aparecium::{statements::*, *};
+    use umbriel::{statements::*, *};
 
     #[test]
     fn test_sleep_statement() {

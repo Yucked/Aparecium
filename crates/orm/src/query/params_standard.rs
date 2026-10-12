@@ -8,7 +8,7 @@
 /// # Examples
 ///
 /// ```
-/// # use aparecium::*;
+/// # use umbriel::*;
 /// create_param_name_fn!(
 ///     /// $auth: Represents the currently authenticated scope user
 ///     => auth

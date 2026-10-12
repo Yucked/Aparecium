@@ -2,7 +2,7 @@
 use std::time::Duration;
 
 use crate::{AlienVisitsPlanet, Planet, Rocket, SpaceShip, Weapon};
-use aparecium::{LinkMany, LinkOne, LinkSelf, Node, Relate, SurrealSimpleId};
+use umbriel::{LinkMany, LinkOne, LinkSelf, Node, Relate, SurrealSimpleId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use surrealdb::sql;

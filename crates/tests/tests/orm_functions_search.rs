@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test_search_highlight {
-    use aparecium::{functions::search, *};
+    use umbriel::{functions::search, *};
 
     // seach::highlight('<b>', '</b>', 1);
 
@@ -81,7 +81,7 @@ macro_rules! create_fn_with_single_search_arg_tests {
     ($(#[$attr:meta])* => $function_name:expr, $function_path:expr) => {
         paste::paste! {
             mod [<test_ $function_name>] {
-                use aparecium::{functions::search, *};
+                use umbriel::{functions::search, *};
 
                 #[test]
                 fn [<test $function_name _fn>]() {

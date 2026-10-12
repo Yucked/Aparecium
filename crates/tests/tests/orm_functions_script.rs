@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::{ToRaw, statements::let_};
+    use umbriel::{ToRaw, statements::let_};
 
-    use aparecium::{functions::script::*, *};
+    use umbriel::{functions::script::*, *};
 
     #[test]
     fn test_function_without_args() {

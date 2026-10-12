@@ -1,10 +1,10 @@
 
-use aparecium::{
+use umbriel::{
     functions::{array, math},
     statements::{create, insert, select_value},
     *,
 };
-use aparecium_tests::{Weapon, WeaponStats, weapon};
+use umbriel_tests::{Weapon, WeaponStats, weapon};
 use pretty_assertions::assert_eq;
 use surrealdb::{Surreal, engine::local::Mem};
 

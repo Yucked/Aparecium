@@ -1,7 +1,7 @@
 
 use std::fmt::Display;
 
-use aparecium::Object;
+use umbriel::Object;
 use serde::{Deserialize, Serialize};
 
 // Configuration

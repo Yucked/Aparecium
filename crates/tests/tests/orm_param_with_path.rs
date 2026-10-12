@@ -1,6 +1,6 @@
 
-use aparecium::{All, Buildable, E, Operatable, SchemaGetter, ToRaw, index, this, value, where_};
-use aparecium_tests::{Student, student};
+use umbriel::{All, Buildable, E, Operatable, SchemaGetter, ToRaw, index, this, value, where_};
+use umbriel_tests::{Student, student};
 use pretty_assertions::assert_eq;
 
 #[test]

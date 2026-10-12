@@ -30,9 +30,9 @@ use crate::migrations::{
     MigrationConfig, MockPrompter, Mode, Prompter, RealPrompter, RenameOrDelete,
 };
 
-/// Surreal ORM CLI
+/// Umbriel CLI
 #[derive(Parser, Debug, Clone, TypedBuilder)]
-#[clap(name = "SurrealOrm", about = "Surreal ORM CLI")]
+#[clap(name = "SurrealOrm", about = "Umbriel CLI")]
 #[command(version)]
 pub struct Migrator {
     /// Subcommand: generate, up, down, list
@@ -93,8 +93,8 @@ impl Migrator {
     /// Run migration cli
     /// # Example
     /// ```rust, ignore
-    /// use aparecium_tests::migrations::Resources;
-    /// use aparecium::migrations::Migrator;
+    /// use umbriel_tests::migrations::Resources;
+    /// use umbriel::migrations::Migrator;
     ///
     /// #[tokio::main]
     /// async fn main() {

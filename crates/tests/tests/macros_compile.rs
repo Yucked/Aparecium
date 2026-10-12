@@ -9,8 +9,8 @@ fn ui() {
     cases.compile_fail("tests/ui/fail/*.rs");
 }
 
-/// A consumer that depends on `aparecium` under another name must still expand. It is a separate
-/// crate because `trybuild` cases always see this crate's own `aparecium` dependency.
+/// A consumer that depends on `umbriel` under another name must still expand. It is a separate
+/// crate because `trybuild` cases always see this crate's own `umbriel` dependency.
 #[test]
 fn renamed_dependency() {
     let root = env!("CARGO_MANIFEST_DIR");

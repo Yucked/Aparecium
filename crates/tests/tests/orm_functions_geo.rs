@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
     use ::geo::{point, polygon};
-    use aparecium::*;
-    use aparecium::{functions::geo::*, *};
+    use umbriel::*;
+    use umbriel::{functions::geo::*, *};
     use functions::geo;
 
     #[test]

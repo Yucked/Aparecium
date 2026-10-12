@@ -1,4 +1,4 @@
-fn requires_node<T: aparecium::Node>() {}
+fn requires_node<T: umbriel::Node>() {}
 
 struct Plain;
 

@@ -1,9 +1,9 @@
 
-use aparecium::{
+use umbriel::{
     statements::{insert, select, select_value},
     *,
 };
-use aparecium_tests::{SpaceShip, Weapon, space_ship, weapon};
+use umbriel_tests::{SpaceShip, Weapon, space_ship, weapon};
 use surrealdb::{
     Surreal,
     engine::local::{Db, Mem},

@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod vector_distance_minkowski_tests {
-    use aparecium::{functions::vector, *};
+    use umbriel::{functions::vector, *};
 
     #[test]
     fn test_vector_distance_minkowski_fn_on_vector_macro_on_diverse_vectors() {
@@ -65,7 +65,7 @@ macro_rules! create_fn_with_single_vector_arg_tests {
     ($(#[$attr:meta])* => $function_name:expr, $function_path:expr) => {
         paste::paste! {
             mod [<test_ $function_name>] {
-                use aparecium::{functions::vector, *};
+                use umbriel::{functions::vector, *};
 
                 #[test]
                 fn [<test $function_name fn_on_vector_macro_on_diverse_vectors>]() {
@@ -161,9 +161,9 @@ macro_rules! create_fn_with_two_vectors_args_tests {
     ($(#[$attr:meta])* => $function_name:expr, $function_path:expr) => {
         paste::paste! {
             mod [<test_ $function_name>] {
-                use aparecium::[<vector_ $function_name>] as [<$function_name>];
+                use umbriel::[<vector_ $function_name>] as [<$function_name>];
 
-                use aparecium::{functions::vector, *};
+                use umbriel::{functions::vector, *};
 
                 #[test]
                 fn [<test $function_name fn_on_vector_macro_on_diverse_vectors>]() {

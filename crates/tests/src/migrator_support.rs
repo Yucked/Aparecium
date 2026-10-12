@@ -5,7 +5,7 @@ use crate::migrations::{
     Resources, ResourcesV2, ResourcesV3, ResourcesV4, ResourcesV5, ResourcesV6, ResourcesV7,
     ResourcesV8, ResourcesV9, ResourcesV10,
 };
-use aparecium::{
+use umbriel::{
     DbResources, Runnable,
     migrations::{
         Basename, Checksum, DatabaseConnection, DbInfo, Down, Extension, FastForwardDelta,

@@ -5,7 +5,7 @@
 // mod node_table_attributes;
 //
 // pub use crate::{AlienVisitsPlanet, Planet, SpaceShip, Visits, Weapon};
-pub use aparecium::{
+pub use umbriel::{
     serde::{Deserialize, Serialize},
     statements::{DefineFieldStatement, DefineTableStatement, Permissions, SelectStatement},
     *,

@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::{Field, Table};
-    use aparecium::{statements::*, *};
+    use umbriel::{Field, Table};
+    use umbriel::{statements::*, *};
 
     #[test]
     fn test_remove_field() {

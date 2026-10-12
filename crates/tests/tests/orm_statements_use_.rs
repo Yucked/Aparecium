@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
 
-    use aparecium::{statements::*, *};
+    use umbriel::{statements::*, *};
 
     #[test]
     fn test_use_statement() {

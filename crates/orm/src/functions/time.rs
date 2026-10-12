@@ -39,7 +39,7 @@ pub fn now_fn() -> Function {
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::time};
+/// use umbriel::{*, functions::time};
 ///
 /// let result = time::now!();
 /// assert_eq!(result.to_debug_sql(), "now()");
@@ -86,7 +86,7 @@ create_time_fn_with_single_datetime_arg!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::time};
+    /// use umbriel::{*, functions::time};
     ///
     /// let dt = chrono::DateTime::from_timestamp(61, 0).unwrap();
     ///
@@ -119,7 +119,7 @@ create_time_fn_with_single_datetime_arg!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::time};
+    /// use umbriel::{*, functions::time};
     ///
     /// let dt = chrono::DateTime::from_timestamp(61, 0).unwrap();
     ///
@@ -152,7 +152,7 @@ create_time_fn_with_single_datetime_arg!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::time};
+    /// use umbriel::{*, functions::time};
     ///
     /// let dt = chrono::DateTime::from_timestamp(61, 0).unwrap();
     ///
@@ -185,7 +185,7 @@ create_time_fn_with_single_datetime_arg!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::time};
+    /// use umbriel::{*, functions::time};
     ///
     /// let dt = chrono::DateTime::from_timestamp(61, 0).unwrap();
     ///
@@ -219,7 +219,7 @@ create_time_fn_with_single_datetime_arg!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::time};
+    /// use umbriel::{*, functions::time};
     ///
     /// let dt = chrono::DateTime::from_timestamp(61, 0).unwrap();
     ///
@@ -251,7 +251,7 @@ create_time_fn_with_single_datetime_arg!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::time};
+    /// use umbriel::{*, functions::time};
     ///
     /// let dt = chrono::DateTime::from_timestamp(61, 0).unwrap();
     ///
@@ -283,7 +283,7 @@ create_time_fn_with_single_datetime_arg!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::time};
+    /// use umbriel::{*, functions::time};
     ///
     /// let dt = chrono::DateTime::from_timestamp(61, 0).unwrap();
     ///
@@ -315,7 +315,7 @@ create_time_fn_with_single_datetime_arg!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::time};
+    /// use umbriel::{*, functions::time};
     ///
     /// let dt = chrono::DateTime::from_timestamp(61, 0).unwrap();
     ///
@@ -347,7 +347,7 @@ create_time_fn_with_single_datetime_arg!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::time};
+    /// use umbriel::{*, functions::time};
     ///
     /// let dt = chrono::DateTime::from_timestamp(61, 0).unwrap();
     ///
@@ -379,7 +379,7 @@ create_time_fn_with_single_datetime_arg!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::time};
+    /// use umbriel::{*, functions::time};
     ///
     /// let dt = chrono::DateTime::from_timestamp(61, 0).unwrap();
     ///
@@ -411,7 +411,7 @@ create_time_fn_with_single_datetime_arg!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::time};
+    /// use umbriel::{*, functions::time};
     ///
     /// let dt = chrono::DateTime::from_timestamp(61, 0).unwrap();
     ///
@@ -449,7 +449,7 @@ pub fn floor_fn(datetime: impl Into<DatetimeLike>, duration: impl Into<DurationL
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::time};
+/// use umbriel::{*, functions::time};
 /// let dt = chrono::DateTime::from_timestamp(61, 0).unwrap();
 /// let duration = std::time::Duration::from_secs(10);
 /// let result = time::floor!(dt, duration);
@@ -494,7 +494,7 @@ pub fn ceil_fn(datetime: impl Into<DatetimeLike>, duration: impl Into<DurationLi
 /// The function is also aliased as `time_ceil!`.
 /// # Example
 /// ```rust
-///   use aparecium::{*, functions::time};
+///   use umbriel::{*, functions::time};
 ///   let dt = chrono::DateTime::from_timestamp(61, 0).unwrap();
 ///   let duration = std::time::Duration::from_secs(10);
 ///   let result = time::ceil!(dt, duration);
@@ -550,7 +550,7 @@ pub fn format_fn(datetime: impl Into<DatetimeLike>, format: impl Into<StrandLike
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::time};
+/// use umbriel::{*, functions::time};
 /// let dt = chrono::DateTime::from_timestamp(61, 0).unwrap();
 /// let result = time::format_!(dt, "%Y-%m-%d");
 /// assert_eq!(
@@ -597,7 +597,7 @@ pub fn timezone_fn() -> Function {
 /// The function is also aliased as `time_timezone!`.
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::time};
+/// use umbriel::{*, functions::time};
 ///
 /// let result = time::timezone!();
 /// assert_eq!(
@@ -630,7 +630,7 @@ pub fn round_fn(datetime: impl Into<DatetimeLike>, duration: impl Into<DurationL
 /// * `duration` - The duration to round up by. Could also be a field or a parameter representing a duration.
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::time};
+/// use umbriel::{*, functions::time};
 /// let dt = chrono::DateTime::from_timestamp(61, 0).unwrap();
 /// let duration = std::time::Duration::from_secs(10);
 /// let result = time::round!(dt, duration);
@@ -682,7 +682,7 @@ pub fn group_fn(datetime: impl Into<DatetimeLike>, interval: impl Into<StrandLik
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::time};
+/// use umbriel::{*, functions::time};
 /// let dt = chrono::DateTime::from_timestamp(61, 0).unwrap();
 /// let result = time::group!(dt, "year");
 /// assert_eq!(
@@ -765,7 +765,7 @@ create_time_fn_with_single_array_of_datetime_arg!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::time};
+    /// use umbriel::{*, functions::time};
     ///
     /// let dt1 = chrono::DateTime::from_timestamp(61, 0).unwrap();
     /// let dt2 = chrono::DateTime::from_timestamp(62, 0).unwrap();
@@ -799,7 +799,7 @@ create_time_fn_with_single_array_of_datetime_arg!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::time};
+    /// use umbriel::{*, functions::time};
     ///
     /// let dt1 = chrono::DateTime::from_timestamp(61, 0).unwrap();
     /// let dt2 = chrono::DateTime::from_timestamp(62, 0).unwrap();
@@ -858,7 +858,7 @@ pub mod from {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::time};
+        /// use umbriel::{*, functions::time};
         ///
         /// let result = time::from::micros!(1);
         /// assert_eq!(result.to_debug_sql(), "time::from::micros(1)");
@@ -886,7 +886,7 @@ pub mod from {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::time};
+        /// use umbriel::{*, functions::time};
         ///
         /// let result = time::from::millis!(1);
         /// assert_eq!(result.to_debug_sql(), "time::from::millis(1)");
@@ -915,7 +915,7 @@ pub mod from {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::time};
+        /// use umbriel::{*, functions::time};
         ///
         /// let result = time::from::secs!(1);
         /// assert_eq!(result.to_debug_sql(), "time::from::secs(1)");
@@ -944,7 +944,7 @@ pub mod from {
         ///
         /// # Example
         /// ```rust
-        /// use aparecium::{*, functions::time};
+        /// use umbriel::{*, functions::time};
         ///
         /// let result = time::from::unix!(1);
         /// assert_eq!(result.to_debug_sql(), "time::from::unix(1)");

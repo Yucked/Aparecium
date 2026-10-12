@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::{AliasName, ToRaw};
+    use umbriel::{AliasName, ToRaw};
 
-    use aparecium::*;
+    use umbriel::*;
 
     #[test]
     fn test_field() {

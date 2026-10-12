@@ -58,7 +58,7 @@ pub fn fixed_fn(number: impl Into<NumberLike>, decimal_place: impl Into<NumberLi
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::math};
+/// use umbriel::{*, functions::math};
 ///
 /// math::fixed!(13.146572, 2);
 /// # let score_field = Field::new("score_field");
@@ -121,7 +121,7 @@ create_test_for_fn_with_single_arg!(
     ///
     /// # Example
     /// ```rust
-    /// # use aparecium::{*, functions::math};
+    /// # use umbriel::{*, functions::math};
     ///
     /// math::abs!(45.23);
     /// # let score_field = Field::new("score_field");
@@ -149,7 +149,7 @@ create_test_for_fn_with_single_arg!(
     ///
     /// # Example
     /// ```rust
-    /// # use aparecium::{*, functions::math};
+    /// # use umbriel::{*, functions::math};
     ///
     /// math::ceil!(45.23);
     /// # let score_field = Field::new("score_field");
@@ -177,7 +177,7 @@ create_test_for_fn_with_single_arg!(
     ///
     /// # Example
     /// ```rust
-    /// # use aparecium::{*, functions::math};
+    /// # use umbriel::{*, functions::math};
     ///
     /// math::floor!(45.23);
     /// # let score_field = Field::new("score_field");
@@ -205,7 +205,7 @@ create_test_for_fn_with_single_arg!(
     ///
     /// # Example
     /// ```rust
-    /// # use aparecium::{*, functions::math};
+    /// # use umbriel::{*, functions::math};
     ///
     /// math::round!(45.23);
     /// # let score_field = Field::new("score_field");
@@ -232,7 +232,7 @@ create_test_for_fn_with_single_arg!(
     ///
     /// # Example
     /// ```rust
-    /// # use aparecium::{*, functions::math};
+    /// # use umbriel::{*, functions::math};
     ///
     /// math::sqrt!(45.23);
     /// # let score_field = Field::new("score_field");
@@ -279,7 +279,7 @@ create_test_for_fn_with_single_array_arg!(
 ///
 /// # Example
 /// ```rust
-/// # use aparecium::{*, functions::math};
+/// # use umbriel::{*, functions::math};
 ///
 /// math::mean!(vec![1, 2, 3, 4, 5]);
 /// math::mean!(arr![1, 2, 3, 4, 5]);
@@ -306,7 +306,7 @@ create_test_for_fn_with_single_array_arg!(
 ///
 /// # Example
 /// ```rust
-/// # use aparecium::{*, functions::math};
+/// # use umbriel::{*, functions::math};
 ///
 /// math::median!(vec![1, 2, 3, 4, 5]);
 /// math::median!(arr![1, 2, 3, 4, 5]);
@@ -333,7 +333,7 @@ create_test_for_fn_with_single_array_arg!(
 ///
 /// # Example
 /// ```rust
-/// # use aparecium::{*, functions::math};
+/// # use umbriel::{*, functions::math};
 ///
 /// math::mode!(vec![1, 2, 3, 4, 5]);
 /// math::mode!(arr![1, 2, 3, 4, 5]);
@@ -359,7 +359,7 @@ create_test_for_fn_with_single_array_arg!(
 ///
 /// # Example
 /// ```rust
-/// # use aparecium::{*, functions::math};
+/// # use umbriel::{*, functions::math};
 ///
 /// math::min!(vec![1, 2, 3, 4, 5]);
 /// math::min!(arr![1, 2, 3, 4, 5]);
@@ -385,7 +385,7 @@ create_test_for_fn_with_single_array_arg!(
 ///
 /// # Example
 /// ```rust
-/// # use aparecium::{*, functions::math};
+/// # use umbriel::{*, functions::math};
 ///
 /// math::max!(vec![1, 2, 3, 4, 5]);
 /// math::max!(arr![1, 2, 3, 4, 5]);
@@ -411,7 +411,7 @@ create_test_for_fn_with_single_array_arg!(
 ///
 /// # Example
 /// ```rust
-/// # use aparecium::{*, functions::math};
+/// # use umbriel::{*, functions::math};
 ///
 /// math::product!(vec![1, 2, 3, 4, 5]);
 /// math::product!(arr![1, 2, 3, 4, 5]);
@@ -444,7 +444,7 @@ create_test_for_fn_with_single_array_arg!(
 ///
 /// # Example
 /// ```rust
-/// # use aparecium::{*, functions::math};
+/// # use umbriel::{*, functions::math};
 ///
 /// math::sum!(vec![1, 2, 3, 4, 5]);
 /// math::sum!(arr![1, 2, 3, 4, 5]);

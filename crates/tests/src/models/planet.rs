@@ -1,5 +1,5 @@
 
-use aparecium::{Node, SurrealSimpleId};
+use umbriel::{Node, SurrealSimpleId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Node, Serialize, Deserialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 #[orm(table = planet)]
-pub struct Planet<T: Clone + Serialize + aparecium::validators::Int + Default> {
+pub struct Planet<T: Clone + Serialize + umbriel::validators::Int + Default> {
     pub id: SurrealSimpleId<Self>,
     pub name: String,
     // area: Polygon,
@@ -61,7 +61,7 @@ type Population = u64;
 #[derive(Node, Serialize, Deserialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 #[orm(table = planet_x)]
-pub struct PlanetX<T: Clone + Serialize + aparecium::validators::Int + Default> {
+pub struct PlanetX<T: Clone + Serialize + umbriel::validators::Int + Default> {
     pub id: SurrealSimpleId<Self>,
     pub name: String,
     pub population: u64,

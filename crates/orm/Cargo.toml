@@ -1,5 +1,5 @@
 [package]
-name = "aparecium"
+name = "umbriel"
 version = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
@@ -26,7 +26,7 @@ scripting = ["surrealdb/scripting"]
 http = ["surrealdb/http"]
 jwks = ["surrealdb/jwks"]
 
-# Schema migrations and their CLI (`aparecium::migrations`).
+# Schema migrations and their CLI (`umbriel::migrations`).
 migrations = [
   "dep:sha2",
   "dep:itertools",
@@ -37,7 +37,7 @@ migrations = [
 ]
 
 [dependencies]
-aparecium-macros = { workspace = true }
+umbriel-macros = { workspace = true }
 surrealdb = { workspace = true }
 chrono = { workspace = true }
 geo = { workspace = true }

@@ -1,4 +1,4 @@
-use aparecium::{Node, SurrealSimpleId};
+use umbriel::{Node, SurrealSimpleId};
 use serde::{Deserialize, Serialize};
 
 #[derive(Node, Serialize, Deserialize, Debug, Clone)]

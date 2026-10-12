@@ -1,6 +1,6 @@
 
-use aparecium::*;
-use aparecium_tests::{
+use umbriel::*;
+use umbriel_tests::{
     Alien, AlienWithExplicitAttributes, StudentWithDefineAttr, StudentWithDefineFnAttr,
     StudentWithGranularAttributes,
 };

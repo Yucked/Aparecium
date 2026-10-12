@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::{ToRaw, arr};
+    use umbriel::{ToRaw, arr};
 
-    use aparecium::{statements::*, *};
+    use umbriel::{statements::*, *};
 
     #[test]
     fn define_index_with_search_analyzer() {

@@ -24,7 +24,7 @@ pub fn sleep_fn(duration: impl Into<DurationLike>) -> Function {
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::sleep, statements::let_};
+/// use umbriel::{*, functions::sleep, statements::let_};
 /// use std::time;
 /// let sleep = sleep!(time::Duration::from_secs(55));
 /// assert_eq!(sleep.to_debug_sql(), "sleep(55s)");

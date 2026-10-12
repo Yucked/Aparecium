@@ -1,6 +1,6 @@
 
-use aparecium::{Buildable, Field, SchemaGetter, SetterAssignable, ToRaw};
-use aparecium_tests::Organization;
+use umbriel::{Buildable, Field, SchemaGetter, SetterAssignable, ToRaw};
+use umbriel_tests::Organization;
 use pretty_assertions::assert_eq;
 
 #[test]

@@ -62,7 +62,7 @@ pub fn add_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -> Functio
 /// * `value` - The value to add to the array. any supported surrealdb value, `Field` or `Param`
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::array};
+/// use umbriel::{*, functions::array};
 /// array::add!(vec![1, 2, 3], 4);
 /// array::add!(&[1, 2, 3], 4);
 /// array::add!(arr![1, "alice", 3], 4);
@@ -102,7 +102,7 @@ pub fn all_fn(arr: impl Into<ArrayLike>) -> Function {
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::array};
+/// use umbriel::{*, functions::array};
 /// array::all!(vec![1, 2, 3, 4, 5]);
 /// array::all!(&[1, 2, 3, 4, 5]);
 /// array::all!(arr![1, 2, 3, 4, 5]);
@@ -141,7 +141,7 @@ pub fn any_fn(arr: impl Into<ArrayLike>) -> Function {
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::array};
+/// use umbriel::{*, functions::array};
 /// array::any!(vec![1, 2, 3, 4, 5]);
 /// array::any!(&[1, 2, 3, 4, 5]);
 /// array::any!(arr![1, 2, 3, 4, 5]);
@@ -182,7 +182,7 @@ pub fn append_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -> Func
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::array};
+/// use umbriel::{*, functions::array};
 /// array::append!(vec![1, 2, 3, 4, 5], 6);
 /// array::append!(&[1, 2, 3, 4, 5], 6);
 /// array::append!(arr![1, 2, 3, 4, 5], 6);
@@ -245,7 +245,7 @@ create_fn_with_single_array_arg!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::array};
+    /// use umbriel::{*, functions::array};
     /// array::boolean_not!(vec![1, 2, 3, 4, 5]);
     /// array::boolean_not!(&[1, 2, 3, 4, 5]);
     /// array::boolean_not!(arr![1, 2, 3, 4, 5]);
@@ -269,7 +269,7 @@ create_fn_with_single_array_arg!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::array};
+    /// use umbriel::{*, functions::array};
     /// array::first!(vec![1, 2, 3, 4, 5]);
     /// array::first!(&[1, 2, 3, 4, 5]);
     /// array::first!(arr![1, 2, 3, 4, 5]);
@@ -293,7 +293,7 @@ create_fn_with_single_array_arg!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::array};
+    /// use umbriel::{*, functions::array};
     /// array::last!(vec![1, 2, 3, 4, 5]);
     /// array::last!(&[1, 2, 3, 4, 5]);
     /// array::last!(arr![1, 2, 3, 4, 5]);
@@ -317,7 +317,7 @@ create_fn_with_single_array_arg!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::array};
+    /// use umbriel::{*, functions::array};
     /// array::max!(vec![1, 2, 3, 4, 5]);
     /// array::max!(&[1, 2, 3, 4, 5]);
     /// array::max!(arr![1, 2, 3, 4, 5]);
@@ -341,7 +341,7 @@ create_fn_with_single_array_arg!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::array};
+    /// use umbriel::{*, functions::array};
     /// array::min!(vec![1, 2, 3, 4, 5]);
     /// array::min!(&[1, 2, 3, 4, 5]);
     /// array::min!(arr![1, 2, 3, 4, 5]);
@@ -395,7 +395,7 @@ create_fn_with_two_array_args!(
     ///
     /// # Examples
     /// ```rust
-    /// use aparecium::{*, functions::array};
+    /// use umbriel::{*, functions::array};
     /// let own_goals = Field::new("own_goals");
     /// let goals = Param::new("goals");
     ///
@@ -418,7 +418,7 @@ create_fn_with_two_array_args!(
     ///   * `arr2` - The second array to concat. A vector, field or param.
     /// # Examples
     /// ```rust
-    /// use aparecium::{*, functions::array};
+    /// use umbriel::{*, functions::array};
     /// let own_goals = Field::new("own_goals");
     /// let goals = Param::new("goals");
     ///
@@ -442,7 +442,7 @@ create_fn_with_two_array_args!(
     ///  * `arr2` -  A vector, field or param.
     ///
     /// ```rust
-    /// use aparecium::{*, functions::array};
+    /// use umbriel::{*, functions::array};
     /// let own_goals = Field::new("own_goals");
     /// let goals = Param::new("goals");
     ///
@@ -466,7 +466,7 @@ create_fn_with_two_array_args!(
     ///
     /// # Examples
     /// ```rust
-    /// use aparecium::{*, functions::array};
+    /// use umbriel::{*, functions::array};
     /// let own_goals = Field::new("own_goals");
     /// let goals = Param::new("goals");
     ///
@@ -497,7 +497,7 @@ create_fn_with_two_array_args!(
     /// # Examples
     ///
     /// ```rust
-    /// use aparecium::{*, functions::array};
+    /// use umbriel::{*, functions::array};
     /// let own_goals = Field::new("own_goals");
     /// let goals = Param::new("goals");
     ///
@@ -527,7 +527,7 @@ create_fn_with_two_array_args!(
     /// # Examples
     ///
     /// ```rust
-    /// use aparecium::{*, functions::array};
+    /// use umbriel::{*, functions::array};
     /// let own_goals = Field::new("own_goals");
     /// let goals = Param::new("goals");
     ///
@@ -557,7 +557,7 @@ create_fn_with_two_array_args!(
     /// # Examples
     ///
     /// ```rust
-    /// use aparecium::{*, functions::array};
+    /// use umbriel::{*, functions::array};
     /// let own_goals = Field::new("own_goals");
     /// let goals = Param::new("goals");
     ///
@@ -587,7 +587,7 @@ create_fn_with_two_array_args!(
     /// # Examples
     ///
     /// ```rust
-    /// use aparecium::{*, functions::array};
+    /// use umbriel::{*, functions::array};
     /// let own_goals = Field::new("own_goals");
     /// let goals = Param::new("goals");
     ///
@@ -617,7 +617,7 @@ create_fn_with_two_array_args!(
     /// # Examples
     ///
     /// ```rust
-    /// use aparecium::{*, functions::array};
+    /// use umbriel::{*, functions::array};
     /// let own_goals = Field::new("own_goals");
     /// let goals = Param::new("goals");
     ///
@@ -647,7 +647,7 @@ create_fn_with_two_array_args!(
     /// # Examples
     ///
     /// ```rust
-    /// use aparecium::{*, functions::array};
+    /// use umbriel::{*, functions::array};
     ///
     /// array::logical_and!(vec![1, 2, 3, 4], vec![3, 4, 5, 6]);
     /// array::logical_and!(&[1, 2, 3, 4], &[3, 4, 5, 6]);
@@ -674,7 +674,7 @@ create_fn_with_two_array_args!(
     /// # Examples
     ///
     /// ```rust
-    /// use aparecium::{*, functions::array};
+    /// use umbriel::{*, functions::array};
     ///
     /// array::logical_or!(vec![1, 2, 3, 4], vec![3, 4, 5, 6]);
     /// array::logical_or!(&[1, 2, 3, 4], &[3, 4, 5, 6]);
@@ -701,7 +701,7 @@ create_fn_with_two_array_args!(
     /// # Examples
     ///
     /// ```rust
-    /// use aparecium::{*, functions::array};
+    /// use umbriel::{*, functions::array};
     ///
     /// array::logical_xor!(vec![1, 2, 3, 4], vec![3, 4, 5, 6]);
     /// array::logical_xor!(&[1, 2, 3, 4], &[3, 4, 5, 6]);
@@ -726,7 +726,7 @@ pub fn transpose_fn(arr: impl Into<ArrayLike>) -> Function {
 /// * `arr` -  A vector, field or param.
 /// # Examples
 /// ```rust
-/// use aparecium::{*, functions::array};
+/// use umbriel::{*, functions::array};
 /// let own_goals = Field::new("own_goals");
 /// let goals = Param::new("goals");
 /// array::transpose!(vec![1, 2, 3, 4, 5]);
@@ -755,7 +755,7 @@ pub fn matches_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -> Fun
 /// * `value` -  A vector, field or param.
 /// # Examples
 /// ```rust
-/// use aparecium::{*, functions::array};
+/// use umbriel::{*, functions::array};
 /// let own_goals = Field::new("own_goals");
 /// let goals = Param::new("goals");
 /// array::matches!(vec![1, 2, 3, 4, 5], 2);
@@ -783,7 +783,7 @@ pub fn at_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -> Function
 /// * `value` -  A vector, field or param.
 /// # Examples
 /// ```rust
-/// use aparecium::{*, functions::array};
+/// use umbriel::{*, functions::array};
 /// let own_goals = Field::new("own_goals");
 /// let goals = Param::new("goals");
 /// array::at!(vec![1, 2, 3, 4], 2);
@@ -813,7 +813,7 @@ pub fn clump_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -> Funct
 /// * `value` -  A vector, field or param.
 /// # Examples
 /// ```rust
-/// use aparecium::{*, functions::array};
+/// use umbriel::{*, functions::array};
 /// let own_goals = Field::new("own_goals");
 /// let goals = Param::new("goals");
 /// array::clump!(vec![1, 2, 3, 4], 2);
@@ -842,7 +842,7 @@ pub fn distinct_fn(arr: impl Into<ArrayLike>) -> Function {
 ///
 /// # Examples
 /// ```rust
-/// use aparecium::{*, functions::array};
+/// use umbriel::{*, functions::array};
 /// let own_goals = Field::new("own_goals");
 /// let goals = Param::new("goals");
 ///
@@ -873,7 +873,7 @@ pub fn find_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -> Functi
 /// * `value` -  A vector, field or param.
 /// # Examples
 /// ```rust
-/// use aparecium::{*, functions::array};
+/// use umbriel::{*, functions::array};
 /// let own_goals = Field::new("own_goals");
 /// let goals = Param::new("goals");
 /// array::find!(vec![1, 2, 3, 4], 2);
@@ -903,7 +903,7 @@ pub fn find_index_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -> 
 /// * `value` -  A vector, field or param.
 /// # Examples
 /// ```rust
-/// use aparecium::{*, functions::array};
+/// use umbriel::{*, functions::array};
 /// let own_goals = Field::new("own_goals");
 /// let goals = Param::new("goals");
 /// array::find_index!(vec![1, 2, 3, 4], 2);
@@ -933,7 +933,7 @@ pub fn filter_index_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -
 /// * `value` -  A vector, field or param.
 /// # Examples
 /// ```rust
-/// use aparecium::{*, functions::array};
+/// use umbriel::{*, functions::array};
 /// let own_goals = Field::new("own_goals");
 /// let goals = Param::new("goals");
 /// array::filter_index!(vec![1, 2, 3, 4], 2);
@@ -967,7 +967,7 @@ pub fn flatten_fn(arr: impl Into<ArrayLike>) -> Function {
 /// * `arr` -  A vector, field or param.
 /// # Examples
 /// ```rust
-/// use aparecium::{*, functions::array};
+/// use umbriel::{*, functions::array};
 /// array::flatten!(array![vec![1, 2], vec![3, 4], "SurrealDB", vec![5, 6]]);
 /// array::flatten!(arr![vec![1, 2], vec![3, 4], "SurrealDB", vec![5, 6]]);
 ///
@@ -1014,7 +1014,7 @@ pub fn group_fn(arr: impl Into<ArrayLike>) -> Function {
 /// * `arr` -  A vector, field or param.
 /// # Examples
 /// ```rust
-/// use aparecium::{*, functions::array};
+/// use umbriel::{*, functions::array};
 /// array::group!(array![1, 2, 3, 4, array![3, 5, 6], vec![2, 4, 5, 6], 7, 8, 8, 9]);
 /// # let own_goals_field = Field::new("own_goals_field");
 /// # let goals_param = Param::new("goals_param");
@@ -1067,7 +1067,7 @@ pub fn insert_fn(
 ///
 /// # Examples
 /// ```rust
-/// use aparecium::{*, functions::array};
+/// use umbriel::{*, functions::array};
 /// array::insert!(arr![1, 2, 3, 4], 5, 2);
 /// array::insert!(array![1, 2, 3, 4], 5, 2);
 /// # let own_goals_field = Field::new("own_goals_field");
@@ -1105,7 +1105,7 @@ pub fn len_fn(arr: impl Into<ArrayLike>) -> Function {
 ///
 /// # Examples
 /// ```rust
-/// use aparecium::{*, functions::array};
+/// use umbriel::{*, functions::array};
 /// let own_goals = Field::new("own_goals");
 /// let goals = Param::new("goals");
 ///
@@ -1144,7 +1144,7 @@ pub fn pop_fn(arr: impl Into<ArrayLike>) -> Function {
 /// * `arr` -  A vector, field or param.
 /// # Examples
 /// ```rust
-/// use aparecium::{*, functions::array};
+/// use umbriel::{*, functions::array};
 /// array::pop!(vec![1, 2, 3]);
 /// array::pop!(&[1, 2, 3]);
 /// # let own_goals_field = Field::new("own_goals_field");
@@ -1187,7 +1187,7 @@ pub fn prepend_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -> Fun
 ///
 /// # Examples
 /// ```rust
-/// use aparecium::{*, functions::array};
+/// use umbriel::{*, functions::array};
 /// array::prepend!(vec![1, 2, 3], 4);
 /// array::prepend!(&[1, 2, 3], 4);
 /// # let own_goals_field = Field::new("own_goals_field");
@@ -1229,7 +1229,7 @@ pub fn push_fn(arr: impl Into<ArrayLike>, value: impl Into<ValueLike>) -> Functi
 ///
 /// # Examples
 /// ```rust
-/// use aparecium::{*, functions::array};
+/// use umbriel::{*, functions::array};
 /// array::push!(vec![1, 2, 3], 4);
 /// array::push!(&[1, 2, 3], 4);
 /// # let own_goals_field = Field::new("own_goals_field");
@@ -1272,7 +1272,7 @@ pub fn remove_fn(arr: impl Into<ArrayLike>, number: impl Into<ValueLike>) -> Fun
 ///
 /// # Examples
 /// ```rust
-/// use aparecium::{*, functions::array};
+/// use umbriel::{*, functions::array};
 /// array::remove!(vec![1, 2, 3, 4, 5], 2);
 /// array::remove!(&[1, 2, 3, 4, 5], 2);
 /// # let own_goals_field = Field::new("own_goals_field");
@@ -1312,7 +1312,7 @@ pub fn reverse_fn(arr: impl Into<ArrayLike>) -> Function {
 ///
 /// # Examples
 /// ```rust
-/// use aparecium::{*, functions::array};
+/// use umbriel::{*, functions::array};
 /// array::reverse!(vec![1, 2, 3, 4, 5]);
 /// array::reverse!(&[1, 2, 3, 4, 5]);
 /// # let own_goals_field = Field::new("own_goals_field");
@@ -1365,7 +1365,7 @@ pub fn sort_fn(arr: impl Into<ArrayLike>, ordering: Ordering) -> Function {
 /// * `ordering` -  The ordering of the array.
 /// # Examples
 /// ```rust
-/// use aparecium::{*, functions::array};
+/// use umbriel::{*, functions::array};
 /// let own_goals = Field::new("own_goals");
 /// let goals = Param::new("goals");
 ///
@@ -1410,7 +1410,7 @@ pub mod sort {
     /// * `arr` -  A vector, field or param.
     /// # Examples
     /// ```rust
-    /// use aparecium::{*, functions::array};
+    /// use umbriel::{*, functions::array};
     /// let own_goals = Field::new("own_goals");
     /// let goals = Param::new("goals");
     /// array::sort::asc!(vec![1, 2, 3]);
@@ -1440,7 +1440,7 @@ pub mod sort {
     /// * `arr` -  A vector, field or param.
     /// # Examples
     /// ```rust
-    /// use aparecium::{*, functions::array};
+    /// use umbriel::{*, functions::array};
     /// let own_goals = Field::new("own_goals");
     /// let goals = Param::new("goals");
     /// array::sort::desc!(vec![1, 2, 3]);
@@ -1470,7 +1470,7 @@ pub mod sort {
 /// * `len` -  length of the slice.
 /// # Examples
 /// ```rust
-/// use aparecium::{*, functions::array};
+/// use umbriel::{*, functions::array};
 /// let own_goals = Field::new("own_goals");
 /// let goals = Param::new("goals");
 /// array::slice!(vec![1, 2, 3, 4, 5], 2, 4);
@@ -1502,7 +1502,7 @@ pub fn slice_fn(
 /// * `len` -  length of the slice.
 /// # Examples
 /// ```rust
-/// use aparecium::{*, functions::array};
+/// use umbriel::{*, functions::array};
 /// let own_goals = Field::new("own_goals");
 /// let goals = Param::new("goals");
 /// array::slice!(vec![1, 2, 3, 4, 5], 2, 4);
@@ -1538,7 +1538,7 @@ pub fn join_fn(arr: impl Into<ArrayLike>, separator: impl Into<ValueLike>) -> Fu
 /// * `separator` -  The separator of the array.
 /// # Examples
 /// ```rust
-/// use aparecium::{*, functions::array};
+/// use umbriel::{*, functions::array};
 /// let own_goals = Field::new("own_goals");
 /// let goals = Param::new("goals");
 /// array::join!(vec![1, 2, 3, 4, 5], ",");

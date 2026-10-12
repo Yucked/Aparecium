@@ -8,8 +8,8 @@ use geo::MultiPolygon;
 use geo::Point;
 use geo::Polygon;
 
-use aparecium::Buildable;
-use aparecium::{
+use umbriel::Buildable;
+use umbriel::{
     All, Model, Node, Object, Operatable, ReturnableSelect, ReturnableStandard, SchemaGetter,
     SurrealId, SurrealSimpleId, ToRaw,
     statements::{insert, select},

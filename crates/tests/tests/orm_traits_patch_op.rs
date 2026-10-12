@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::*;
-    use aparecium::*;
+    use umbriel::*;
+    use umbriel::*;
 
     #[test]
     fn can_build_patch_operation() {
@@ -59,7 +59,7 @@ mod tests {
         get_invalid_paths(Field::new("-something"));
         get_invalid_paths(Field::new("name->writes->book"));
         get_invalid_paths(Field::new("->writes->book"));
-        get_invalid_paths(Field::new("user:oye->write->blog:mars"));
+        get_invalid_paths(Field::new("user:cha->write->blog:mars"));
         get_invalid_paths(Field::new(
             "->knows->person->(knows WHERE influencer = true)",
         ));

@@ -2,7 +2,7 @@
 mod tests {
     use surrealdb::sql;
 
-    use aparecium::{functions::math, *};
+    use umbriel::{functions::math, *};
 
     #[test]
     fn test_heterogeonous_array_values() {

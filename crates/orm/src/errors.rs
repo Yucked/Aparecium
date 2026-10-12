@@ -1,7 +1,7 @@
 
 use thiserror::Error;
 
-/// Errors returned by Aparecium.
+/// Errors returned by Umbriel.
 #[derive(Error, Debug)]
 #[non_exhaustive]
 pub enum Error {
@@ -47,5 +47,5 @@ impl From<crate::migrations::MigrationError> for Error {
     }
 }
 
-/// The result type returned by Aparecium.
+/// The result type returned by Umbriel.
 pub type Result<T, E = Error> = std::result::Result<T, E>;

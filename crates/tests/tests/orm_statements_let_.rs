@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::{All, Table, ToRaw, statements::select};
+    use umbriel::{All, Table, ToRaw, statements::select};
 
-    use aparecium::{statements::*, *};
+    use umbriel::{statements::*, *};
 
     #[test]
     fn test_let_statement() {

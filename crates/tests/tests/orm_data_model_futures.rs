@@ -2,8 +2,8 @@ macro_rules! create_cast_function_tests {
     ($(#[$attr:meta])* => $function_name: expr) => {
         paste::paste! {
             mod [<test_ $function_name>] {
-                use aparecium::*;
-                use aparecium::*;
+                use umbriel::*;
+                use umbriel::*;
 
                 #[test]
                 fn [<test_ $function_name _cast_function >] () {
@@ -15,7 +15,7 @@ macro_rules! create_cast_function_tests {
 
                 #[test]
                 fn [<test_ $function_name _cast_function_with_field >] () {
-                    let value = aparecium::Field::new("test");
+                    let value = umbriel::Field::new("test");
                     let casted_value = [<$function_name>](value.clone());
                     assert_eq!(casted_value.fine_tune_params(), format!("<{}> {{ test }}", $function_name));
                     assert_eq!(casted_value.to_raw().build(), format!("<{}> {{ test }}", $function_name));
@@ -23,7 +23,7 @@ macro_rules! create_cast_function_tests {
 
                 #[test]
                 fn [<test_ $function_name _cast_function_with_param >] () {
-                    let value = aparecium::Param::new("test");
+                    let value = umbriel::Param::new("test");
                     let casted_value = [<$function_name>](value.clone());
                     assert_eq!(casted_value.fine_tune_params(), format!("<{}> {{ $test }}", $function_name));
                     assert_eq!(casted_value.to_raw().build(), format!("<{}> {{ $test }}", $function_name));

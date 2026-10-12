@@ -24,7 +24,7 @@ mod tests {
         derive_input.to_tokens(&mut tokens);
 
         let expected = quote! {
-            impl aparecium::TableResources for TableMigrationSchema {}
+            impl umbriel::TableResources for TableMigrationSchema {}
         };
 
         assert_eq!(tokens.to_string(), expected.to_string());

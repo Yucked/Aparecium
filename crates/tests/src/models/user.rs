@@ -1,4 +1,4 @@
-use aparecium::{Edge, LinkMany, LinkOne, Model, Node, Object, Relate, SurrealId, SurrealSimpleId};
+use umbriel::{Edge, LinkMany, LinkOne, Model, Node, Object, Relate, SurrealId, SurrealSimpleId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use surrealdb::sql;
@@ -43,7 +43,7 @@ pub struct Like<In: Node, Out: Node> {
 }
 pub type CompanyLikeUser = Like<Company, User>;
 
-#[derive(aparecium::Node, Serialize, Deserialize, Debug, Clone, Default)]
+#[derive(umbriel::Node, Serialize, Deserialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 #[orm(table = company)]
 pub struct Company {

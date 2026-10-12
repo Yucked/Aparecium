@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::{All, NULL, Table, ToRaw, statements::select};
+    use umbriel::{All, NULL, Table, ToRaw, statements::select};
 
-    use aparecium::*;
+    use umbriel::*;
 
     #[test]
     fn expression_from_select_statement() {

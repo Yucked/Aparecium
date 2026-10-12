@@ -1,5 +1,5 @@
 
-use aparecium::{Model, Node, SurrealId, sql};
+use umbriel::{Model, Node, SurrealId, sql};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 

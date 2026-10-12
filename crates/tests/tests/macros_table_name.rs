@@ -9,7 +9,7 @@ mod helpers;
 #[path = "../../macros/src/models/mod.rs"]
 mod models;
 
-use aparecium::assert_not;
+use umbriel::assert_not;
 use darling::FromDeriveInput;
 use models::NodeToken;
 use quote::{ToTokens, format_ident, quote};

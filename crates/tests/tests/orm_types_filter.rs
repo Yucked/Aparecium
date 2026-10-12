@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::{Field, Operatable, ToRaw, cond};
+    use umbriel::{Field, Operatable, ToRaw, cond};
 
-    use aparecium::*;
+    use umbriel::*;
 
     #[test]
     fn test_filter_simple() {

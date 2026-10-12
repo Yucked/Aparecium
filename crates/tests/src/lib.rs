@@ -1,5 +1,5 @@
 
-// pub mod aparecium {
+// pub mod umbriel {
 //     pub use surreal_derive::*;
 //     pub use surreal_query_builder::*;
 // }
@@ -22,7 +22,7 @@ pub use models::weapon::*;
 pub use models::with_generics::*;
 // pub use models::*;
 
-// use aparecium::{
+// use umbriel::{
 //     serde::{Deserialize, Serialize},
 //     Node, SurrealId,
 // };

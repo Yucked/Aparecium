@@ -39,7 +39,7 @@ create_function!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::session};
+    /// use umbriel::{*, functions::session};
     ///
     /// session::db!();
     /// ```
@@ -52,7 +52,7 @@ create_function!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::session};
+    /// use umbriel::{*, functions::session};
     ///
     /// session::id!();
     /// ```
@@ -65,7 +65,7 @@ create_function!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::session};
+    /// use umbriel::{*, functions::session};
     ///
     /// session::ip!();
     /// ```
@@ -78,7 +78,7 @@ create_function!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::session};
+    /// use umbriel::{*, functions::session};
     ///
     /// session::ns!();
     /// ```
@@ -91,7 +91,7 @@ create_function!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::session};
+    /// use umbriel::{*, functions::session};
     ///
     /// session::origin!();
     /// ```
@@ -104,7 +104,7 @@ create_function!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::session};
+    /// use umbriel::{*, functions::session};
     ///
     /// session::sc!();
     /// ```

@@ -46,7 +46,7 @@ pub fn area_fn(geometry: impl Into<GeometryLike>) -> Function {
 /// # Example
 ///
 /// ```rust
-/// use aparecium::{*, functions::geo};
+/// use umbriel::{*, functions::geo};
 /// use ::geo::{polygon};
 /// let polygon = polygon!(
 ///     exterior: [
@@ -97,7 +97,7 @@ pub fn bearing_fn(point1: impl Into<GeometryLike>, point2: impl Into<GeometryLik
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::geo};
+/// use umbriel::{*, functions::geo};
 /// use ::geo::point;
 /// let point1 = point! {
 ///     x: 40.02f64,
@@ -139,7 +139,7 @@ pub fn centroid_fn(geometry: impl Into<GeometryLike>) -> Function {
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::geo};
+/// use umbriel::{*, functions::geo};
 /// use ::geo::polygon;
 /// let polygon = polygon!(
 ///    exterior: [
@@ -188,7 +188,7 @@ pub fn distance_fn(point1: impl Into<GeometryLike>, point2: impl Into<GeometryLi
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::geo};
+/// use umbriel::{*, functions::geo};
 /// use ::geo::point;
 /// let point1 = point! {
 ///    x: 40.02f64,
@@ -236,7 +236,7 @@ pub mod hash {
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::geo};
+    /// use umbriel::{*, functions::geo};
     /// let geohash = "u4pruydqqvj";
     /// let result = geo::hash::decode!(geohash);
     /// assert_eq!(result.to_debug_sql(), "geo::hash::decode('u4pruydqqvj')");
@@ -274,7 +274,7 @@ pub mod hash {
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::geo};
+    /// use umbriel::{*, functions::geo};
     /// use ::geo::point;
     /// let point = point! {
     ///   x: 40.02f64,

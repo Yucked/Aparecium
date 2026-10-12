@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::{SchemaGetter, SetterArray};
-    use aparecium_tests::*;
+    use umbriel::{SchemaGetter, SetterArray};
+    use umbriel_tests::*;
 
     #[test]
     fn test_auto_inference() {

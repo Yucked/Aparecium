@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::*;
+    use umbriel::*;
 
     #[test]
     fn test_token_type_display() {

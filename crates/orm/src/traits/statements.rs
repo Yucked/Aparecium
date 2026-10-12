@@ -11,7 +11,7 @@ use surrealdb::{Connection, Surreal, types::SurrealValue};
 #[diagnostic::on_unimplemented(
     message = "`{Self}` cannot be executed",
     label = "not a runnable statement",
-    note = "only complete statements can run; build one with `aparecium::statements`"
+    note = "only complete statements can run; build one with `umbriel::statements`"
 )]
 pub trait Runnable
 where

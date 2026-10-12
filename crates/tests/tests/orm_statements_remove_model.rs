@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::{Buildable, Field, Param, ToRaw};
-    use aparecium::{statements::*, *};
+    use umbriel::{Buildable, Field, Param, ToRaw};
+    use umbriel::{statements::*, *};
     use pretty_assertions::assert_eq;
 
     #[test]

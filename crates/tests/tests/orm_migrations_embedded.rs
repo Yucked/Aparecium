@@ -1,4 +1,4 @@
-use aparecium::migrations::{
+use umbriel::migrations::{
     self, DatabaseConnection, EmbeddedMigrationsTwoWay, FileMetadataStatic, Migration,
     MigrationError, Mode, UpdateStrategy, embed_migrations,
 };

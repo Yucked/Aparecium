@@ -1,9 +1,9 @@
 
-use aparecium::{
+use umbriel::{
     statements::{delete, insert},
     *,
 };
-use aparecium_tests::{Weapon, weapon};
+use umbriel_tests::{Weapon, weapon};
 use pretty_assertions::assert_eq;
 use surrealdb::{
     Surreal,

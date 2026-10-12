@@ -1,8 +1,8 @@
 
-use aparecium::{
+use umbriel::{
     All, AllGetter, Buildable, Last, Operatable, SchemaGetter, ToRaw, index, this, where_,
 };
-use aparecium_tests::Alien;
+use umbriel_tests::Alien;
 use pretty_assertions::assert_eq;
 
 #[test]

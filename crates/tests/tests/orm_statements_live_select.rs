@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::{All, Buildable, Table, statements::select};
-    use aparecium::{statements::*, *};
+    use umbriel::{All, Buildable, Table, statements::select};
+    use umbriel::{statements::*, *};
 
     #[test]
     fn test_live_select_build() {

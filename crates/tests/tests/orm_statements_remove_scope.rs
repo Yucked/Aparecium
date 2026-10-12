@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::{statements::*, *};
+    use umbriel::{statements::*, *};
     use pretty_assertions::assert_eq;
 
     #[test]

@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::{Buildable, Field, NumberLike, ToRaw, arr};
+    use umbriel::{Buildable, Field, NumberLike, ToRaw, arr};
 
-    use aparecium::functions::rand;
+    use umbriel::functions::rand;
 
     #[test]
     fn test_rand_fn() {
@@ -160,12 +160,12 @@ macro_rules! create_test_for_fn_with_two_args_tests {
     ($function_ident: expr) => {
         paste::paste! {
             mod [<test_ $function_ident _fn>] {
-                use aparecium::*;
-                use aparecium::functions::rand;
+                use umbriel::*;
+                use umbriel::functions::rand;
 
                 #[test]
                 fn [<test_rand_ $function_ident _function_empty>]() {
-                    let result = rand::[< $function_ident _fn>](None as Option<aparecium::NumberLike>, None as Option<aparecium::NumberLike>);
+                    let result = rand::[< $function_ident _fn>](None as Option<umbriel::NumberLike>, None as Option<umbriel::NumberLike>);
                     assert_eq!(result.fine_tune_params(), format!("rand::{}()", $function_ident));
                     assert_eq!(result.to_raw().build(), format!("rand::{}()", $function_ident));
                 }

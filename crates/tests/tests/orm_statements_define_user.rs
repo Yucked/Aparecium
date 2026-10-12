@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::{ToRaw, User};
+    use umbriel::{ToRaw, User};
 
-    use aparecium::{statements::*, *};
+    use umbriel::{statements::*, *};
 
     #[test]
     fn test_define_user_statement_with_passhash_and_role() {

@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::Buildable;
-    use aparecium::{statements::*, *};
+    use umbriel::Buildable;
+    use umbriel::{statements::*, *};
 
     #[test]
     fn test_continue_stmt_build() {

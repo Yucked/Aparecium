@@ -1,3 +1,3 @@
 fn main() {
-    let _query = aparecium::query_raw!("SELECT name, email FROM user WHERE age > 18");
+    let _query = umbriel::query_raw!("SELECT name, email FROM user WHERE age > 18");
 }

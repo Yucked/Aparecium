@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::{Buildable, ToRaw};
-    use aparecium::{statements::*, *};
+    use umbriel::{Buildable, ToRaw};
+    use umbriel::{statements::*, *};
 
     #[test]
     fn test_show_changes_for_table_build() {

@@ -1,6 +1,6 @@
 
-use aparecium::migrations::{FastForwardDelta, Mode};
-use aparecium_tests::migrator_support::{AssertionArg, TestConfig, current_function};
+use umbriel::migrations::{FastForwardDelta, Mode};
+use umbriel_tests::migrator_support::{AssertionArg, TestConfig, current_function};
 use tempfile::tempdir;
 use test_case::test_case;
 

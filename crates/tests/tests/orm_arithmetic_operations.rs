@@ -1,6 +1,6 @@
 
-use aparecium::*;
-use aparecium_tests::{Rocket, rocket};
+use umbriel::*;
+use umbriel_tests::{Rocket, rocket};
 use pretty_assertions::assert_eq;
 
 #[test]

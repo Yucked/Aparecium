@@ -1,4 +1,4 @@
-use aparecium::migrations::{self, embed_migrations};
+use umbriel::migrations::{self, embed_migrations};
 
 const _IGRATIONS_ONEWAY: migrations::EmbeddedMigrationsOneWay =
     embed_migrations!("tests/migrator-oneway");

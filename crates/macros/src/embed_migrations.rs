@@ -13,7 +13,7 @@ const DEFAULT_DIR: &str = "migrations";
 /// Expands `embed_migrations!()` or `embed_migrations!("path")`.
 ///
 /// Only lists the directory and includes each file; parsing, pairing and validation of the
-/// filenames happen in `aparecium::migrations::EmbeddedMigrations`. `include_str!` makes edits
+/// filenames happen in `umbriel::migrations::EmbeddedMigrations`. `include_str!` makes edits
 /// rebuild the consumer; newly added files need `cargo::rerun-if-changed` in a build script.
 pub fn generate_embedded_migrations(input: TokenStream) -> TokenStream {
     match expand(input) {

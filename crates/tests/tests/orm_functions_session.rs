@@ -2,8 +2,8 @@ macro_rules! create_function_tests {
     ($(#[$attr:meta])* => $function_name: expr) => {
         paste::paste! {
             mod [<test_ $function_name>] {
-                use aparecium::*;
-                use aparecium::functions::session;
+                use umbriel::*;
+                use umbriel::functions::session;
 
                 #[test]
                 fn [<test_ $function_name _fn>]() {

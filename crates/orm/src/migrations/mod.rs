@@ -9,4 +9,4 @@ pub use database::*;
 pub use error::*;
 pub use resources::*;
 
-pub use aparecium_macros::embed_migrations;
+pub use umbriel_macros::embed_migrations;

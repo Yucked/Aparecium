@@ -18,7 +18,7 @@ Also aliased as `meta_id!`
 
 # Example
 ```rust
-use aparecium::{*, functions::meta, statements::let_, types::RecordId};
+use umbriel::{*, functions::meta, statements::let_, types::RecordId};
 
 let record_id = RecordId::new("person", "alice");
 let result = meta::id!(record_id);
@@ -56,7 +56,7 @@ Also aliased as `meta_tb!`
 
 # Example
 ```rust
-use aparecium::{*, functions::meta, statements::let_, types::RecordId};
+use umbriel::{*, functions::meta, statements::let_, types::RecordId};
 
 let record_id = RecordId::new("person", "alice");
 let result = meta::tb!(record_id);

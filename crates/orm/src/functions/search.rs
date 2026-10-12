@@ -44,7 +44,7 @@ create_fn_with_single_search_arg!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::search};
+    /// use umbriel::{*, functions::search};
     ///
     /// let title = Field::new("title");
     /// let result = search::score!(title);
@@ -63,7 +63,7 @@ create_fn_with_single_search_arg!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::search};
+    /// use umbriel::{*, functions::search};
     ///
     /// let title = Field::new("title");
     /// let result = search::offsets!(title);
@@ -97,7 +97,7 @@ pub fn highlight_fn(
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, functions::search};
+/// use umbriel::{*, functions::search};
 /// let result = search::highlight!("<b>", "</b>", 1);
 /// assert_eq!(result.to_debug_sql(), "search::highlight('<b>', '</b>', 1)");
 /// ```

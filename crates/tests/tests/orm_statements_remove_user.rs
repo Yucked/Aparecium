@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test {
-    use aparecium::{statements::*, *};
+    use umbriel::{statements::*, *};
 
     #[test]
     fn remove_user_on_namespace() {

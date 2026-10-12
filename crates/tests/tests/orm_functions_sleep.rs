@@ -2,8 +2,8 @@
 mod tests {
     use std::time;
 
-    use aparecium::*;
-    use aparecium::{functions::sleep::*, *};
+    use umbriel::*;
+    use umbriel::{functions::sleep::*, *};
 
     #[test]
     fn test_sleep_fn_with_field_data() {

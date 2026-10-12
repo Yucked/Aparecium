@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::functions::time;
-    use aparecium::*;
+    use umbriel::functions::time;
+    use umbriel::*;
 
     #[test]
     fn test_floor_macro_with_datetime_field() {
@@ -152,13 +152,13 @@ macro_rules! create_time_fn_with_single_datetime_arg_tests {
     ($(#[$attr:meta])* => $function_name: expr) => {
         paste::paste! {
             mod [<test_ $function_name _fn>] {
-                use aparecium::*;
-                use aparecium::functions::time;
+                use umbriel::*;
+                use umbriel::functions::time;
 
 
                 #[test]
                 fn [<test_ $function_name _fn_with_datetime_field>]() {
-                    let rebirth_date = aparecium::Field::new("rebirth_date");
+                    let rebirth_date = umbriel::Field::new("rebirth_date");
                     let result = time::[<$function_name>]!(rebirth_date);
 
                     assert_eq!(result.fine_tune_params(), format!("time::{}(rebirth_date)", $function_name));
@@ -229,13 +229,13 @@ macro_rules! create_time_fn_with_single_array_of_datetime_arg_tests {
     ($(#[$attr:meta])* => $function_name: expr) => {
         paste::paste! {
             mod [<test_ $function_name _fn>] {
-                use aparecium::*;
-                use aparecium::functions::time;
+                use umbriel::*;
+                use umbriel::functions::time;
 
 
                 #[test]
                 fn [<test_ $function_name _fn_with_datetime_field>]() {
-                    let rebirth_date = aparecium::Field::new("rebirth_date");
+                    let rebirth_date = umbriel::Field::new("rebirth_date");
                     let result = time::[<$function_name>]!(rebirth_date);
 
                     assert_eq!(result.fine_tune_params(), format!("time::{}(rebirth_date)", $function_name));
@@ -245,7 +245,7 @@ macro_rules! create_time_fn_with_single_array_of_datetime_arg_tests {
                 #[test]
                 fn [<test_ $function_name _fn_with_plain_datetime>]() {
                     let dt = chrono::DateTime::from_timestamp(61, 0).unwrap();
-                    let dt2 = aparecium::Param::new("dt2");
+                    let dt2 = umbriel::Param::new("dt2");
                     let result = time::[<$function_name>]!(arr![dt, dt2]);
                     assert_eq!(result.fine_tune_params(), format!("time::{}([$_param_00000001, $dt2])", $function_name));
                     assert_eq!(
@@ -272,13 +272,13 @@ macro_rules! create_time_fn_with_single_number_arg_tests {
     ($(#[$attr:meta])* => $function_name: expr, $function_path: expr) => {
         paste::paste! {
             mod [<test_ $function_name _fn>] {
-                use aparecium::*;
-                use aparecium::functions::time;
+                use umbriel::*;
+                use umbriel::functions::time;
 
 
                 #[test]
                 fn [<test_ $function_name _fn_with_number_field>]() {
-                    let rebirth_date = aparecium::Field::new("rebirth_date");
+                    let rebirth_date = umbriel::Field::new("rebirth_date");
                     let result = time::from::[<$function_name>]!(rebirth_date);
 
                     assert_eq!(result.fine_tune_params(), format!("time::{}(rebirth_date)", $function_path));
@@ -287,7 +287,7 @@ macro_rules! create_time_fn_with_single_number_arg_tests {
 
                 #[test]
                 fn [<test_ $function_name _fn_with_plain_number>]() {
-                    let number = aparecium::Param::new("number");
+                    let number = umbriel::Param::new("number");
                     let result = time::from::[<$function_name>]!(number);
                     assert_eq!(result.fine_tune_params(), format!("time::{}($number)", $function_path));
                     assert_eq!(
