@@ -201,12 +201,12 @@ pub fn for_loop_without_for_keyword(input: TokenStream) -> TokenStream {
 ///
 /// A helper function to create a for loop
 /// ```rust, ignore
-/// use aparecium::{*, statements::{for_, select, select_value}};
+/// use umbriel::{*, statements::{for_, select, select_value}};
 ///
 /// let ref person_table = Table::from("person");
 /// let ref user_name = Field::from("user_name");
 ///
-/// for_!(name in vec!["Oyelowo", "Oyedayo"] {
+/// for_!(name in vec!["Charlie", "Bennett"] {
 ///    select(All).from(person_table).where_(user_name.eq(name));
 ///    select(All).from(person_table).where_(user_name.eq(name));
 ///
