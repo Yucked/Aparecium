@@ -6,7 +6,7 @@ use std::{
 };
 
 use crate::helpers::get_crate_name;
-use convert_case::{Case, Casing};
+use heck::ToUpperCamelCase;
 use proc_macro2::TokenStream;
 use quote::{ToTokens, format_ident, quote};
 
@@ -178,7 +178,7 @@ impl Codegen<'_> {
         edge_table: &EdgeTableName,
         edge_direction: &EdgeDirection,
     ) -> EdgeWithDunderDirectionIndicator {
-        let edge_table = edge_table.to_string().to_case(Case::Title);
+        let edge_table = edge_table.to_string().to_upper_camel_case();
         let edge = match edge_direction {
             EdgeDirection::Out => format_ident!("{edge_table}__"),
             EdgeDirection::In => format_ident!("__{edge_table}"),
@@ -265,7 +265,7 @@ impl EdgeTableNameStr {
     }
 
     fn as_pascal_case(&self) -> EdgeTableNameStr {
-        EdgeTableNameStr(self.to_string().to_case(Case::Pascal))
+        EdgeTableNameStr(self.to_string().to_upper_camel_case())
     }
 }
 
@@ -300,7 +300,7 @@ impl ForeignNodeSchemaIdent {
     /// represents the schema but aliased as the pascal case of the destination table name
     pub fn from_node_table(node_table: &NodeTableName) -> Self {
         let node_table = node_table.to_string();
-        let node_table = format_ident!("{}", node_table.to_case(Case::Pascal));
+        let node_table = format_ident!("{}", node_table.to_upper_camel_case());
         Self(node_table)
     }
 }
@@ -536,8 +536,8 @@ impl ToTokens for NodeEdgeMetadata<'_> {
                 }
 
                 impl #edge_type_impl_generics #crate_name::Render for #edge_name_as_struct_with_direction_ident #edge_type_ty_generics #edge_type_where_clause {
-                    fn render(&self, sql: &mut #crate_name::Sql) {
-                        #crate_name::Render::render(&self.0, sql);
+                    fn render(&self, out: &mut #crate_name::Renderer) {
+                        #crate_name::Render::render(&self.0, out);
                     }
                 }
 
