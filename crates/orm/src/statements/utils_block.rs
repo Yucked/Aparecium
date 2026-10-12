@@ -1,5 +1,5 @@
 
-use crate::{QueryChain, Queryable, Render, Sql, ValueLike};
+use crate::{Fragment, QueryChain, Queryable, Render, Renderer, ValueLike};
 
 #[macro_export]
 /// Macro for creating a surrealdb code block
@@ -7,7 +7,7 @@ use crate::{QueryChain, Queryable, Render, Sql, ValueLike};
 /// ```rust
 /// // Use to create a return blocked that can be passed as a value in a statement.
 ///
-/// use aparecium::{*, statements::*, functions::*};
+/// use umbriel::{*, statements::*, functions::*};
 /// # let alien = Table::new("alien");
 /// # let metrics = Table::new("metrics");
 /// # let strength = Field::new("strength");
@@ -434,7 +434,7 @@ macro_rules! block_deprecated_inner {
 /// A code block. Surrounds the code with curly braces.
 /// # Examples
 /// ```
-/// use aparecium::{*, statements::*, functions::*};
+/// use umbriel::{*, statements::*, functions::*};
 ///
 /// let sales = Table::new("sales");
 /// let metrics = Table::new("metrics");
@@ -468,8 +468,8 @@ pub fn block(code: QueryChain) -> Block {
 pub struct Block(QueryChain);
 
 impl Render for Block {
-    fn render(&self, sql: &mut Sql) {
-        sql.push_str("{\n").push(&self.0).push_str("\n}");
+    fn render(&self, out: &mut Renderer) {
+        out.push_str("{\n").push(&self.0).push_str("\n}");
     }
 }
 
@@ -485,4 +485,8 @@ impl From<Block> for ValueLike {
     }
 }
 
-impl Queryable for Block {}
+impl Queryable for Block {
+    fn into_fragment(self) -> Fragment {
+        Fragment::new(self)
+    }
+}
