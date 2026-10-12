@@ -1,6 +1,6 @@
 use surrealdb::types::Table;
 
-use crate::{Scope, Sql};
+use crate::{Scope, Renderer};
 
 use super::{Statement, impl_statement};
 
@@ -8,7 +8,7 @@ use super::{Statement, impl_statement};
 ///
 /// Examples
 /// ```rust
-/// use aparecium::{*, statements::info_for};
+/// use umbriel::{*, statements::info_for};
 /// assert_eq!(info_for().kv().to_debug_sql(), "INFO FOR KV;");
 /// ```
 pub fn info_for() -> InfoStatementInit {
@@ -51,7 +51,7 @@ impl InfoStatementInit {
     /// The SCOPE command returns information regarding the tokens configured under a specific Scope.
     ///
     /// ```rust
-    /// use aparecium::{*, statements::info_for};
+    /// use umbriel::{*, statements::info_for};
     /// assert_eq!(info_for().scope("test_scope").to_debug_sql(), "INFO FOR SCOPE test_scope;");
     /// ```
     pub fn scope(self, scope: impl Into<Scope>) -> InfoStatement {
@@ -62,7 +62,7 @@ impl InfoStatementInit {
     /// The TABLE command returns information regarding the events, fields, indexes, and foreign table configurations on a specific Table.
     ///
     /// ```rust
-    /// use aparecium::{*, statements::info_for};
+    /// use umbriel::{*, statements::info_for};
     /// assert_eq!(info_for().table("test_table").to_debug_sql(), "INFO FOR TABLE test_table;");
     /// ```
     pub fn table(self, table: impl Into<Table>) -> InfoStatement {
@@ -74,22 +74,22 @@ impl InfoStatementInit {
 pub struct InfoStatement(InfoLevel);
 
 impl Statement for InfoStatement {
-    fn render_body(&self, sql: &mut Sql) {
+    fn render_body(&self, out: &mut Renderer) {
         match &self.0 {
             InfoLevel::Kv => {
-                sql.push_str("INFO FOR KV");
+                out.push_str("INFO FOR KV");
             }
             InfoLevel::Namespace => {
-                sql.push_str("INFO FOR NS");
+                out.push_str("INFO FOR NS");
             }
             InfoLevel::Database => {
-                sql.push_str("INFO FOR DB");
+                out.push_str("INFO FOR DB");
             }
             InfoLevel::Scope(scope) => {
-                sql.push_str("INFO FOR SCOPE ").push(scope);
+                out.push_str("INFO FOR SCOPE ").push(scope);
             }
             InfoLevel::Table(table) => {
-                sql.push_str("INFO FOR TABLE ").push(table);
+                out.push_str("INFO FOR TABLE ").push(table);
             }
         }
     }
