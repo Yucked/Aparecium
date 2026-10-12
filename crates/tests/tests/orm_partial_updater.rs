@@ -1,5 +1,5 @@
-use aparecium::PartialUpdater;
-use aparecium_tests::{Rocket, Weapon};
+use umbriel::PartialUpdater;
+use umbriel_tests::{Rocket, Weapon};
 
 // type Lala<'a, T> = <Weapon<'a, T> as PartialUpdater>::StructPartial;
 
@@ -9,7 +9,7 @@ fn main() {
         .name("Ye".into())
         .build();
     let x = Weapon::partial_builder()
-        .name("Oyelowo".into())
+        .name("Charlie".into())
         .strength(45.0)
         .rocket(rocket)
         .build();
