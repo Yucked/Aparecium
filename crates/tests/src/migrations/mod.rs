@@ -1,7 +1,7 @@
 
 use std::ops::Deref;
 
-use aparecium::{
+use umbriel::{
     SurrealCrudNode, arr, cond, create_table_resources,
     functions::crypto,
     statements::{
@@ -88,15 +88,15 @@ impl DbResources for Resources {
                 .session(std::time::Duration::from_secs(60 * 60 * 24 * 30))
                 .signup(
                     UserCredentials {
-                        id: UserCredentials::create_id("oyelowo".to_string()),
-                        email: "oyelowo.oss@gmail.com".into(),
+                        id: UserCredentials::create_id("charlie".to_string()),
+
                         password_hash: "1234".into(),
                     }
                     .create(),
                 )
                 .signin(
                     select(All).from(UserCredentials::table()).where_(
-                        cond(email.equal("oyelowo@codebreather.com"))
+                        cond(email.equal("charlie@example.com"))
                             .and(crypto::argon2::compare!(pass_input, passwordHash.deref())),
                     ),
                 )
@@ -106,7 +106,7 @@ impl DbResources for Resources {
     }
 
     fn tokens(&self) -> Vec<Raw> {
-        let token1 = define_token("oyelowo_token")
+        let token1 = define_token("charlie_token")
             .on_namespace()
             .type_(TokenType::PS512)
             .value("abrakradabra");
@@ -116,7 +116,7 @@ impl DbResources for Resources {
             .type_(TokenType::EDDSA)
             .value("abrakradabra");
 
-        let token3 = define_token("oyedayo_token")
+        let token3 = define_token("bennett_token")
             .on_scope("regional")
             .type_(TokenType::HS256)
             .value("abrakradabra");
@@ -125,13 +125,13 @@ impl DbResources for Resources {
     }
 
     fn users(&self) -> Vec<Raw> {
-        let user1 = define_user("oyelowo")
+        let user1 = define_user("charlie")
             .on_database()
             .passhash("$argon2id$v=19$m=19456,t=2,p=1$u1CPdtdC0Ek5GE1gvidj/g$fjFa7PZM+4hp4hlUJN1fz/FaDAf7KY1Qu48F5m5P0V8")
             .role(UserRole::Owner)
             .to_raw();
 
-        let user2 = define_user("oyedayo")
+        let user2 = define_user("bennett")
             .on_namespace()
             .passhash("$argon2id$v=19$m=19456,t=2,p=1$u1CPdtdC0Ek5GE1gvidj/g$fjFa7PZM+4hp4hlUJN1fz/FaDAf7KY1Qu48F5m5P0V8")
             .role(UserRole::Editor)
