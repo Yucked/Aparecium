@@ -1,9 +1,9 @@
 
-use aparecium::{
+use umbriel::{
     statements::{create, insert, select, update},
     *,
 };
-use aparecium_tests::{Alien, Rocket, SpaceShip, Weapon, WeaponOld, alien, weapon, weapon_old};
+use umbriel_tests::{Alien, Rocket, SpaceShip, Weapon, WeaponOld, alien, weapon, weapon_old};
 use chrono::Utc;
 use geo::{line_string, point, polygon};
 use pretty_assertions::assert_eq;
@@ -178,7 +178,7 @@ async fn test_increment_and_decrement_update_conditionally() -> SurrealOrmResult
     // generate test aliens
     let generated_aliens = (0..20)
         .map(|i| {
-            let mut unsaved_alien = create_test_alien(i, format!("Oyelowo{}", i));
+            let mut unsaved_alien = create_test_alien(i, format!("Charlie{}", i));
             // Set ally for some
             if i % 2 == 0 {
                 unsaved_alien.ally = LinkSelf::from(unsaved_alien.clone());
@@ -323,9 +323,9 @@ async fn test_add_and_remove_to_array() -> SurrealOrmResult<()> {
     let db = Surreal::new::<Mem>(()).await.unwrap();
     db.use_ns("test").use_db("test").await.unwrap();
 
-    let unsaved_alien = create_test_alien(20, "Oyelowo".into());
+    let unsaved_alien = create_test_alien(20, "Charlie".into());
     let created_alien = create().content(unsaved_alien).get_one(db.clone()).await?;
-    assert_eq!(created_alien.name, "Oyelowo");
+    assert_eq!(created_alien.name, "Charlie");
     assert_eq!(
         created_alien.tags,
         vec!["tag1".to_string(), "tag2".to_string()]
@@ -347,7 +347,7 @@ async fn test_add_and_remove_to_array() -> SurrealOrmResult<()> {
             tags.append("tag3"),
             weapon.equal_to(Weapon::create_id("agi")),
             spaceShips.append(SpaceShip::create_id("cali".into())),
-            spaceShips.append(SpaceShip::create_id("codebreather".into())),
+            spaceShips.append(SpaceShip::create_id("exampleco".into())),
             spaceShips.append(SpaceShip::create_id("blayz".into())),
             spaceShips.append(SpaceShip::create_id("anam".into())),
         ])
@@ -402,7 +402,7 @@ async fn test_add_and_remove_to_array() -> SurrealOrmResult<()> {
             .collect::<Vec<String>>(),
         vec![
             "space_ship:cali",
-            "space_ship:codebreather",
+            "space_ship:exampleco",
             "space_ship:blayz",
             "space_ship:anam",
             "space_ship:anam",
@@ -433,7 +433,7 @@ async fn test_add_and_remove_to_array() -> SurrealOrmResult<()> {
 
     // Try setting
     let updated = update::<Alien>(alien_id)
-        .set(tags.equal_to(vec!["oye".into(), "dayo".into()]))
+        .set(tags.equal_to(vec!["cha".into(), "nett".into()]))
         .return_one(db.clone())
         .await?;
 
@@ -442,8 +442,8 @@ async fn test_add_and_remove_to_array() -> SurrealOrmResult<()> {
         .where_(Alien::schema().id.equal(alien_id.to_owned()))
         .return_one(db.clone())
         .await?;
-    assert_eq!(updated.as_ref().unwrap().tags, vec!["oye", "dayo"]);
-    assert_eq!(selected.as_ref().unwrap().tags, vec!["oye", "dayo"]);
+    assert_eq!(updated.as_ref().unwrap().tags, vec!["cha", "nett"]);
+    assert_eq!(selected.as_ref().unwrap().tags, vec!["cha", "nett"]);
     assert_eq!(updated.as_ref().unwrap().space_ships.len(), 5);
     assert_eq!(
         selected
@@ -455,7 +455,7 @@ async fn test_add_and_remove_to_array() -> SurrealOrmResult<()> {
             .map(|x| x.to_string())
             .collect::<Vec<String>>(),
         vec![
-            "space_ship:codebreather",
+            "space_ship:exampleco",
             "space_ship:blayz",
             "space_ship:anam",
             "space_ship:anam",
@@ -479,7 +479,7 @@ async fn test_update_single_id_content() -> SurrealOrmResult<()> {
     };
     let weapon_to_update = Weapon {
         id: weapon.id.clone(),
-        name: "Oyelowo".to_string(),
+        name: "Charlie".to_string(),
         created: Utc::now(),
         strength: 1000f64,
         ..Default::default()
@@ -509,16 +509,16 @@ async fn test_update_single_id_content() -> SurrealOrmResult<()> {
         .content(weapon_to_update)
         .get_one(db.clone())
         .await?;
-    assert_eq!(updated_weapon.name, "Oyelowo");
+    assert_eq!(updated_weapon.name, "Charlie");
     assert_eq!(updated_weapon.strength, 1000.0);
-    // Id must not be changed to weapon:lowo even if added in the update content
+    // Id must not be changed to weapon:rlie even if added in the update content
     assert_eq!(updated_weapon.id.to_string(), created_weapon.id.to_string());
-    assert_eq!(get_selected_weapon().await.unwrap().name, "Oyelowo");
+    assert_eq!(get_selected_weapon().await.unwrap().name, "Charlie");
     assert_eq!(get_selected_weapon().await.unwrap().strength, 1000.0);
     // Id field must not be updated even if provided to an update statement.
     assert_ne!(
         get_selected_weapon().await.unwrap().id.to_string(),
-        "weapon:lowo"
+        "weapon:rlie"
     );
     Ok(())
 }
@@ -555,7 +555,7 @@ async fn test_update_content_with_filter() -> SurrealOrmResult<()> {
     // Test update with CONTENT keyoword and not using updater
     let update_weapons_with_filter = update::<Weapon>(Weapon::table())
         .content(Weapon {
-            name: "Oyelowo".to_string(),
+            name: "Charlie".to_string(),
             created: Utc::now(),
             // strength is overriden to zero by ..Default::default() because optional fields are
             // not skipped if None
@@ -569,8 +569,8 @@ async fn test_update_content_with_filter() -> SurrealOrmResult<()> {
     assert!(
         update_weapons_with_filter
             .iter()
-            .all(|x| x.name == "Oyelowo"),
-        "All not equals Oyelowo"
+            .all(|x| x.name == "Charlie"),
+        "All not equals Charlie"
     );
     assert!(
         update_weapons_with_filter.iter().all(|x| x.strength == 0.0),
@@ -583,7 +583,7 @@ async fn test_update_content_with_filter() -> SurrealOrmResult<()> {
     // values for Options
     let update_weapons_with_filter = update::<Weapon>(Weapon::table())
         .content(Weapon {
-            name: "Oyelowo".to_string(),
+            name: "Charlie".to_string(),
             created: Utc::now(),
             // strength is overriden to zero by ..Default::default() because optional fields are
             // not skipped if None
@@ -597,8 +597,8 @@ async fn test_update_content_with_filter() -> SurrealOrmResult<()> {
     assert!(
         update_weapons_with_filter
             .iter()
-            .all(|x| x.name == "Oyelowo"),
-        "All not equals Oyelowo"
+            .all(|x| x.name == "Charlie"),
+        "All not equals Charlie"
     );
     assert!(
         update_weapons_with_filter.iter().all(|x| x.strength == 0.0),
@@ -644,7 +644,7 @@ async fn test_update_merge_with_filter() -> SurrealOrmResult<()> {
     let update_weapons_with_filter = update::<Weapon>(Weapon::table())
         .merge(
             Weapon::partial_builder()
-                .name("Oyelowo".into())
+                .name("Charlie".into())
                 .strength(16.0)
                 .rocket(rocket)
                 .build(),
@@ -656,8 +656,8 @@ async fn test_update_merge_with_filter() -> SurrealOrmResult<()> {
     assert!(
         update_weapons_with_filter
             .iter()
-            .all(|x| x.name == "Oyelowo"),
-        "All not equals Oyelowo"
+            .all(|x| x.name == "Charlie"),
+        "All not equals Charlie"
     );
     assert_eq!(
         update_weapons_with_filter
@@ -686,7 +686,7 @@ async fn test_update_single_id_merge_no_fields_skip() -> SurrealOrmResult<()> {
     };
     let weapon_to_update = Weapon {
         id: weapon.id.clone(),
-        name: "Oyelowo".to_string(),
+        name: "Charlie".to_string(),
         created: Utc::now(),
         strength: 1000.0,
         ..Default::default()
@@ -714,16 +714,16 @@ async fn test_update_single_id_merge_no_fields_skip() -> SurrealOrmResult<()> {
         .merge(weapon_to_update)
         .get_one(db.clone())
         .await?;
-    assert_eq!(updated_weapon.name, "Oyelowo");
+    assert_eq!(updated_weapon.name, "Charlie");
     assert_eq!(updated_weapon.strength, 1000.0);
-    // Id must not be changed to weapon:lowo even if added in the update content
+    // Id must not be changed to weapon:rlie even if added in the update content
     assert_eq!(updated_weapon.id.to_string(), created_weapon.id.to_string());
-    assert_eq!(get_selected_weapon().await.unwrap().name, "Oyelowo");
+    assert_eq!(get_selected_weapon().await.unwrap().name, "Charlie");
     assert_eq!(get_selected_weapon().await.unwrap().strength, 1000.0);
     // Id field must not be updated even if provided to an update statement.
     assert_ne!(
         get_selected_weapon().await.unwrap().id.to_string(),
-        "weapon:lowo"
+        "weapon:rlie"
     );
     //
     Ok(())
@@ -741,7 +741,7 @@ async fn test_update_single_id_merge_skips_fields() -> SurrealOrmResult<()> {
         ..Default::default()
     };
     // Will only override the name
-    let weapon_to_update = Weapon::partial_builder().name("Oyelowo".to_string());
+    let weapon_to_update = Weapon::partial_builder().name("Charlie".to_string());
 
     // Create weapon
     let created_weapon = create().content(weapon.clone()).get_one(db.clone()).await?;
@@ -766,16 +766,16 @@ async fn test_update_single_id_merge_skips_fields() -> SurrealOrmResult<()> {
         .get_one(db.clone())
         .await?;
     // Only name should be updated
-    assert_eq!(updated_weapon.name, "Oyelowo");
+    assert_eq!(updated_weapon.name, "Charlie");
     assert_eq!(updated_weapon.strength, 20.0);
-    // Id must not be changed to weapon:lowo even if added in the update content
+    // Id must not be changed to weapon:rlie even if added in the update content
     assert_eq!(updated_weapon.id.to_string(), created_weapon.id.to_string());
-    assert_eq!(get_selected_weapon().await.unwrap().name, "Oyelowo");
+    assert_eq!(get_selected_weapon().await.unwrap().name, "Charlie");
     assert_eq!(get_selected_weapon().await.unwrap().strength, 20.0);
     // Id field must not be updated even if provided to an update statement.
     assert_ne!(
         get_selected_weapon().await.unwrap().id.to_string(),
-        "weapon:lowo"
+        "weapon:rlie"
     );
     //
     Ok(())
@@ -800,7 +800,7 @@ async fn test_update_single_id_replace() -> SurrealOrmResult<()> {
     // Will replace the whole weapon.
     let weapon_to_update_with_new_fields = Weapon {
         id: weapon_id.clone(),
-        name: "Oyelowo".to_string(),
+        name: "Charlie".to_string(),
         created: Utc::now(),
         strength: 823.0,
         ..Default::default()
@@ -819,14 +819,14 @@ async fn test_update_single_id_replace() -> SurrealOrmResult<()> {
         .return_one(db.clone())
         .await
         .unwrap();
-    assert_eq!(selected_weapon.as_ref().unwrap().name, "Oyelowo");
+    assert_eq!(selected_weapon.as_ref().unwrap().name, "Charlie");
 
     // Only name should be updated
     assert_eq!(updated_weapon.strength, 823.0);
-    assert_eq!(updated_weapon.name, "Oyelowo");
+    assert_eq!(updated_weapon.name, "Charlie");
     assert_eq!(updated_weapon.id.to_string(), weapon_id.clone().to_string());
 
-    assert_eq!(selected_weapon.as_ref().unwrap().name, "Oyelowo");
+    assert_eq!(selected_weapon.as_ref().unwrap().name, "Charlie");
     assert_eq!(
         serde_json::to_value(updated_weapon)
             .unwrap()
@@ -845,7 +845,7 @@ async fn test_update_single_id_replace() -> SurrealOrmResult<()> {
             .collect::<Vec<&String>>(),
         vec!["id", "name", "strength", "created", "rocket"]
     );
-    assert_ne!(selected_weapon.unwrap().id.to_string(), "weapon:lowo");
+    assert_ne!(selected_weapon.unwrap().id.to_string(), "weapon:rlie");
     Ok(())
 }
 
@@ -892,14 +892,14 @@ async fn test_update_single_id_patch_replace_change() -> SurrealOrmResult<()> {
         .await?;
     assert_eq!(updated_weapon.name, "text");
     assert_eq!(updated_weapon.strength, 34.0);
-    // Id must not be changed to weapon:lowo even if added in the update content
+    // Id must not be changed to weapon:rlie even if added in the update content
     assert_eq!(updated_weapon.id.to_thing(), created_weapon.id.to_thing());
     assert_eq!(get_selected_weapon().await.unwrap().name, "text");
     assert_eq!(get_selected_weapon().await.unwrap().strength, 34.0);
     // Id field must not be updated even if provided to an update statement.
     assert_ne!(
         get_selected_weapon().await.unwrap().id.to_string(),
-        "weapon:lowo"
+        "weapon:rlie"
     );
     let updated_weapon = update::<Weapon>(created_weapon.clone().id)
         .patch([
@@ -1038,7 +1038,7 @@ async fn test_update_single_id_patch_remove() -> SurrealOrmResult<()> {
             .collect::<Vec<&String>>(),
         vec!["id", "name", "strength", "created", "rocket"]
     );
-    assert_ne!(selected_weapon.unwrap().id.to_string(), "weapon:lowo");
+    assert_ne!(selected_weapon.unwrap().id.to_string(), "weapon:rlie");
     //
     Ok(())
 }
@@ -1168,7 +1168,7 @@ async fn test_update_single_id_patch_add() -> SurrealOrmResult<()> {
             "rocket",
         ]
     );
-    assert_ne!(selected_weapon.unwrap().id.to_string(), "weapon:lowo");
+    assert_ne!(selected_weapon.unwrap().id.to_string(), "weapon:rlie");
 
     //
     Ok(())
