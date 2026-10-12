@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use aparecium::*;
-    use aparecium::{functions::count::*, *};
+    use umbriel::*;
+    use umbriel::{functions::count::*, *};
 
     #[test]
     fn test_count_withoout_arguments() {
@@ -38,24 +38,24 @@ mod tests {
     fn test_count_with_complex_field_filter_operation() {
         let email = Field::new("email");
         let age = Field::new("age");
-        let result = count_fn(cond(age.greater_than(15)).and(email.like("oyelowo@example.com")));
+        let result = count_fn(cond(age.greater_than(15)).and(email.like("charlie@example.com")));
         assert_eq!(
             result.fine_tune_params(),
             "count((age > $_param_00000001) AND (email ~ $_param_00000002))"
         );
         assert_eq!(
             result.to_raw().to_string(),
-            "count((age > 15) AND (email ~ 'oyelowo@example.com'))"
+            "count((age > 15) AND (email ~ 'charlie@example.com'))"
         );
     }
 
     #[test]
     fn test_count_with_array() {
-        let result = count_fn(array![1, 2, 3, 4, 5, "4334", "Oyelowo"]);
+        let result = count_fn(array![1, 2, 3, 4, 5, "4334", "Charlie"]);
         assert_eq!(result.fine_tune_params(), "count($_param_00000001)");
         assert_eq!(
             result.to_raw().to_string(),
-            "count([1, 2, 3, 4, 5, '4334', 'Oyelowo'])"
+            "count([1, 2, 3, 4, 5, '4334', 'Charlie'])"
         );
     }
 
@@ -103,14 +103,14 @@ mod tests {
     fn test_count_macro_with_complex_field_filter_operation() {
         let email = Field::new("email");
         let age = Field::new("age");
-        let result = count!(cond(age.greater_than(15)).and(email.like("oyelowo@example.com")));
+        let result = count!(cond(age.greater_than(15)).and(email.like("charlie@example.com")));
         assert_eq!(
             result.fine_tune_params(),
             "count((age > $_param_00000001) AND (email ~ $_param_00000002))"
         );
         assert_eq!(
             result.to_raw().to_string(),
-            "count((age > 15) AND (email ~ 'oyelowo@example.com'))"
+            "count((age > 15) AND (email ~ 'charlie@example.com'))"
         );
     }
 
@@ -119,7 +119,7 @@ mod tests {
         let email = Field::new("email");
         let age = Field::new("age");
         let student_count = AliasName::new("student_count");
-        let result = count!(cond(age.greater_than(15)).and(email.like("oyelowo@example.com")))
+        let result = count!(cond(age.greater_than(15)).and(email.like("charlie@example.com")))
             .__as__(student_count);
         assert_eq!(
             result.fine_tune_params(),
@@ -127,7 +127,7 @@ mod tests {
         );
         assert_eq!(
             result.to_raw().to_string(),
-            "count((age > 15) AND (email ~ 'oyelowo@example.com')) AS student_count"
+            "count((age > 15) AND (email ~ 'charlie@example.com')) AS student_count"
         );
     }
 }
