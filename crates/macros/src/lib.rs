@@ -28,13 +28,13 @@ fn derive_with<T: FromDeriveInput + quote::ToTokens>(input: TokenStream) -> Toke
     }
 }
 
-/// Declares a model; documented on its re-export, `aparecium::model`.
+/// Declares a model; documented on its re-export, `umbriel::model`.
 #[proc_macro_attribute]
 pub fn model(args: TokenStream, item: TokenStream) -> TokenStream {
     models::model_attribute(args.into(), item.into()).into()
 }
 
-/// Generates a model's code; added by `#[aparecium::model]`, which passes the model kind and
+/// Generates a model's code; added by `#[umbriel::model]`, which passes the model kind and
 /// table as `#[orm(..)]`. `surreal` is declared too so `value = manual` models keep their
 /// `#[surreal(rename …)]` attributes.
 #[doc(hidden)]
@@ -70,7 +70,7 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
 /// Unlike, query! macro, this macro does not allow variable interpolation.
 ///
 /// # Validation
-/// Syntax only, using SurrealDB's own parser at the version Aparecium depends on: tables, fields,
+/// Syntax only, using SurrealDB's own parser at the version Umbriel depends on: tables, fields,
 /// permissions and parameter types are not checked, and syntax newer than that version is rejected.
 ///
 /// # Arguments
@@ -78,10 +78,10 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
 ///
 /// # Example
 /// ```rust, ignore
-/// use aparecium::{query_raw, statements::select};
+/// use umbriel::{query_raw, statements::select};
 ///
 /// let query = query_raw!("SELECT name, age, * FROM users");
-/// let query = query_raw!("SELECT name, age, * FROM users WHERE name = $1 AND name = 'Oyelowo'");
+/// let query = query_raw!("SELECT name, age, * FROM users WHERE name = $1 AND name = 'Charlie'");
 /// let query = query_raw!("SELECT ->purchased->product<-purchased<-person->purchased->product FROM person:tobie PARALLEL");
 /// ```
 #[proc_macro]
@@ -99,7 +99,7 @@ pub fn query_raw(raw_input: TokenStream) -> TokenStream {
 /// be run.
 ///
 /// # Validation
-/// Syntax only, using SurrealDB's own parser at the version Aparecium depends on: tables, fields,
+/// Syntax only, using SurrealDB's own parser at the version Umbriel depends on: tables, fields,
 /// permissions and parameter types are not checked, and syntax newer than that version is rejected.
 /// Every `$placeholder` must have a binding and every binding a placeholder.
 ///
@@ -110,7 +110,7 @@ pub fn query_raw(raw_input: TokenStream) -> TokenStream {
 ///
 /// # Example
 /// ```rust, ignore
-/// use aparecium::{query};
+/// use umbriel::{query};
 /// use surrealdb::{engine::local::Mem, Surreal};
 ///
 /// let db = Surreal::new::<Mem>(()).await.unwrap();
@@ -119,7 +119,7 @@ pub fn query_raw(raw_input: TokenStream) -> TokenStream {
 /// let _query = query!(db, "SELECT * FROM users").await;
 /// let _query = query!(db, "SELECT * FROM users", {}).await;
 /// let _query = query!(db, "SELECT * FROM users WHERE id = $id", {id : 1} ).await;
-/// let username = "Oyelowo";
+/// let username = "Charlie";
 /// let _query = query!(db, "SELECT name, age FROM users WHERE id = $id AND name = $name", {
 ///     id : 1,
 ///     name : username
@@ -130,7 +130,7 @@ pub fn query_raw(raw_input: TokenStream) -> TokenStream {
 ///
 /// Also supports multiple queries in a single call.
 /// ```rust, ignore
-/// use aparecium::{query};
+/// use umbriel::{query};
 /// use surrealdb::{engine::local::Mem, Surreal};
 ///
 /// let db = Surreal::new::<Mem>(()).await.unwrap();
@@ -140,11 +140,11 @@ pub fn query_raw(raw_input: TokenStream) -> TokenStream {
 ///     db,
 ///     [
 ///         "SELECT * FROM users WHERE id = $id",
-///         "CREATE user:oyelowo SET name = $name, company = 'Codebreather', skills = $skills"
+///         "CREATE user:charlie SET name = $name, company = 'ExampleCo', skills = $skills"
 ///     ],
 ///     {
 ///         id: 1,
-///         name: "Oyelowo",
+///         name: "Charlie",
 ///         skills: vec!["Rust", "python", "typescript"]
 ///     }
 /// )
@@ -158,7 +158,7 @@ pub fn query(raw_input: TokenStream) -> TokenStream {
 /// A novel approach to writing SQL queries in Rust. It allows you to write SQL queries
 /// in a native-like Rust Syntax. It supports mixing query builder functions with native looking
 /// syntax such as if, for, let, return statements and standard Rust expressions which can be
-/// a normal aparecium query builder function statement.
+/// a normal umbriel query builder function statement.
 ///
 /// It dynamically returns a query chain, transaction or a block depending on the usage.
 /// By default, it returns a query chain. If you want to return a transaction, you start
@@ -184,27 +184,27 @@ pub fn query(raw_input: TokenStream) -> TokenStream {
 ///     });
 ///
 ///     if balance.greater_than(100) {
-///         let first_name = "Oyelowo";
+///         let first_name = "Charlie";
 ///         let score = 100;
 ///         select(All).from(Account::table()).where_(acc.balance.eq(5));
 ///     } else if balance.gte(100) {
-///         let first_name = "Oyelowo";
+///         let first_name = "Charlie";
 ///         let score = 100;
 ///         select(All).from(Account::table()).where_(acc.balance.eq(5));
 ///     } else {
-///         let first_name = "Oyelowo";
+///         let first_name = "Charlie";
 ///         let score = 100;
 ///         select(All).from(Account::table()).where_(acc.balance.eq(5));
 ///     };
 ///
-///     for name in vec!["Oyelowo", "Oyedayo"] {
-///         let first = "Oyelowo";
+///     for name in vec!["Charlie", "Bennett"] {
+///         let first = "Charlie";
 ///         select(All).from(Account::table()).where_(acc.balance.eq(5));
 ///         
 ///         let good_stmt = select(All).from(Account::table()).where_(acc.balance.eq(64));
 ///
 ///         if balance.gt(50) {
-///             let first_name = "Oyelowo";
+///             let first_name = "Charlie";
 ///         };
 ///
 ///         select(All).from(Account::table()).where_(acc.balance.eq(34));
@@ -259,7 +259,7 @@ pub fn chain(input: TokenStream) -> TokenStream {
 /// unit, surrounded by curly braces and typically returns a value. It can be assigned to a field or variable.
 /// It supports mixing query builder functions with native looking
 /// syntax such as if, for, let, return statements and standard Rust expressions which can be
-/// a normal aparecium query builder function statement.
+/// a normal umbriel query builder function statement.
 ///
 /// # Arguments
 /// * `queries` - Series of queries to be checked at compile time.
@@ -283,7 +283,7 @@ pub fn block(input: TokenStream) -> TokenStream {
 /// A transaction is a series of queries that are executed as a single
 /// unit. It supports mixing query builder functions with native looking
 /// syntax such as if, for, let, return statements and standard Rust expressions which can be
-/// a normal aparecium query builder function statement.
+/// a normal umbriel query builder function statement.
 ///
 /// It must start with a `begin transaction;` and end with a `commit transaction;` or `cancel transaction;`
 /// keywords.
@@ -346,7 +346,7 @@ pub fn transaction(input: TokenStream) -> TokenStream {
 ///
 /// # Example
 /// ```rust, ignore
-/// use aparecium::{*, statements::define_function};
+/// use umbriel::{*, statements::define_function};
 ///
 /// // The below generates a `get_it_statement` itself and `get_it` helper function created by the macro.
 /// define_function!(get_it(first: bool, last: string, birthday: string) {
@@ -394,13 +394,13 @@ pub fn define_function(input: TokenStream) -> TokenStream {
 /// chain! or block! or transaction! macro and define your for loop within it,
 ///
 /// ```rust, ignore
-/// use aparecium::{*, statements::select};
+/// use umbriel::{*, statements::select};
 ///
 /// let ref __name = Param::new("name");
 /// let ref person_table = Table::from("person");
 /// let ref user_name = Field::from("user_name");
 ///
-/// for_!(__name in vec!["Oyelowo", "Oyedayo"] {
+/// for_!(__name in vec!["Charlie", "Bennett"] {
 ///    let nick_name = select(user_name).from_only(person_table).where_(user_name.eq(__name));
 ///    select(All).from(person_table).where_(user_name.eq(nick_name));
 /// };
