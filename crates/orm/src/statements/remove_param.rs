@@ -1,4 +1,4 @@
-use crate::{Param, Sql};
+use crate::{Param, Renderer};
 
 use super::{Statement, impl_definition};
 
@@ -6,7 +6,7 @@ use super::{Statement, impl_definition};
 ///
 /// Examples
 /// ```rust
-/// use aparecium::{*, statements::remove_param};
+/// use umbriel::{*, statements::remove_param};
 /// assert_eq!(remove_param("website_name").to_debug_sql(), "REMOVE PARAM $website_name;");
 /// ```
 pub fn remove_param(name: impl Into<Param>) -> RemoveParamStatement {
@@ -19,8 +19,8 @@ pub struct RemoveParamStatement {
 }
 
 impl Statement for RemoveParamStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("REMOVE PARAM ").push(&self.name);
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("REMOVE PARAM ").push(&self.name);
     }
 }
 
