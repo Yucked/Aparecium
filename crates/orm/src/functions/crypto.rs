@@ -64,11 +64,11 @@ create_fn_with_single_arg_value!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::crypto};
+    /// use umbriel::{*, functions::crypto};
     ///
-    /// let result = crypto::md5!("Oyelowo");
+    /// let result = crypto::md5!("Charlie");
     /// assert_eq!(result.to_query().unwrap().sql(), "crypto::md5($_p0)");
-    /// assert_eq!(result.to_debug_sql(), "crypto::md5('Oyelowo')");
+    /// assert_eq!(result.to_debug_sql(), "crypto::md5('Charlie')");
     /// ```
     => "md5"
 );
@@ -81,11 +81,11 @@ create_fn_with_single_arg_value!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::crypto};
+    /// use umbriel::{*, functions::crypto};
     ///
-    /// let result = crypto::sha1!("Oyelowo");
+    /// let result = crypto::sha1!("Charlie");
     /// assert_eq!(result.to_query().unwrap().sql(), "crypto::sha1($_p0)");
-    /// assert_eq!(result.to_debug_sql(), "crypto::sha1('Oyelowo')");
+    /// assert_eq!(result.to_debug_sql(), "crypto::sha1('Charlie')");
     /// ```
     => "sha1"
 );
@@ -98,11 +98,11 @@ create_fn_with_single_arg_value!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::crypto};
+    /// use umbriel::{*, functions::crypto};
     ///
-    /// let result = crypto::sha256!("Oyelowo");
+    /// let result = crypto::sha256!("Charlie");
     /// assert_eq!(result.to_query().unwrap().sql(), "crypto::sha256($_p0)");
-    /// assert_eq!(result.to_debug_sql(), "crypto::sha256('Oyelowo')");
+    /// assert_eq!(result.to_debug_sql(), "crypto::sha256('Charlie')");
     /// ```
     => "sha256"
 );
@@ -115,11 +115,11 @@ create_fn_with_single_arg_value!(
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, functions::crypto};
+    /// use umbriel::{*, functions::crypto};
     ///
-    /// let result = crypto::sha512!("Oyelowo");
+    /// let result = crypto::sha512!("Charlie");
     /// assert_eq!(result.to_query().unwrap().sql(), "crypto::sha512($_p0)");
-    /// assert_eq!(result.to_debug_sql(), "crypto::sha512('Oyelowo')");
+    /// assert_eq!(result.to_debug_sql(), "crypto::sha512('Charlie')");
     /// ```
     => "sha512"
 );
@@ -143,7 +143,7 @@ pub mod argon2 {
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, statements::let_, functions::crypto};
+    /// use umbriel::{*, statements::let_, functions::crypto};
     /// let hash = let_("hash").equal_to("$argon2id$v=19$m=4096,t=3,p=1$pbZ6yJ2rPJKk4pyEMVwslQ$jHzpsiB+3S/H+kwFXEcr10vmOiDkBkydVCSMfRxV7CA");
     /// let pass = let_("pass").equal_to("this is a strong password");
     ///
@@ -152,12 +152,12 @@ pub mod argon2 {
     /// assert_eq!(result.to_debug_sql(), "crypto::argon2::compare($hash, $pass)");
     ///
     /// let hash_field = Field::new("hash_field");
-    /// let result = crypto::argon2::compare!(hash_field, "Oyelowo");
+    /// let result = crypto::argon2::compare!(hash_field, "Charlie");
     /// assert_eq!(result.to_query().unwrap().sql(), "crypto::argon2::compare(hash_field, $_p0)");
-    /// assert_eq!(result.to_debug_sql(), "crypto::argon2::compare(hash_field, 'Oyelowo')");
+    /// assert_eq!(result.to_debug_sql(), "crypto::argon2::compare(hash_field, 'Charlie')");
     ///
     /// let hash_field = Field::new("hash_field");
-    /// let pass = let_("pass").equal_to("Oyelowo");
+    /// let pass = let_("pass").equal_to("Charlie");
     /// let result = crypto::argon2::compare!(hash_field, pass.get_param());
     /// assert_eq!(result.to_query().unwrap().sql(), "crypto::argon2::compare(hash_field, $pass)");
     /// assert_eq!(result.to_debug_sql(), "crypto::argon2::compare(hash_field, $pass)");
@@ -183,7 +183,7 @@ pub mod argon2 {
     /// * `value` - The password value to be hashed and salted. Can also be a field or a param.
     /// # Example
     /// ```rust
-    /// use aparecium::{*, statements::let_, functions::crypto};
+    /// use umbriel::{*, statements::let_, functions::crypto};
     /// crypto::argon2::generate!("password from jupiter");
     ///
     /// let pass = let_("pass").equal_to("this is a strong password");
@@ -218,7 +218,7 @@ pub mod bcrypt {
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, statements::let_, functions::crypto};
+    /// use umbriel::{*, statements::let_, functions::crypto};
     /// let hash = let_("hash").equal_to("bcrypt_hash");
     /// let pass = let_("pass").equal_to("this is a strong password");
     /// let result = crypto::bcrypt::compare!(hash.get_param(), pass.get_param());
@@ -226,9 +226,9 @@ pub mod bcrypt {
     /// assert_eq!(result.to_debug_sql(), "crypto::bcrypt::compare($hash, $pass)");
     ///
     /// let hash_field = Field::new("hash_field");
-    /// let result = crypto::bcrypt::compare!(hash_field, "Oyelowo");
+    /// let result = crypto::bcrypt::compare!(hash_field, "Charlie");
     /// assert_eq!(result.to_query().unwrap().sql(), "crypto::bcrypt::compare(hash_field, $_p0)");
-    /// assert_eq!(result.to_debug_sql(), "crypto::bcrypt::compare(hash_field, 'Oyelowo')");
+    /// assert_eq!(result.to_debug_sql(), "crypto::bcrypt::compare(hash_field, 'Charlie')");
     /// ```
     #[macro_export]
     macro_rules! crypto_bcrypt_compare {
@@ -249,7 +249,7 @@ pub mod bcrypt {
     /// * `value` - The password value to be hashed and salted. Can also be a field or a param.
     /// # Example
     /// ```rust
-    /// use aparecium::{*, statements::let_, functions::crypto};
+    /// use umbriel::{*, statements::let_, functions::crypto};
     /// crypto::bcrypt::generate!("password from jupiter");
     ///
     /// let pass = let_("pass").equal_to("this is a strong password");
@@ -285,7 +285,7 @@ pub mod pbkdf2 {
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, statements::let_, functions::crypto};
+    /// use umbriel::{*, statements::let_, functions::crypto};
     /// let hash = let_("hash").equal_to("pbkdf2$sha256$1000$ZG9uZQ==$MjAxOS0wNC0xMCAxMzowMzowMA==$c2FsdA==");
     /// let pass = let_("pass").equal_to("this is a strong password");
     ///
@@ -294,12 +294,12 @@ pub mod pbkdf2 {
     /// assert_eq!(result.to_debug_sql(), "crypto::pbkdf2::compare($hash, $pass)");
     ///
     /// let hash_field = Field::new("hash_field");
-    /// let result = crypto::pbkdf2::compare!(hash_field, "Oyelowo");
+    /// let result = crypto::pbkdf2::compare!(hash_field, "Charlie");
     /// assert_eq!(result.to_query().unwrap().sql(), "crypto::pbkdf2::compare(hash_field, $_p0)");
-    /// assert_eq!(result.to_debug_sql(), "crypto::pbkdf2::compare(hash_field, 'Oyelowo')");
+    /// assert_eq!(result.to_debug_sql(), "crypto::pbkdf2::compare(hash_field, 'Charlie')");
     ///
     /// let hash_field = Field::new("hash_field");
-    /// let pass = let_("pass").equal_to("Oyelowo");
+    /// let pass = let_("pass").equal_to("Charlie");
     /// let result = crypto::pbkdf2::compare!(hash_field, pass.get_param());
     /// assert_eq!(result.to_query().unwrap().sql(), "crypto::pbkdf2::compare(hash_field, $pass)");
     /// assert_eq!(result.to_debug_sql(), "crypto::pbkdf2::compare(hash_field, $pass)");
@@ -324,7 +324,7 @@ pub mod pbkdf2 {
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, statements::let_, functions::crypto};
+    /// use umbriel::{*, statements::let_, functions::crypto};
     /// crypto::pbkdf2::generate!("password from jupiter");
     ///
     /// let pass = let_("pass").equal_to("this is a strong password");
@@ -361,15 +361,15 @@ pub mod scrypt {
     ///
     /// # Example
     /// ```rust
-    /// use aparecium::{*, statements::let_, functions::crypto};
+    /// use umbriel::{*, statements::let_, functions::crypto};
     /// let hash = let_("hash").equal_to("pbkdf2$sha256$1000$ZG9uZQ==$MjAxOS0wNC0xMCAxMzowMzowMA==$c2FsdA==");
     /// let pass = let_("pass").equal_to("this is a strong password");
     /// crypto::scrypt::compare!(hash.get_param(), pass.get_param());
     ///
     /// let hash_field = Field::new("hash_field");
-    /// let result = crypto::scrypt::compare!(hash_field, "Oyelowo");
+    /// let result = crypto::scrypt::compare!(hash_field, "Charlie");
     /// assert_eq!(result.to_query().unwrap().sql(), "crypto::scrypt::compare(hash_field, $_p0)");
-    /// assert_eq!(result.to_debug_sql(), "crypto::scrypt::compare(hash_field, 'Oyelowo')");
+    /// assert_eq!(result.to_debug_sql(), "crypto::scrypt::compare(hash_field, 'Charlie')");
     /// ```
     #[macro_export]
     macro_rules! crypto_scrypt_compare {
@@ -392,7 +392,7 @@ pub mod scrypt {
     /// # Example
     ///
     /// ```rust
-    /// use aparecium::{*, statements::let_, functions::crypto};
+    /// use umbriel::{*, statements::let_, functions::crypto};
     /// crypto::scrypt::generate!("password from jupiter");
     ///
     /// let pass = let_("pass").equal_to("this is a strong password");
