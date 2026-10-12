@@ -15,9 +15,16 @@ impl StructIdent {
         StructPatchIdent(format_ident!("{}Patch", self.to_string()))
     }
 
-    pub fn is_same_name(&self, other: impl Into<CustomType>) -> ExtractorResult<bool> {
-        let other: CustomType = other.into();
-        Ok(other.type_name()? == self.to_string())
+    /// The model's schema type, `<Model>Schema`, generated next to the model.
+    pub fn schema_ident(&self) -> Ident {
+        format_ident!("{}Schema", self.to_string())
+    }
+
+    /// An item the expansion names but users do not: `__<Model><suffix>`. Generated items are
+    /// siblings of the model, never inside a module, so models declared in functions work; the
+    /// prefix keeps the items of models in one scope apart.
+    pub fn hidden_ident(&self, suffix: impl std::fmt::Display) -> Ident {
+        format_ident!("__{}{}", self.to_string(), suffix.to_string())
     }
 }
 
@@ -53,9 +60,6 @@ pub struct ModelReceiver {
 
     #[darling(default)]
     pub(crate) drop: Option<bool>,
-
-    #[darling(default)]
-    pub(crate) flexible: Option<bool>,
 
     pub(crate) as_: Option<AttributeAs>,
 
@@ -115,7 +119,6 @@ impl ModelReceiver {
     pub fn get_table_definition_token(&self) -> ExtractorResult<TableDefinitions> {
         let ModelReceiver {
             ref drop,
-            ref flexible,
             ref schemafull,
             ref as_,
             ref permissions,
@@ -126,18 +129,13 @@ impl ModelReceiver {
         let crate_name = get_crate_name(false);
 
         if (define.is_some())
-            && (drop.is_some()
-                || as_.is_some()
-                || schemafull.is_some()
-                || flexible.is_some()
-                || permissions.is_some())
+            && (drop.is_some() || as_.is_some() || schemafull.is_some() || permissions.is_some())
         {
             return Err(
                 syn::Error::new_spanned(
                     self.ident.clone(),
                     "Invalid combination. When `define`, the following attributes cannot be use in combination to prevent confusion:
                             drop,
-                            flexible,
                             as,
                             schemafull,
                             permissions",
@@ -153,10 +151,6 @@ impl ModelReceiver {
 
                 if drop.is_some() {
                     define_table_methods.push(quote!(.drop()))
-                }
-
-                if flexible.is_some() {
-                    define_table_methods.push(quote!(.flexible()))
                 }
 
                 if let Some(as_) = as_ {
