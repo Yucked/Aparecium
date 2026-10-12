@@ -6,12 +6,13 @@ use super::Codegen;
 use crate::models::*;
 
 impl Codegen<'_> {
-    pub fn create_field_definitions(&mut self) -> ExtractorResult<()> {
+    /// Checks a field's definition settings. The definitions themselves are part of the field's
+    /// metadata, which `define_fields` reads.
+    pub fn create_field_definition_checks(&mut self) -> ExtractorResult<()> {
         self.validate_field_attributes()?;
 
         self.static_assertions
             .push(self.static_assertion_field_value(self.table_derive_attributes())?);
-        self.field_definitions.extend(self.field_defintion_db()?);
         Ok(())
     }
 
@@ -30,6 +31,7 @@ impl Codegen<'_> {
         }
 
         let crate_name = get_crate_name(false);
+        let VariablesModelMacro { _____table, .. } = VariablesModelMacro::new();
         let casing = model_attributes.casing()?;
         let db_field_name = field_receiver.db_field_name(&casing)?;
         // Every stored field has a type: inference fails rather than leave it out.
@@ -69,7 +71,7 @@ impl Codegen<'_> {
 
         all_field_defintions.push(raw(quote!(
             #crate_name::statements::define_field(#crate_name::Field::ident(#db_field_name))
-            .on_table(<Self as #crate_name::Model>::table())
+            .on_table(#_____table.clone())
             .type_(#field_type_in_db_token)
             #( # define_field_methods) *
         )));
@@ -78,7 +80,7 @@ impl Codegen<'_> {
             // `field.*` defines every element of an array field.
             all_field_defintions.push(raw(quote!(
                 #crate_name::statements::define_field(#crate_name::Field::ident(#db_field_name).all())
-                    .on_table(<Self as #crate_name::Model>::table())
+                    .on_table(#_____table.clone())
                     #( # define_array_field_item_methods) *
             )));
         };

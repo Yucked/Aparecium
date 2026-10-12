@@ -9,6 +9,9 @@ pub struct VariablesModelMacro {
     pub __________connect: syn::Ident,
     pub _____field_names: syn::Ident,
     pub _____struct_marker_ident: syn::Ident,
+    /// The table field definitions are written for: the model's own, or the table of a model
+    /// that flattens this object.
+    pub _____table: syn::Ident,
 }
 
 impl Default for VariablesModelMacro {
@@ -24,6 +27,7 @@ impl VariablesModelMacro {
             __________connect: format_ident!("__________connect"),
             _____field_names: format_ident!("_____field_names"),
             _____struct_marker_ident: format_ident!("_____struct_marker_ident"),
+            _____table: format_ident!("_____table"),
         }
     }
 }
