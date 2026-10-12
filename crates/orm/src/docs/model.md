@@ -9,7 +9,8 @@ Declares a model: a struct stored in SurrealDB, with a typed schema for building
 The attribute derives the SDK's `SurrealValue` for the struct, so values convert to and from the
 database without Serde, and generates:
 
-- for every model, `<Model as SchemaGetter>::schema()`, whose fields are paths for queries
+- for every model, its schema type `<Model>Schema`, returned by
+  `<Model as SchemaGetter>::schema()`, whose fields are paths for queries
   (`User::schema().name`) and whose link methods traverse records and graph edges;
 - for nodes and edges, the [`Model`] implementation (table, record id, field definitions for
   migrations) and `<Model>Patch`, a partial update with one [`Patch`] per stored field;
@@ -45,10 +46,18 @@ values are rejected, as are objects that store no field and object types that de
 model's generic parameters. A flattened field takes no `#[orm(…)]` settings, and `object!` does not
 accept a model with one; use `content`, a patch or individual setters instead.
 
+# Generated items
+
+Everything is generated next to the model, outside any module, so a model can be declared in a
+module or inside a function (as in the example below). Besides `<Model>Patch` and `<Model>Schema`,
+nodes get `<Model>Aliases`, and hidden items named `__<Model>…` hold the schema's field and edge
+types. Those names are taken: a type of your own named `UserSchema` or `UserPatch` next to `User`
+does not compile.
+
 # Example
 
 ```rust
-use umbriel::{LinkOne, Patch, RecordId, model};
+use umbriel::{LinkOne, Model, Patch, RecordId, Render, SchemaGetter, model};
 
 #[model(node, table = "user")]
 #[surreal(rename_all = "camelCase")]
@@ -76,6 +85,10 @@ let alice = User {
     team: LinkOne::from(Team::id("acme")),
 };
 
+// Schema fields are paths named after the stored fields.
+let UserSchema { display_name, .. } = User::schema();
+assert_eq!(display_name.to_debug_sql(), "displayName");
+
 // Only `age` changes; `nickname` is removed (`NONE`); every other field is kept.
 let patch = UserPatch {
     age: Patch::Set(31),
@@ -94,7 +107,7 @@ Database-only settings stay in `#[orm(…)]`:
 | On the struct | Meaning |
 | --- | --- |
 | `relax_table` | Allows a table name other than the struct name in snake case. |
-| `schemafull`, `flexible`, `drop` | Flags of the generated `DEFINE TABLE`. |
+| `schemafull`, `drop` | Flags of the generated `DEFINE TABLE`. |
 | `as = …` | A select statement making the table a view. |
 | `permissions = …` | `full`, `none`, or an expression giving the permissions. |
 | `define = …` | An expression giving the whole `DEFINE TABLE`; excludes the settings above. |
@@ -105,6 +118,7 @@ Database-only settings stay in `#[orm(…)]`:
 | `link_one`, `link_self`, `link_many` | The node a record link points to. |
 | `nest_object`, `nest_array` | The embedded object type of the field or of its elements. |
 | `relate(model = …, connection = "->edge->node")` | A read-only relation reached through an edge; never stored. |
-| `assert`, `value`, `permissions`, `item_assert` | Clauses of the generated `DEFINE FIELD`. |
+| `value = …` | The field's default: `DEFAULT …` in the generated `DEFINE FIELD`, applied when a record is created without the field. Values written explicitly, falsy ones (`0`, `false`, `''`) included, are kept, and updates never re-apply it. |
+| `assert`, `permissions`, `item_assert` | Clauses of the generated `DEFINE FIELD`. |
 | `define = …` | An expression giving the whole `DEFINE FIELD`; excludes the clauses above. |
 | `old_name = "…"` | The field's previous name, for migrations that rename it. |
