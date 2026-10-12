@@ -32,7 +32,6 @@ use super::{
 pub struct DefineTableStatement {
     table: Table,
     drop: bool,
-    flexible: bool,
     schema_type: Option<SchemaType>,
     as_: Option<SelectStatement>,
     permissions: PermissionsClause,
@@ -79,7 +78,6 @@ pub fn define_table(table: impl Into<Table>) -> DefineTableStatement {
     DefineTableStatement {
         table: table.into(),
         drop: false,
-        flexible: false,
         schema_type: None,
         as_: None,
         permissions: PermissionsClause::default(),
@@ -90,12 +88,6 @@ impl DefineTableStatement {
     /// Drop the table if it exists and create a new one with the same name.
     pub fn drop(mut self) -> Self {
         self.drop = true;
-        self
-    }
-
-    /// Make table flexible
-    pub fn flexible(mut self) -> Self {
-        self.flexible = true;
         self
     }
 
@@ -144,10 +136,6 @@ impl Statement for DefineTableStatement {
 
         if self.drop {
             out.push_str(" DROP");
-        }
-
-        if self.flexible {
-            out.push_str(" FLEXIBLE");
         }
 
         match self.schema_type {
