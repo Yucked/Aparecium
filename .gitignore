@@ -22,3 +22,7 @@ node_modules
 
 
 .vscode
+
+# Untracked while they are rewritten.
+/docs/
+/README.md
