@@ -1,4 +1,4 @@
-use crate::{Conditional, CrudType, Filter, Queryable, Raw, Render, Sql};
+use crate::{Conditional, CrudType, Filter, Fragment, Queryable, Raw, Render, Renderer};
 
 /// The CRUD operations a permission applies to.
 #[derive(Clone, Debug)]
@@ -61,7 +61,7 @@ impl ForStart {
 /// Examples:
 ///
 /// ```rust
-/// use aparecium::{*, statements::for_permission};
+/// use umbriel::{*, statements::for_permission};
 /// use CrudType::*;
 ///
 /// # let name = Field::new("name");
@@ -88,16 +88,20 @@ pub struct ForPermission {
 }
 
 impl Render for ForPermission {
-    fn render(&self, sql: &mut Sql) {
-        sql.push_str("FOR");
+    fn render(&self, out: &mut Renderer) {
+        out.push_str("FOR");
         if !self.crud_types.is_empty() {
-            sql.push_str(" ").push(&self.crud_types);
+            out.push_str(" ").push(&self.crud_types);
         }
-        sql.push_str("\n\tWHERE ").push(&self.condition);
+        out.push_str("\n\tWHERE ").push(&self.condition);
     }
 }
 
-impl Queryable for ForPermission {}
+impl Queryable for ForPermission {
+    fn into_fragment(self) -> Fragment {
+        Fragment::new(self)
+    }
+}
 
 /// Permission types which can be a a single For statement
 /// list of `for` statements
@@ -115,15 +119,15 @@ pub enum Permissions {
 
 /// Permissions render one per line.
 impl Render for Permissions {
-    fn render(&self, sql: &mut Sql) {
+    fn render(&self, out: &mut Renderer) {
         match self {
-            Permissions::For(one) => one.render(sql),
+            Permissions::For(one) => one.render(out),
             Permissions::Fors(many) => {
-                sql.push_joined(many, "\n");
+                out.push_joined(many, "\n");
             }
-            Permissions::RawStatement(raw) => raw.render(sql),
+            Permissions::RawStatement(raw) => raw.render(out),
             Permissions::RawStatementList(raws) => {
-                sql.push_joined(raws, "\n");
+                out.push_joined(raws, "\n");
             }
         }
     }
@@ -155,13 +159,13 @@ impl PermissionsClause {
 /// Renders ` PERMISSIONS NONE`, ` PERMISSIONS FULL`, or the `FOR` permissions one per line;
 /// nothing when unset.
 impl Render for PermissionsClause {
-    fn render(&self, sql: &mut Sql) {
+    fn render(&self, out: &mut Renderer) {
         if self.none {
-            sql.push_str(" PERMISSIONS NONE");
+            out.push_str(" PERMISSIONS NONE");
         } else if self.full {
-            sql.push_str(" PERMISSIONS FULL");
+            out.push_str(" PERMISSIONS FULL");
         } else if !self.fors.is_empty() {
-            sql.push_str("\nPERMISSIONS\n").push_joined(&self.fors, "\n");
+            out.push_str("\nPERMISSIONS\n").push_joined(&self.fors, "\n");
         }
     }
 }
