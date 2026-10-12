@@ -132,80 +132,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 
 [[package]]
-name = "aparecium"
-version = "0.1.0"
-dependencies = [
- "aparecium-macros",
- "chrono",
- "clap",
- "geo",
- "inquire",
- "itertools 0.15.0",
- "log",
- "nom 8.0.0",
- "paste",
- "pretty_env_logger",
- "regex",
- "sha2 0.11.0",
- "surrealdb",
- "thiserror",
- "typed-builder",
- "uuid",
-]
-
-[[package]]
-name = "aparecium-macros"
-version = "0.1.0"
-dependencies = [
- "convert_case 0.12.0",
- "darling",
- "paste",
- "proc-macro-crate",
- "proc-macro2",
- "quote",
- "strum",
- "strum_macros",
- "surrealdb-syn",
- "surrealdb-types",
- "syn 3.0.7",
- "thiserror",
- "uuid",
-]
-
-[[package]]
-name = "aparecium-tests"
-version = "0.1.0"
-dependencies = [
- "aparecium",
- "chrono",
- "convert_case 0.12.0",
- "darling",
- "geo",
- "insta",
- "nom 8.0.0",
- "paste",
- "pretty_assertions",
- "proc-macro-crate",
- "proc-macro2",
- "quote",
- "rand 0.10.3",
- "serde",
- "serde_json",
- "strum",
- "strum_macros",
- "surrealdb",
- "surrealdb-syn",
- "syn 3.0.7",
- "tempfile",
- "test-case",
- "thiserror",
- "tokio",
- "trybuild",
- "typed-builder",
- "uuid",
-]
-
-[[package]]
 name = "approx"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -863,15 +789,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "convert_case"
-version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1af709f1f33454bf52eadfc8c78b3b9ef9cb26fb54d16dc9cd9a7299f899fd1b"
-dependencies = [
- "unicode-segmentation",
-]
-
-[[package]]
 name = "core-foundation"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1202,7 +1119,7 @@ version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "799a97264921d8623a957f6c3b9011f3b5492f557bbb7a5a19b7fa6d06ba8dcb"
 dependencies = [
- "convert_case 0.10.0",
+ "convert_case",
  "proc-macro2",
  "quote",
  "rustc_version",
@@ -4185,7 +4102,7 @@ version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7106215ff41a5677b104906a13e1a440b880f4b6362b5dc4f3978c267fad2b80"
 dependencies = [
- "convert_case 0.10.0",
+ "convert_case",
  "fnv",
  "ident_case",
  "indexmap",
@@ -6307,6 +6224,80 @@ dependencies = [
  "rand 0.9.5",
  "serde",
  "web-time",
+]
+
+[[package]]
+name = "umbriel"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "clap",
+ "geo",
+ "inquire",
+ "itertools 0.15.0",
+ "log",
+ "nom 8.0.0",
+ "paste",
+ "pretty_env_logger",
+ "regex",
+ "sha2 0.11.0",
+ "surrealdb",
+ "thiserror",
+ "typed-builder",
+ "umbriel-macros",
+ "uuid",
+]
+
+[[package]]
+name = "umbriel-macros"
+version = "0.1.0"
+dependencies = [
+ "darling",
+ "heck 0.5.0",
+ "paste",
+ "proc-macro-crate",
+ "proc-macro2",
+ "quote",
+ "strum",
+ "strum_macros",
+ "surrealdb-syn",
+ "surrealdb-types",
+ "syn 3.0.7",
+ "thiserror",
+ "uuid",
+]
+
+[[package]]
+name = "umbriel-tests"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "darling",
+ "geo",
+ "heck 0.5.0",
+ "insta",
+ "nom 8.0.0",
+ "paste",
+ "pretty_assertions",
+ "proc-macro-crate",
+ "proc-macro2",
+ "quote",
+ "rand 0.10.3",
+ "serde",
+ "serde_json",
+ "strum",
+ "strum_macros",
+ "surrealdb",
+ "surrealdb-syn",
+ "syn 3.0.7",
+ "tempfile",
+ "test-case",
+ "thiserror",
+ "tokio",
+ "trybuild",
+ "typed-builder",
+ "umbriel",
+ "uuid",
 ]
 
 [[package]]
