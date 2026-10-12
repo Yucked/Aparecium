@@ -1,7 +1,7 @@
 
 use surrealdb::types::SurrealValue;
 
-use crate::{NumberLike, Operator, Render, Setter, Sql, ValueLike, render::sql};
+use crate::{NumberLike, Operator, Render, Renderer, Setter, ValueLike};
 
 use super::Field;
 
@@ -9,21 +9,27 @@ use super::Field;
 #[derive(Debug, Clone, PartialEq)]
 pub struct Updater {
     field: Field,
-    sql: Sql,
+    /// The operator and value, once one is chosen; the bare field renders until then.
+    update: Option<(Operator, ValueLike)>,
 }
 
 /// A helper struct for generating setters used in various statements
 pub fn updater(field: impl Into<Field>) -> Updater {
-    let field: Field = field.into();
     Updater {
-        sql: field.to_sql(),
-        field,
+        field: field.into(),
+        update: None,
     }
 }
 
 impl Render for Updater {
-    fn render(&self, sql: &mut Sql) {
-        sql.push(&self.sql);
+    fn render(&self, out: &mut Renderer) {
+        out.push(&self.field);
+        if let Some((operator, value)) = &self.update {
+            out.push_str(" ")
+                .push(operator)
+                .push_str(" ")
+                .push(value);
+        }
     }
 }
 
@@ -49,18 +55,19 @@ impl From<Vec<Updater>> for Updateables {
 
 impl From<Setter> for Updateables {
     fn from(value: Setter) -> Self {
+        let (field, operator, value) = value.into_parts();
         Self::Updater(Updater {
-            field: Field::default(),
-            sql: value.to_sql(),
+            field,
+            update: Some((operator, value)),
         })
     }
 }
 
 impl Render for Updateables {
-    fn render(&self, sql: &mut Sql) {
+    fn render(&self, out: &mut Renderer) {
         match self {
-            Updateables::Updater(updater) => updater.render(sql),
-            Updateables::Updaters(updaters) => updaters.render(sql),
+            Updateables::Updater(updater) => updater.render(out),
+            Updateables::Updaters(updaters) => updaters.render(out),
         }
     }
 }
@@ -75,7 +82,7 @@ impl Updater {
     /// # Examples
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let score = Field::new("score");
     /// let updated_updater = updater(score).equal(2);
     /// assert_eq!(updated_updater.to_debug_sql(), "score = 2");
@@ -95,7 +102,7 @@ impl Updater {
     /// # Examples
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let score = Field::new("score");
     /// let updated_updater = updater(score).increment_by(2);
     /// assert_eq!(updated_updater.to_debug_sql(), "score += 2");
@@ -116,7 +123,7 @@ impl Updater {
     /// # Examples
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let tags = Field::new("tags");
     /// let updated_updater = updater(tags).append("rust");
     /// assert_eq!(updated_updater.to_debug_sql(), "tags += 'rust'");
@@ -136,7 +143,7 @@ impl Updater {
     /// # Examples
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let score = Field::new("score");
     /// let updated_updater = updater(score).decrement_by(2);
     /// assert_eq!(updated_updater.to_debug_sql(), "score -= 2");
@@ -156,7 +163,7 @@ impl Updater {
     /// # Examples
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let tags = Field::new("tags");
     /// let updated_updater = updater(tags).remove("rust");
     /// assert_eq!(updated_updater.to_debug_sql(), "tags -= 'rust'");
@@ -175,7 +182,7 @@ impl Updater {
     /// # Examples
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let tags = Field::new("tags");
     /// let updated_updater = updater(tags).plus_equal("rust");
     /// assert_eq!(updated_updater.to_debug_sql(), "tags += 'rust'");
@@ -194,7 +201,7 @@ impl Updater {
     /// # Examples
     ///
     /// ```rust
-    /// # use aparecium::*;
+    /// # use umbriel::*;
     /// # let tags = Field::new("tags");
     /// let updated_updater = updater(tags).minus_equal("rust");
     /// assert_eq!(updated_updater.to_debug_sql(), "tags -= 'rust'");
@@ -204,10 +211,10 @@ impl Updater {
         self.update_field(Operator::Dec, ValueLike::value(value))
     }
 
-    fn update_field(&self, operator: Operator, value: impl Render) -> Updater {
+    fn update_field(&self, operator: Operator, value: impl Into<ValueLike>) -> Updater {
         Self {
             field: self.field.clone(),
-            sql: sql!(self.field, " ", operator, " ", value),
+            update: Some((operator, value.into())),
         }
     }
 }
