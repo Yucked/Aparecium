@@ -2,18 +2,18 @@ macro_rules! create_fn_with_url_and_head_tests {
     ($(#[$attr:meta])* => $function_name: expr) => {
         paste::paste! {
             mod [<test_ $function_name>] {
-                use aparecium::functions::http::*;
-                use aparecium::*;
+                use umbriel::functions::http::*;
+                use umbriel::*;
                 use functions::http;
                 use std::collections::hash_map;
 
                 #[test]
                 fn [<test_ $function_name _method_with_empty_header>]() {
-                    let result = [<$function_name _fn>]("https://codebreather.com", None as Option<ObjectLike>);
+                    let result = [<$function_name _fn>]("https://example.com", None as Option<ObjectLike>);
                     assert_eq!(result.fine_tune_params(), format!("http::{}($_param_00000001)", $function_name));
                     assert_eq!(
                         result.to_raw().build(),
-                        format!("http::{}('https://codebreather.com')", $function_name)
+                        format!("http::{}('https://example.com')", $function_name)
                     );
                 }
 
@@ -29,14 +29,14 @@ macro_rules! create_fn_with_url_and_head_tests {
                 #[test]
                 fn [<test_ $function_name _method_with_plain_custom_header>]() {
                     let headers = hash_map::HashMap::from([("x-my-header".to_string(), "some unique string".into())]);
-                    let result = http::[< $function_name _fn>]("https://codebreather.com", Some(headers));
+                    let result = http::[< $function_name _fn>]("https://example.com", Some(headers));
                     assert_eq!(
                         result.fine_tune_params(),
                         format!("http::{}($_param_00000001, $_param_00000002)", $function_name)
                     );
                     assert_eq!(
                         result.to_raw().build(),
-                        format!("http::{}('https://codebreather.com', {})", $function_name, "{ \"x-my-header\": 'some unique string' }")
+                        format!("http::{}('https://example.com', {})", $function_name, "{ \"x-my-header\": 'some unique string' }")
                     );
                 }
 
@@ -56,11 +56,11 @@ macro_rules! create_fn_with_url_and_head_tests {
                 // Macro version
                 #[test]
                 fn [<test_ $function_name _macro_method_with_empty_header_not_listed>]() {
-                    let result = http::[<$function_name>]!("https://codebreather.com");
+                    let result = http::[<$function_name>]!("https://example.com");
                     assert_eq!(result.fine_tune_params(), format!("http::{}($_param_00000001)", $function_name));
                     assert_eq!(
                         result.to_raw().build(),
-                        format!("http::{}('https://codebreather.com')", $function_name)
+                        format!("http::{}('https://example.com')", $function_name)
                     );
                 }
 
@@ -76,14 +76,14 @@ macro_rules! create_fn_with_url_and_head_tests {
                 #[test]
                 fn [<test_ $function_name _macro_method_with_plain_custom_header>]() {
                     let headers = hash_map::HashMap::from([("x-my-header".to_string(), "some unique string".into())]);
-                    let result = http::[<$function_name>]!("https://codebreather.com", headers);
+                    let result = http::[<$function_name>]!("https://example.com", headers);
                     assert_eq!(
                         result.fine_tune_params(),
                         format!("http::{}($_param_00000001, $_param_00000002)", $function_name)
                     );
                     assert_eq!(
                         result.to_raw().build(),
-                        format!("http::{}('https://codebreather.com', {})", $function_name, "{ \"x-my-header\": 'some unique string' }")
+                        format!("http::{}('https://example.com', {})", $function_name, "{ \"x-my-header\": 'some unique string' }")
                     );
                 }
 
@@ -118,20 +118,20 @@ macro_rules! create_fn_with_3args_url_body_and_head_tests {
     ($(#[$attr:meta])* => $function_name: expr) => {
         paste::paste! {
             mod [<test_ $function_name>] {
-                use aparecium::functions::http::*;
-                use aparecium::*;
+                use umbriel::functions::http::*;
+                use umbriel::*;
                 use std::collections::hash_map::HashMap;
 
                 #[test]
                 fn [<test_field_ $function_name _method_with_empty_body_and_headers>]() {
-                    let result = [<$function_name _fn>]("https://codebreather.com", None as Option<ObjectLike>, None as Option<ObjectLike>);
+                    let result = [<$function_name _fn>]("https://example.com", None as Option<ObjectLike>, None as Option<ObjectLike>);
                     assert_eq!(
                         result.fine_tune_params(),
                         format!("http::{}($_param_00000001, {{ }}, {{ }})", $function_name)
                     );
                     assert_eq!(
                         result.to_raw().build(),
-                        format!("http::{}('https://codebreather.com', {{ }}, {{ }})", $function_name)
+                        format!("http::{}('https://example.com', {{ }}, {{ }})", $function_name)
                     );
                 }
 
@@ -177,7 +177,7 @@ macro_rules! create_fn_with_3args_url_body_and_head_tests {
                         ("postId".to_string(), 100.into()),
                     ]);
                     let headers = HashMap::from([("x-my-header".to_string(), "some unique string".into())]);
-                    let result = [<$function_name _fn>]("https://codebreather.com", Some(body), Some(headers));
+                    let result = [<$function_name _fn>]("https://example.com", Some(body), Some(headers));
 
                     assert_eq!(
                         result.fine_tune_params(),
@@ -186,7 +186,7 @@ macro_rules! create_fn_with_3args_url_body_and_head_tests {
                     assert_eq!(
                         result.to_raw().build(),
                         format!(
-                            "http::{}('https://codebreather.com', {}, {})",
+                            "http::{}('https://example.com', {}, {})",
                             $function_name,
                             "{ body: 'This is some awesome thinking!', id: 1, postId: 100 }",  "{ \"x-my-header\": 'some unique string' }" )
                     );
@@ -196,7 +196,7 @@ macro_rules! create_fn_with_3args_url_body_and_head_tests {
                 #[test]
                 fn [<test_field_ $function_name _macro_method_with_no_custom_headers>]() {
                     let body = Field::new("body");
-                    let result = [<$function_name>]!("https://codebreather.com", body);
+                    let result = [<$function_name>]!("https://example.com", body);
 
                     assert_eq!(
                         result.fine_tune_params(),
@@ -204,12 +204,12 @@ macro_rules! create_fn_with_3args_url_body_and_head_tests {
                     );
                     assert_eq!(
                         result.to_raw().build(),
-                        format!("http::{}('https://codebreather.com', body, {{ }})", $function_name)
+                        format!("http::{}('https://example.com', body, {{ }})", $function_name)
                     );
                 }
                 #[test]
                 fn [<test_field_ $function_name _macro_method_with_empty_body_and_headers>]() {
-                    let result = [<$function_name>]!("https://codebreather.com", None, None);
+                    let result = [<$function_name>]!("https://example.com", None, None);
 
                     assert_eq!(
                         result.fine_tune_params(),
@@ -217,7 +217,7 @@ macro_rules! create_fn_with_3args_url_body_and_head_tests {
                     );
                     assert_eq!(
                         result.to_raw().build(),
-                        format!("http::{}('https://codebreather.com', {{  }}, {{  }})", $function_name)
+                        format!("http::{}('https://example.com', {{  }}, {{  }})", $function_name)
                     );
                 }
 
@@ -263,7 +263,7 @@ macro_rules! create_fn_with_3args_url_body_and_head_tests {
                         ("postId".to_string(), 100.into()),
                     ]);
                     let headers = HashMap::from([("x-my-header".to_string(), "some unique string".into())]);
-                    let result = [<$function_name>]!("https://codebreather.com", body, headers);
+                    let result = [<$function_name>]!("https://example.com", body, headers);
 
                     assert_eq!(
                         result.fine_tune_params(),
@@ -272,7 +272,7 @@ macro_rules! create_fn_with_3args_url_body_and_head_tests {
                     assert_eq!(
                         result.to_raw().build(),
                         format!(
-                            "http::{}('https://codebreather.com', {}, {})",
+                            "http::{}('https://example.com', {}, {})",
                             $function_name,
                             "{ body: 'This is some awesome thinking!', id: 1, postId: 100 }",  "{ \"x-my-header\": 'some unique string' }" )
                     );
