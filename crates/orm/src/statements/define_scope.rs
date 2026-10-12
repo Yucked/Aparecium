@@ -6,25 +6,41 @@
 // 	SIGNUP ( CREATE user SET email = $email, pass = crypto::argon2::generate($pass) )
 // 	SIGNIN ( SELECT * FROM user WHERE email = $email AND crypto::argon2::compare(pass, $pass) )
 // ;
-use crate::{DurationLike, Raw, Render, Scope, Sql};
+use crate::{DurationLike, Raw, Render, Renderer, Scope};
 
 use super::{Statement, Subquery, impl_definition};
 
 /// A scope's SIGNUP or SIGNIN expression: a statement, rendered as a subquery, or raw SurrealQL
 /// in parentheses.
-pub struct ScopeExpression(Sql);
+pub enum ScopeExpression {
+    /// A statement as a subquery.
+    Subquery(Subquery),
+    /// Raw SurrealQL.
+    Raw(Raw),
+}
 
 impl<T: Into<Subquery>> From<T> for ScopeExpression {
     fn from(value: T) -> Self {
-        Self(value.into().to_sql())
+        Self::Subquery(value.into())
     }
 }
 
 impl From<Raw> for ScopeExpression {
     fn from(value: Raw) -> Self {
-        let mut sql = Sql::new();
-        sql.push_str("(").push(&value).push_str(")");
-        Self(sql)
+        Self::Raw(value)
+    }
+}
+
+impl Render for ScopeExpression {
+    fn render(&self, out: &mut Renderer) {
+        match self {
+            Self::Subquery(subquery) => {
+                out.push(subquery);
+            }
+            Self::Raw(raw) => {
+                out.push_str("(").push(raw).push_str(")");
+            }
+        }
     }
 }
 
@@ -36,7 +52,7 @@ impl From<Raw> for ScopeExpression {
 /// Examples:
 ///
 /// ```rust
-/// use aparecium::{*, functions::crypto, statements::{define_scope, select}};
+/// use umbriel::{*, functions::crypto, statements::{define_scope, select}};
 /// use std::time::Duration;
 ///
 /// # let user= Table::new("user");
@@ -95,19 +111,19 @@ impl DefineScopeStatement {
 }
 
 impl Statement for DefineScopeStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("DEFINE SCOPE ").push(&self.name);
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("DEFINE SCOPE ").push(&self.name);
 
         if let Some(duration) = &self.duration {
-            sql.push_str(" SESSION ").push(duration);
+            out.push_str(" SESSION ").push(duration);
         }
 
         if let Some(signup) = &self.signup {
-            sql.push_str(" \n\tSIGNUP ").push(&signup.0);
+            out.push_str(" \n\tSIGNUP ").push(signup);
         }
 
         if let Some(signin) = &self.signin {
-            sql.push_str(" \n\tSIGNIN ").push(&signin.0);
+            out.push_str(" \n\tSIGNIN ").push(signin);
         }
     }
 }
