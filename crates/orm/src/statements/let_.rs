@@ -1,4 +1,4 @@
-use crate::{Clause, Conditional, Expression, Operatable, Param, SchemaGetter, Sql};
+use crate::{Clause, Conditional, Expression, Operatable, Param, Renderer, SchemaGetter};
 
 use super::{Statement, impl_statement};
 
@@ -9,7 +9,7 @@ use super::{Statement, impl_statement};
 ///
 /// Examples
 /// ```rust
-/// use aparecium::{*, statements::{let_, select}};
+/// use umbriel::{*, statements::{let_, select}};
 /// # let user = Table::new("user");
 /// // You can assign a value surrealdb value
 /// let_("name").equal_to(5);
@@ -29,7 +29,7 @@ pub fn let_(parameter: impl Into<Param>) -> LetStatement {
 ///
 /// Examples
 /// ```rust
-/// use aparecium::{*, statements::{let_, select}};
+/// use umbriel::{*, statements::{let_, select}};
 /// # let ref user = Table::new("user");
 /// // You can assign a value surrealdb value
 /// let_!(name = 5);
@@ -57,23 +57,15 @@ pub struct LetStatement {
 }
 
 /// As an operand or condition, a `LET` statement stands for the parameter it defines.
-impl Operatable for LetStatement {
-    fn render_operand(&self, sql: &mut Sql) {
-        sql.push(&self.parameter);
-    }
-}
+impl Operatable for LetStatement {}
 
-impl Conditional for LetStatement {
-    fn render_condition(&self, sql: &mut Sql) {
-        sql.push(&self.parameter);
-    }
-}
+impl Conditional for LetStatement {}
 
 impl LetStatement {
     /// Assigned expression
     /// Examples
     /// ```rust
-    /// use aparecium::{*, statements::{let_, select}};
+    /// use umbriel::{*, statements::{let_, select}};
     /// # let user = Table::new("user");
     /// // You can assign a value surrealdb value
     /// # let_("name")
@@ -99,10 +91,10 @@ impl LetStatement {
 }
 
 impl Statement for LetStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("LET ").push(&self.parameter);
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("LET ").push(&self.parameter);
         if let Some(value) = &self.value {
-            sql.push_str(" = ").push(value);
+            out.push_str(" = ").push(value);
         }
     }
 }
