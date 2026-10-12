@@ -1,4 +1,3 @@
-
 // Sleep function
 // The SLEEP function is used to introduce a delay or pause in the execution of a query or a batch of queries for a specific amount of time.
 //
@@ -20,7 +19,7 @@ pub fn sleep_fn(duration: impl Into<DurationLike>) -> Function {
 /// # Arguments
 ///
 /// * `duration` - The duration to sleep for. This can be a `Duration` or a `Field` or a `Param`
-///     that represents a duration.
+///   that represents a duration.
 ///
 /// # Example
 /// ```rust

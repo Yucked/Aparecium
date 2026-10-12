@@ -46,7 +46,7 @@ enum Data {
 /// # Arguments
 ///
 /// * `insertables` - a single or list of surrealdb nodes or a select statement to
-///     copy from another table.
+///   copy from another table.
 /// # Examples
 ///
 /// ```rust, ignore

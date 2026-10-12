@@ -1,16 +1,16 @@
-
 use surrealdb::types::{self, Kind, SurrealValue, Value};
 
 use crate::{Model, Node, RecordId};
 
 /// A reference to a foreign node: its id, the fetched record, or nothing.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum Reference<V: Model> {
-    /// The id of the foreign node; the default when the link is not fetched.
+    /// The id of the foreign node, when the link is not fetched.
     Id(RecordId<V>),
     /// The fetched foreign node.
     FetchedValue(V),
-    /// No linked node.
+    /// No linked node; the default.
+    #[default]
     Null,
 }
 
@@ -51,12 +51,6 @@ impl<V: Node> Reference<V> {
             Self::FetchedValue(v) => Some(v),
             _ => None,
         }
-    }
-}
-
-impl<V: Node> Default for Reference<V> {
-    fn default() -> Self {
-        Self::Null
     }
 }
 
