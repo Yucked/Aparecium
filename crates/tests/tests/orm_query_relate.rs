@@ -2,9 +2,9 @@
 #![allow(non_snake_case)]
 use chrono::DateTime;
 
-use aparecium::statements::{create, insert, order, relate, select, select_value};
-use aparecium::*;
-use aparecium_tests::{
+use umbriel::statements::{create, insert, order, relate, select, select_value};
+use umbriel::*;
+use umbriel_tests::{
     AlienVisitsPlanet, Blog, Book, Company, CompanyLikeUser, Student, StudentLiksBook,
     StudentWritesBlog, StudentWritesBook, User, company, like, user, writes,
 };
@@ -208,8 +208,8 @@ async fn can_relate_subquery_to_subquery_relate_with_queries() -> SurrealOrmResu
 
     let _ = create()
         .content(User {
-            id: User::create_id("oyelowo".to_string()),
-            name: "oyelowo".to_string(),
+            id: User::create_id("charlie".to_string()),
+            name: "charlie".to_string(),
             tags: vec!["developer".to_string()],
             ..Default::default()
         })
@@ -220,10 +220,10 @@ async fn can_relate_subquery_to_subquery_relate_with_queries() -> SurrealOrmResu
     let sample = devs.into_iter().take(2).collect::<Vec<_>>();
 
     // Create company
-    let codebreather = create()
+    let exampleco = create()
         .content(Company {
             id: Company::create_simple_id(),
-            name: "codebreather".to_string(),
+            name: "exampleco".to_string(),
             users: LinkMany::from(sample.clone()),
             ..Default::default()
         })
@@ -235,11 +235,11 @@ async fn can_relate_subquery_to_subquery_relate_with_queries() -> SurrealOrmResu
     let like::Schema { r#in, .. } = CompanyLikeUser::schema();
 
     // select users from company
-    // let from_statement = select(All).from(codebreather.id);
+    // let from_statement = select(All).from(exampleco.id);
     // We use select value to pull out the nested users field to only give the list of userids
     // from_only ensures that we do not get a nested vector of users, rather we get a flat
     // vector.
-    let from_statement = select_value(&users).from_only(codebreather.id);
+    let from_statement = select_value(&users).from_only(exampleco.id);
     // select devs
     let devs_statement = select(All)
         .from(User::table())
@@ -283,7 +283,7 @@ async fn can_relate_subquery_to_subquery_relate_with_queries() -> SurrealOrmResu
 
 #[test]
 fn test_relation_graph_with_alias() {
-    let student_id = Student::create_id("oyelowo");
+    let student_id = Student::create_id("charlie");
     let book_id = Book::create_id(vec!["The", "Alchemist"]);
 
     let aliased_connection = Student::with(student_id)
@@ -298,7 +298,7 @@ fn test_relation_graph_with_alias() {
 
     assert_eq!(
         aliased_connection.clone().to_raw().build(),
-        "student:oyelowo->writes->book:['The', 'Alchemist'] AS writtenBooks"
+        "student:charlie->writes->book:['The', 'Alchemist'] AS writtenBooks"
     );
 
     assert_eq!(aliased_connection.get_errors().len(), 0);
@@ -312,7 +312,7 @@ fn test_recursive_edge_to_edge_connection_as_supported_in_surrealql() {
     // -- Select all 1st, 2nd, and 3rd level people who this specific person record knows, or likes, as separate outputs
     // SELECT ->knows->(? AS f1)->knows->(? AS f2)->(knows, likes AS e3 WHERE influencer = true)->(? AS f3) FROM person:tobie;
 
-    let student_id = Student::create_id("oyelowo");
+    let student_id = Student::create_id("charlie");
     let book_id = Book::create_id("2");
     let likes = StudentLiksBook::table();
     let writes = StudentWritesBook::table();
@@ -332,7 +332,7 @@ fn test_recursive_edge_to_edge_connection_as_supported_in_surrealql() {
 
     assert_eq!(
         aliased_connection.clone().to_raw().build(),
-        "student:oyelowo->writes->writes->(writes, writes, likes  WHERE timeWritten <= 50)->book:⟨2⟩ AS writtenBooks"
+        "student:charlie->writes->writes->(writes, writes, likes  WHERE timeWritten <= 50)->book:⟨2⟩ AS writtenBooks"
     );
 
     assert_eq!(aliased_connection.get_errors().len(), 0);
@@ -342,7 +342,7 @@ fn test_recursive_edge_to_edge_connection_as_supported_in_surrealql() {
 
 #[test]
 fn test_any_edge_filter() {
-    let student_id = Student::create_id("oye");
+    let student_id = Student::create_id("cha");
     let book_id = Book::create_id("mars");
     let likes = StudentLiksBook::table();
     let visits = AlienVisitsPlanet::table();
@@ -360,7 +360,7 @@ fn test_any_edge_filter() {
 
     assert_eq!(
         aliased_connection.clone().to_raw().build(),
-        "student:oye->(writes, visits, likes  WHERE timeWritten <= 50)->book:mars AS writtenBooks"
+        "student:cha->(writes, visits, likes  WHERE timeWritten <= 50)->book:mars AS writtenBooks"
     );
 
     assert_eq!(aliased_connection.get_errors().len(), 0);
@@ -370,7 +370,7 @@ fn test_any_edge_filter() {
 
 #[test]
 fn should_contain_error_when_invalid_id_use_in_connection() {
-    let student_id = Student::create_id("oye");
+    let student_id = Student::create_id("cha");
     let book_id = Book::create_id("mars");
 
     let write = StudentWritesBook {
@@ -390,19 +390,19 @@ fn should_contain_error_when_invalid_id_use_in_connection() {
         relate_statement.get_errors(),
         vec![
             "invalid id book:mars. Id does not belong to table student",
-            "invalid id student:oye. Id does not belong to table book"
+            "invalid id student:cha. Id does not belong to table book"
         ]
     );
 }
 
 #[tokio::test]
-async fn relate_query() -> aparecium::SurrealOrmResult<()> {
+async fn relate_query() -> umbriel::SurrealOrmResult<()> {
     let db = Surreal::new::<Mem>(()).await.unwrap();
     db.use_ns("test")
         .use_db("test")
         .await
         .expect("failed to use db");
-    let student_id = Student::create_id("oyelowo");
+    let student_id = Student::create_id("charlie");
     let book_id = Book::create_id("kivi");
 
     let write = StudentWritesBook {
@@ -415,7 +415,7 @@ async fn relate_query() -> aparecium::SurrealOrmResult<()> {
     assert_eq!(
         relate_simple.to_raw().build(),
         format!(
-            "RELATE student:oyelowo->writes->book:kivi CONTENT {{ count: 0, id: {write_id}, in: NONE, out: NONE, timeWritten: {{ nanos: 0, secs: 343 }} }} ;"
+            "RELATE student:charlie->writes->book:kivi CONTENT {{ count: 0, id: {write_id}, in: NONE, out: NONE, timeWritten: {{ nanos: 0, secs: 343 }} }} ;"
         )
     );
 
@@ -433,7 +433,7 @@ async fn relate_query() -> aparecium::SurrealOrmResult<()> {
             .get_id()
             .unwrap()
             .to_string(),
-        "student:oyelowo"
+        "student:charlie"
     );
 
     assert_eq!(
@@ -459,7 +459,7 @@ async fn relate_query() -> aparecium::SurrealOrmResult<()> {
             .get_id()
             .unwrap()
             .to_string(),
-        "student:oyelowo"
+        "student:charlie"
     );
     assert_eq!(
         relate_simple_array[0]
@@ -475,7 +475,7 @@ async fn relate_query() -> aparecium::SurrealOrmResult<()> {
 }
 
 #[tokio::test]
-async fn relate_query_with_sub_query() -> aparecium::SurrealOrmResult<()> {
+async fn relate_query_with_sub_query() -> umbriel::SurrealOrmResult<()> {
     let db = Surreal::new::<Mem>(()).await.unwrap();
     db.use_ns("test")
         .use_db("test")
@@ -490,7 +490,7 @@ async fn relate_query_with_sub_query() -> aparecium::SurrealOrmResult<()> {
         Student::with(select(All).from(Student::get_table()))
             .writes__(E)
             .book(
-                select(All).from(Book::get_table()), // .where_(Book::schema().title.like("Oyelowo")),
+                select(All).from(Book::get_table()), // .where_(Book::schema().title.like("Charlie")),
             ),
     )
     .content(write.clone());
