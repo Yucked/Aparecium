@@ -7,8 +7,9 @@
 //! to make working with surrealdb a joy.
 
 mod errors;
+mod execution;
 
-/// Contains math constants, all the casting functions and future.
+/// Contains math constants and all the casting functions.
 mod data_model;
 pub mod functions;
 mod helpers;
@@ -48,6 +49,13 @@ pub use umbriel_macros::{
     transaction,
 };
 
+/// Internals exercised directly by `crates/tests`; not part of the public API.
+#[cfg(feature = "test-support")]
+#[doc(hidden)]
+pub mod test_support {
+    pub use crate::execution::select_failure;
+}
+
 #[doc(hidden)]
 pub mod internal_tools {
     pub use paste::paste;
@@ -58,4 +66,9 @@ pub mod internal_tools {
 #[doc(hidden)]
 pub mod __private {
     pub use umbriel_macros::ModelCodegen;
+
+    /// Glob-imported by `#[model]`: the `SurrealValue` derive names the trait unqualified.
+    pub mod surreal_value {
+        pub use surrealdb::types::SurrealValue;
+    }
 }
