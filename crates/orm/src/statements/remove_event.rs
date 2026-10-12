@@ -1,6 +1,6 @@
 use surrealdb::types::Table;
 
-use crate::{Event, Sql};
+use crate::{Event, Renderer};
 
 use super::{Statement, impl_definition};
 
@@ -12,7 +12,7 @@ use super::{Statement, impl_definition};
 ///
 /// # Example
 /// ```rust
-/// use aparecium::{*, statements::remove_event};
+/// use umbriel::{*, statements::remove_event};
 /// # let user = Table::new("user");
 /// # let party = Event::new("party");
 ///
@@ -41,10 +41,10 @@ impl RemoveEventStatement {
 }
 
 impl Statement for RemoveEventStatement {
-    fn render_body(&self, sql: &mut Sql) {
-        sql.push_str("REMOVE EVENT ").push(&self.event);
+    fn render_body(&self, out: &mut Renderer) {
+        out.push_str("REMOVE EVENT ").push(&self.event);
         if let Some(table) = &self.table {
-            sql.push_str(" ON TABLE ").push(table);
+            out.push_str(" ON TABLE ").push(table);
         }
     }
 }
