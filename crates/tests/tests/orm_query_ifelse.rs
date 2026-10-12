@@ -1,10 +1,10 @@
 
-use aparecium::{
+use umbriel::{
     All, Buildable, Model, Operatable, ReturnableSelect, Runnable, SchemaGetter, SetterAssignable,
     SurrealOrmResult, ToRaw, block, chain,
     statements::{LetStatement, if_, insert, let_, order, select, update},
 };
-use aparecium_tests::{SpaceShip, Weapon, weapon};
+use umbriel_tests::{SpaceShip, Weapon, weapon};
 use pretty_assertions::assert_eq;
 use serde::{Deserialize, Serialize};
 use surrealdb::{Surreal, engine::local::Mem};
@@ -42,13 +42,13 @@ async fn test_if_else_statement_and_let_with_block_macro() -> SurrealOrmResult<(
 
     let queries_1 = block! {
         let val = 7;
-        let oye_name = "Oyelowo";
+        let oye_name = "Charlie";
         // You can even assign a statement
         let select_space_ship = select(All).from(space_ship).order_by(order(name).desc());
 
         let cond = if val.greater_than(5) {
             return select_space_ship;
-        } else if oye_name.equal("Oyelowo") {
+        } else if oye_name.equal("Charlie") {
             return select(All)
                     .from(weapon)
                     .order_by(order(strength).desc());
@@ -93,7 +93,7 @@ async fn test_if_else_statement_and_let_with_block_macro() -> SurrealOrmResult<(
             return if (val.greater_than(5)) {
                 select(All).from(space_ship).order_by(order(name).desc());
                 return 6;
-            } else if (oye_name.equal("Oyelowo")){
+            } else if (oye_name.equal("Charlie")){
                return select(All).from(weapon).order_by(order(strength).desc());
             } else {
                 let x = 2505;
@@ -104,10 +104,10 @@ async fn test_if_else_statement_and_let_with_block_macro() -> SurrealOrmResult<(
 
     // if declared outside of a block
     // let_!(val = 4);
-    // let_!(oye_name = "Oyelowo");
+    // let_!(oye_name = "Charlie");
     let queries_2 = block! {
         let val = 4;
-        let oye_name = "Oyelowo";
+        let oye_name = "Charlie";
         return if_else_external(val, oye_name);
     };
 
@@ -127,14 +127,14 @@ async fn test_if_else_statement_and_let_with_block_macro() -> SurrealOrmResult<(
     // Matches Else
     let queries_3 = block! {
         let val = 4;
-        let oye_name = "Not Oyelowo";
+        let oye_name = "Not Charlie";
 
         return if (val.greater_than(5)) {
             select(All)
                 .from(space_ship)
                 .order_by(order(name).desc());
             }
-            else if(oye_name.equal("Oyelowo")) {
+            else if(oye_name.equal("Charlie")) {
                 select(All)
                     .from(weapon)
                     .order_by(order(strength).desc());
@@ -181,14 +181,14 @@ async fn test_if_else_statement_and_let_macro() -> SurrealOrmResult<()> {
     insert(generated_weapons).run(db.clone()).await?;
 
     let_!(val = 7);
-    let_!(name = "Oyelowo");
+    let_!(name = "Charlie");
     let if_statement = if_(val.greater_than(5))
         .then(
             select(All)
                 .from(SpaceShip::table())
                 .order_by(order(SpaceShip::schema().name).desc()),
         )
-        .else_if(name.equal("Oyelowo"))
+        .else_if(name.equal("Charlie"))
         .then(
             select(All)
                 .from(Weapon::table())
@@ -224,7 +224,7 @@ async fn test_if_else_statement_and_let_macro() -> SurrealOrmResult<()> {
     };
 
     let val = let_("val").equal_to(4);
-    let name = let_("name").equal_to("Oyelowo");
+    let name = let_("name").equal_to("Charlie");
 
     let queries_2 = chain(val).chain(name).chain(if_statement.clone());
 
@@ -243,7 +243,7 @@ async fn test_if_else_statement_and_let_macro() -> SurrealOrmResult<()> {
 
     // Matches Else
     let_!(val = 4);
-    let_!(name = "Not Oyelowo");
+    let_!(name = "Not Charlie");
 
     let queries_3 = chain(val).chain(name).chain(if_statement);
 
@@ -287,7 +287,7 @@ async fn test_if_else_statement() -> SurrealOrmResult<()> {
     let let_val = let_("val").equal_to(7);
     let val = || let_val.clone().get_param();
 
-    let let_name = let_("name").equal_to("Oyelowo");
+    let let_name = let_("name").equal_to("Charlie");
     let name = || let_name.get_param();
 
     let if_statement = if_(val().greater_than(5))
@@ -296,7 +296,7 @@ async fn test_if_else_statement() -> SurrealOrmResult<()> {
                 .from(SpaceShip::table())
                 .order_by(order(SpaceShip::schema().name).desc()),
         )
-        .else_if(name().equal("Oyelowo"))
+        .else_if(name().equal("Charlie"))
         .then(
             select(All)
                 .from(Weapon::table())
@@ -351,7 +351,7 @@ async fn test_if_else_statement() -> SurrealOrmResult<()> {
 
     // Matches Else
     let let_val = let_val.equal_to(4);
-    let let_name = let_name.equal_to("Not Oyelowo");
+    let let_name = let_name.equal_to("Not Charlie");
 
     let queries_3 = chain(let_val.clone())
         .chain(let_name.clone())
