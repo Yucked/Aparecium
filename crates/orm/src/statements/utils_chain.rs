@@ -1,5 +1,5 @@
 
-use crate::{Block, Queryable, Render, Sql, ValueLike};
+use crate::{Block, Fragment, Queryable, Render, Renderer, ValueLike};
 
 /// Chains together multiple queries into a single `QueryChain`.
 ///
@@ -10,23 +10,23 @@ use crate::{Block, Queryable, Render, Sql, ValueLike};
 /// # Example Usage
 ///
 /// ```rust
-/// use aparecium::{*, statements::select, types::RecordId};
+/// use umbriel::{*, statements::select, types::RecordId};
 ///
 /// // Create a query chain with a single query
-/// let user_lowo = RecordId::new("user", "oyelowo");
-/// let user_dayo = RecordId::new("user", "oyedayo");
+/// let user_rlie = RecordId::new("user", "charlie");
+/// let user_nett = RecordId::new("user", "bennett");
 ///
 /// // Append a new query to the chain
-/// let query1 = select(All).from(user_lowo);
-/// let query2 = select(All).from(user_dayo).limit(10);
+/// let query1 = select(All).from(user_rlie);
+/// let query2 = select(All).from(user_nett).limit(10);
 /// let chain = chain(query1).chain(query2);
 ///
 /// assert_eq!(chain.to_query().unwrap().sql(), "SELECT * FROM $_p0;\n\nSELECT * FROM $_p1 LIMIT $_p2;");
-/// assert_eq!(chain.to_debug_sql(), "SELECT * FROM user:oyelowo;\n\nSELECT * FROM user:oyedayo LIMIT 10;");
+/// assert_eq!(chain.to_debug_sql(), "SELECT * FROM user:charlie;\n\nSELECT * FROM user:bennett LIMIT 10;");
 /// ```
 pub fn chain(query: impl Queryable) -> QueryChain {
     QueryChain {
-        queries: vec![query.to_sql()],
+        queries: vec![query.into_fragment()],
         parenthesized: false,
     }
 }
@@ -36,17 +36,17 @@ pub fn chain(query: impl Queryable) -> QueryChain {
 /// A `QueryChain` is created with an initial query, and additional queries can be added to the chain using the `chain` method.
 #[derive(Debug, Clone, PartialEq)]
 pub struct QueryChain {
-    queries: Vec<Sql>,
+    queries: Vec<Fragment>,
     parenthesized: bool,
 }
 
 /// A chainable query.
 #[derive(Debug, Clone)]
-pub struct Chainable(Sql);
+pub struct Chainable(Fragment);
 
-impl<T: Render> From<T> for Chainable {
+impl<T: Queryable> From<T> for Chainable {
     fn from(query: T) -> Self {
-        Self(query.to_sql())
+        Self(query.into_fragment())
     }
 }
 
@@ -56,19 +56,19 @@ impl QueryChain {
     /// # Examples
     ///
     /// ```rust
-    /// use aparecium::{*, statements::select, types::RecordId};
+    /// use umbriel::{*, statements::select, types::RecordId};
     ///
     /// // Create a query chain with a single query
-    /// let user_lowo = RecordId::new("user", "oyelowo");
-    /// let user_dayo = RecordId::new("user", "oyedayo");
+    /// let user_rlie = RecordId::new("user", "charlie");
+    /// let user_nett = RecordId::new("user", "bennett");
     ///
     /// // Append a new query to the chain
-    /// let query1 = select(All).from(user_lowo);
-    /// let query2 = select(All).from(user_dayo).limit(10);
+    /// let query1 = select(All).from(user_rlie);
+    /// let query2 = select(All).from(user_nett).limit(10);
     /// let chain = chain(query1).chain(query2);
     ///
     /// assert_eq!(chain.to_query().unwrap().sql(), "SELECT * FROM $_p0;\n\nSELECT * FROM $_p1 LIMIT $_p2;");
-    /// assert_eq!(chain.to_debug_sql(), "SELECT * FROM user:oyelowo;\n\nSELECT * FROM user:oyedayo LIMIT 10;");
+    /// assert_eq!(chain.to_debug_sql(), "SELECT * FROM user:charlie;\n\nSELECT * FROM user:bennett LIMIT 10;");
     /// ```
     pub fn chain(mut self, query: impl Into<Chainable>) -> Self {
         self.queries.push(query.into().0);
@@ -87,16 +87,20 @@ impl QueryChain {
     }
 }
 
-impl Queryable for QueryChain {}
+impl Queryable for QueryChain {
+    fn into_fragment(self) -> Fragment {
+        Fragment::new(self)
+    }
+}
 
 impl Render for QueryChain {
-    fn render(&self, sql: &mut Sql) {
+    fn render(&self, out: &mut Renderer) {
         if self.parenthesized {
-            sql.push_str("(");
+            out.push_str("(");
         }
-        sql.push_joined(&self.queries, "\n\n");
+        out.push_joined(&self.queries, "\n\n");
         if self.parenthesized {
-            sql.push_str(")");
+            out.push_str(")");
         }
     }
 }
@@ -104,7 +108,7 @@ impl Render for QueryChain {
 impl From<Vec<ValueLike>> for QueryChain {
     fn from(values: Vec<ValueLike>) -> Self {
         Self {
-            queries: values.iter().map(Render::to_sql).collect(),
+            queries: values.into_iter().map(Fragment::new).collect(),
             parenthesized: false,
         }
     }
