@@ -2,37 +2,40 @@ use std::ops::Deref;
 
 use surrealdb::types::{SurrealValue, Value};
 
-use crate::{Field, Render, Sql};
+use crate::{Field, Render, Renderer};
 
 const INVALID_PATH: &str = "The path you have provided is invalid. Make sure that there are no clauses or conditions included. Valid path include e.g name, name(E).first, name(E).first(E).second, etc.";
 
 /// A JSON patch operation, e.g. `{ op: 'add', path: '/name', value: 'Alice' }`.
 #[derive(Debug, Clone, PartialEq)]
-pub struct PatchOp(Sql);
+pub struct PatchOp {
+    op: &'static str,
+    /// The JSON pointer to the field, or `None` when the field path has no pointer.
+    path: Option<Value>,
+    value: Option<Value>,
+}
 
 impl PatchOp {
-    fn new(path: &Field, op: &str, value: Option<Value>) -> Self {
-        let mut sql = Sql::new();
-        sql.push_str("{ op: '").push_str(op).push_str("', path: ");
-        match path.json_pointer() {
-            Some(pointer) => {
-                sql.push_value(Value::String(pointer));
-            }
-            None => {
-                sql.push_error(INVALID_PATH).push_value(Value::None);
-            }
+    fn new(path: &Field, op: &'static str, value: Option<Value>) -> Self {
+        Self {
+            op,
+            path: path.json_pointer().map(Value::String),
+            value,
         }
-        if let Some(value) = value {
-            sql.push_str(", value: ").push_value(value);
-        }
-        sql.push_str(" }");
-        Self(sql)
     }
 }
 
 impl Render for PatchOp {
-    fn render(&self, sql: &mut Sql) {
-        sql.push(&self.0);
+    fn render(&self, out: &mut Renderer) {
+        out.push_str("{ op: '").push_str(self.op).push_str("', path: ");
+        match &self.path {
+            Some(pointer) => out.push_value(pointer),
+            None => out.push_error(INVALID_PATH).push_value(&Value::None),
+        };
+        if let Some(value) = &self.value {
+            out.push_str(", value: ").push_value(value);
+        }
+        out.push_str(" }");
     }
 }
 
@@ -58,7 +61,7 @@ where
     ///
     /// # Examples
     /// ```rust, ignore
-    /// name.patch_add("Oyelowo");
+    /// name.patch_add("Charlie");
     /// ```
     fn patch_add(&self, value: impl Into<T>) -> PatchOp {
         PatchOp::new(self.deref(), "add", Some(value.into().into_value()))
@@ -87,7 +90,7 @@ where
     ///
     /// # Examples
     /// ```rust, ignore
-    /// name.patch_replace("Oyelowo");
+    /// name.patch_replace("Charlie");
     /// ```
     fn patch_replace(&self, value: impl Into<T>) -> PatchOp {
         PatchOp::new(self.deref(), "replace", Some(value.into().into_value()))
