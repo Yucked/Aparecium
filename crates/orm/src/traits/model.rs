@@ -6,7 +6,7 @@ use surrealdb::{
 
 use crate::{
     Alias, All, Conditional, Error, Field, Filter, ModelPatch, NodeClause, Raw, RecordId,
-    RecordKey, Render, Result, count,
+    RecordKey, Render, Result, StoredFields, count,
     statements::{
         SelectStatementMini,
         delete::{DeleteStatementMini, delete},
@@ -28,11 +28,13 @@ pub struct FieldMetadata {
 /// A record model: a node or an edge, stored in its own table and identified by its
 /// `id: RecordId<Self>` field.
 #[diagnostic::on_unimplemented(
-    message = "`{Self}` is not an Aparecium model",
+    message = "`{Self}` is not an Umbriel model",
     label = "not a model",
-    note = "declare `{Self}` with `#[aparecium::model(node)]` or `#[aparecium::model(edge)]`"
+    note = "declare `{Self}` with `#[umbriel::model(node)]` or `#[umbriel::model(edge)]`"
 )]
-pub trait Model: Sized + SurrealValue {
+// `'static`: a model is an owned record type, so queries can hold statements over it as shared
+// nodes.
+pub trait Model: Sized + SurrealValue + 'static {
     /// For checking renamed struct field names
     #[doc(hidden)]
     type StructRenamedCreator;
@@ -211,7 +213,7 @@ impl<T> SurrealCrudNode for T where T: Node + Send {}
 #[diagnostic::on_unimplemented(
     message = "`{Self}` is not a node",
     label = "not a node",
-    note = "declare `{Self}` with `#[aparecium::model(node)]`"
+    note = "declare `{Self}` with `#[umbriel::model(node)]`"
 )]
 pub trait Node: Model + SchemaGetter {
     /// The type of the aliases
@@ -243,7 +245,7 @@ pub trait Node: Model + SchemaGetter {
 #[diagnostic::on_unimplemented(
     message = "`{Self}` is not an edge",
     label = "not an edge",
-    note = "declare `{Self}` with `#[aparecium::model(edge)]`"
+    note = "declare `{Self}` with `#[umbriel::model(edge)]`"
 )]
 pub trait Edge: Model + SchemaGetter {
     /// The Origin node
@@ -261,9 +263,19 @@ pub trait Edge: Model + SchemaGetter {
 #[diagnostic::on_unimplemented(
     message = "`{Self}` is not an embedded object",
     label = "not an object",
-    note = "declare `{Self}` with `#[aparecium::model(object)]`"
+    note = "declare `{Self}` with `#[umbriel::model(object)]`"
 )]
-pub trait Object: SurrealValue + SchemaGetter {}
+pub trait Object: SurrealValue + SchemaGetter {
+    /// The names this object stores, including those of the objects it flattens. A model that
+    /// flattens this object stores them as its own fields.
+    #[doc(hidden)]
+    const STORED_FIELDS: StoredFields;
+
+    /// The metadata and definitions of this object's fields as top-level fields of `table`, for
+    /// a model that flattens this object.
+    #[doc(hidden)]
+    fn field_meta_on(table: Table) -> Vec<FieldMetadata>;
+}
 
 /// Trait for getting the schema of a node for generating graph strings
 pub trait SchemaGetter {
