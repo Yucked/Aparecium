@@ -1,81 +1,66 @@
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
-use surrealdb::sql;
-use umbriel::{Edge, LinkMany, LinkOne, Model, Node, Object, Relate, SurrealId, SurrealSimpleId};
+use umbriel::{LinkMany, LinkOne, Node, RecordId, Relate, model};
 
-#[derive(Node, Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-#[orm(table = user)]
+#[model(node, table = "user")]
+#[surreal(rename_all = "camelCase")]
+#[derive(Debug, Clone, Default)]
 pub struct User {
-    pub id: SurrealId<Self, String>,
+    pub id: RecordId<Self>,
     pub name: String,
     pub created: DateTime<Utc>,
     pub company: String,
     pub tags: Vec<String>,
 }
 
-impl Default for User {
-    fn default() -> Self {
-        Self {
-            id: User::create_id(sql::Id::rand().to_string()),
-            name: Default::default(),
-            created: Default::default(),
-            company: Default::default(),
-            tags: Default::default(),
-        }
-    }
-}
-
-#[derive(Edge, Serialize, Deserialize, Debug, Clone, Default)]
-#[serde(rename_all = "camelCase")]
-#[orm(table = like)]
+#[model(edge, table = "like")]
+#[surreal(rename_all = "camelCase")]
+#[derive(Debug, Clone, Default)]
 pub struct Like<In: Node, Out: Node> {
-    pub id: SurrealSimpleId<Self>,
-    // #[serde(rename = "in")]
-    #[orm(link_one = In)]
+    pub id: RecordId<Self>,
+    #[orm(link_one = "In")]
     pub r#in: LinkOne<In>,
 
-    #[orm(link_one = Out)]
+    #[orm(link_one = "Out")]
     pub out: LinkOne<Out>,
 
-    #[orm(nest_object = Time)]
+    #[orm(nest_object = "Time")]
     pub time: Time,
 }
+
 pub type CompanyLikeUser = Like<Company, User>;
 
-#[derive(umbriel::Node, Serialize, Deserialize, Debug, Clone, Default)]
-#[serde(rename_all = "camelCase")]
-#[orm(table = company)]
+#[model(node, table = "company")]
+#[surreal(rename_all = "camelCase")]
+#[derive(Debug, Clone, Default)]
 pub struct Company {
-    pub id: SurrealSimpleId<Self>,
+    pub id: RecordId<Self>,
     pub name: String,
 
-    #[orm(link_many = User)]
+    #[orm(link_many = "User")]
     pub users: LinkMany<User>,
 
-    #[orm(relate(model = CompanyLikeUser, connection = "->like->user"))]
-    #[serde(skip_serializing, default)]
+    #[orm(relate(model = "CompanyLikeUser", connection = "->like->user"))]
     pub devs: Relate<User>,
 }
 
-#[derive(Object, Serialize, Deserialize, Debug, Clone, Default)]
-#[serde(rename_all = "camelCase")]
+#[model(object)]
+#[surreal(rename_all = "camelCase")]
+#[derive(Debug, Clone, Default)]
 pub struct Time {
-    // pub name: String,
     pub connected: DateTime<Utc>,
 }
 
-#[derive(Node, Serialize, Deserialize, Debug, Clone, Default)]
-#[serde(rename_all = "camelCase")]
-#[orm(table = organization)]
+#[model(node, table = "organization")]
+#[surreal(rename_all = "camelCase")]
+#[derive(Debug, Clone, Default)]
 pub struct Organization {
-    pub id: SurrealSimpleId<Self>,
+    pub id: RecordId<Self>,
     pub name: String,
 
-    #[orm(link_many = User)]
+    #[orm(link_many = "User")]
     pub users: LinkMany<User>,
 
-    #[orm(nest_object = Time)]
+    #[orm(nest_object = "Time")]
     pub time: Time,
     pub age: u8,
 }

@@ -1,0 +1,29 @@
+error: No binding found for placeholder '$n'
+ --> tests/ui/fail/query_scopes.rs:4:33
+  |
+4 |     let _ = umbriel::query!(db, "RETURN [1].map(|$n| $n * 2); RETURN $n;").await;
+  |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: No binding found for placeholder '$v'
+ --> tests/ui/fail/query_scopes.rs:8:9
+  |
+8 |         "DEFINE FUNCTION fn::twice($v: int) { RETURN $v * 2; }; RETURN $v;"
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: No binding found for placeholder '$i'
+  --> tests/ui/fail/query_scopes.rs:12:33
+   |
+12 |     let _ = umbriel::query!(db, "FOR $i IN [1, 2] { CREATE item SET rank = $i; }; RETURN $i;").await;
+   |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: No binding found for placeholder '$total'
+  --> tests/ui/fail/query_scopes.rs:14:33
+   |
+14 |     let _ = umbriel::query!(db, "RETURN $total; LET $total = 1;").await;
+   |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: No placeholder found in SQL query for binding 'y'
+  --> tests/ui/fail/query_scopes.rs:16:63
+   |
+16 |     let _ = umbriel::query!(db, "RETURN [1].map(|$y| $y);", { y: 2 }).await;
+   |                                                               ^

@@ -1,39 +1,11 @@
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
-use umbriel::{Model, Node, SurrealId, sql};
+use umbriel::{RecordId, model};
 
-// #[derive(Serialize, Deserialize)]
-// struct SpaceShipId(SurrealId<SpaceShip, String>);
-// impl Default for SpaceShipId {
-//     fn default() -> Self {
-//         SpaceShip::create_id("default")
-//     }
-// }
-
-// SpaceShip
-#[derive(Node, Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-#[orm(table = space_ship)]
+#[model(node, table = "space_ship")]
+#[surreal(rename_all = "camelCase")]
+#[derive(Debug, Clone, Default)]
 pub struct SpaceShip {
-    pub id: SurrealId<Self, String>,
+    pub id: RecordId<Self>,
     pub name: String,
     pub created: DateTime<Utc>,
-}
-
-impl Default for SpaceShip {
-    fn default() -> Self {
-        Self {
-            id: Self::create_id(sql::Uuid::new_v4().to_string()),
-            name: Default::default(),
-            created: Default::default(),
-        }
-    }
-}
-
-#[derive(Node, Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-#[orm(table = test_raw_id)]
-pub struct TestRawId {
-    pub id: SurrealId<Self, i32>,
-    pub name: String,
 }

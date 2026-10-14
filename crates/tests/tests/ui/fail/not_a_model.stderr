@@ -1,0 +1,17 @@
+error[E0277]: `Plain` is not a node
+ --> tests/ui/fail/not_a_model.rs:7:21
+  |
+7 |     requires_node::<Plain>();
+  |                     ^^^^^ not a node
+  |
+help: the trait `umbriel::Node` is not implemented for `Plain`
+ --> tests/ui/fail/not_a_model.rs:3:1
+  |
+3 | struct Plain;
+  | ^^^^^^^^^^^^
+  = note: declare `Plain` with `#[umbriel::model(node)]`
+note: required by a bound in `requires_node`
+ --> tests/ui/fail/not_a_model.rs:1:21
+  |
+1 | fn requires_node<T: umbriel::Node>() {}
+  |                     ^^^^^^^^^^^^^ required by this bound in `requires_node`

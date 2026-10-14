@@ -1,5 +1,5 @@
 # Standalone consumer that names `umbriel` only as `apa`, with representative models (renames,
-# nullable fields, a flattened object, a generic edge); checked by `tests/macros_compile.rs`.
+# nullable fields, a flattened object, a generic edge); checked by `tests/compile.rs`.
 [package]
 name = "renamed-dependency-fixture"
 version = "0.0.0"

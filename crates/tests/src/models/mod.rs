@@ -1,11 +1,15 @@
-pub mod alien;
-pub mod attributes;
-pub mod combined;
-pub mod configuration;
-pub mod planet;
-pub mod spaceship;
-pub mod user;
-pub mod user_with_generics;
-pub mod visits;
-pub mod weapon;
-pub mod with_generics;
+mod alien;
+mod attributes;
+mod planet;
+mod spaceship;
+mod user;
+mod visits;
+mod weapon;
+
+pub use alien::*;
+pub use attributes::*;
+pub use planet::*;
+pub use spaceship::*;
+pub use user::*;
+pub use visits::*;
+pub use weapon::*;

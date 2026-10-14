@@ -1,0 +1,27 @@
+error: No binding found for placeholder '$name'
+ --> tests/ui/fail/query_bindings.rs:3:33
+  |
+3 |     let _ = umbriel::query!(db, "RETURN $name").await;
+  |                                 ^^^^^^^^^^^^^^
+
+error: No placeholder found in SQL query for binding 'name'
+ --> tests/ui/fail/query_bindings.rs:5:47
+  |
+5 |     let _ = umbriel::query!(db, "RETURN 1", { name: "Alice" }).await;
+  |                                               ^^^^
+
+error[E0080]: evaluation panicked: parameter names starting with `_p` are reserved for bound values
+ --> tests/ui/fail/query_bindings.rs:7:13
+  |
+7 |     let _ = umbriel::query!(db, "RETURN $_p0", { _p0: 1 }).await;
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ evaluation of `run::{closure#0}::_` failed inside this call
+  |
+note: inside `umbriel::Param::assert_valid`
+ --> $RUST/core/src/panic.rs
+  |
+  = note: the failure occurred here
+  |
+ ::: $WORKSPACE/crates/orm/src/query/param.rs
+  |
+  |             panic!("{}", error.message());
+  |             ----------------------------- in this macro invocation

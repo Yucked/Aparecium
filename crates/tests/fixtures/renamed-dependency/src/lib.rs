@@ -55,7 +55,7 @@ pub fn adults_at_example() -> Result<Query> {
         .where_(
             user.years
                 .greater_than_or_equal(18)
-                .and(user.contact.emailAddress.like("%@example.com")),
+                .and(user.contact.emailAddress.contains("@example.com")),
         )
         .to_query()
 }

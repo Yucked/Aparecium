@@ -1,0 +1,10 @@
+error: Parse error: Unexpected token `an identifier`, expected Eof
+ --> [1:7]
+  |
+1 | SELEC name FROM user
+  |       ^^^^
+
+ --> tests/ui/fail/query_raw_invalid.rs:3:38
+  |
+3 |     let _query = umbriel::query_raw!("SELEC name FROM user");
+  |                                      ^^^^^^^^^^^^^^^^^^^^^^

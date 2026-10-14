@@ -86,10 +86,43 @@ pub struct TestConfig {
 #[derive(Clone, Default)]
 pub struct CurrentFunctionName(String);
 
+impl CurrentFunctionName {
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+/// Keeps the bare test function name: `type_name` gives the module path and, inside async test
+/// bodies, a trailing `{{closure}}`, neither of which belongs in a file name.
 impl From<&str> for CurrentFunctionName {
     fn from(s: &str) -> Self {
-        Self(s.into())
+        let name = s
+            .split("::")
+            .filter(|segment| !segment.is_empty() && !segment.starts_with('{'))
+            .last()
+            .unwrap_or(s);
+        Self(name.into())
     }
+}
+
+/// Joins name parts with `__`, replacing anything but ASCII letters, digits and `_` with `_`, so
+/// the snapshot file name is valid on every platform.
+fn snapshot_name(parts: &[&str]) -> String {
+    parts
+        .iter()
+        .map(|part| {
+            part.chars()
+                .map(|c| {
+                    if c.is_ascii_alphanumeric() || c == '_' {
+                        c
+                    } else {
+                        '_'
+                    }
+                })
+                .collect::<String>()
+        })
+        .collect::<Vec<_>>()
+        .join("__")
 }
 
 impl Display for CurrentFunctionName {
@@ -193,20 +226,23 @@ impl TestConfig {
         let reversible = self.reversible.unwrap_or_default();
         let migration_type = MigrationFlag::from(reversible);
         let current_function_name = &self.current_function_name;
-        let mock_prompter = match self
+        let field_change = match self
             .mock_prompter
             .unwrap_or_default()
             .rename_or_delete_single_field_change
         {
-            RenameOrDelete::Rename => "single field name change strategy: rename",
-            RenameOrDelete::Delete => "single field name change strategy: delete",
+            RenameOrDelete::Rename => "rename",
+            RenameOrDelete::Delete => "delete",
         };
-        let name_differentiator = format!(
-            "source_{current_function_name}__{migration_type}___{mode}{mock_prompter}\
-        {implementor_fn_name}_{assertion_counter}"
-        );
-
-        name_differentiator
+        // Plain tokens joined by `__`: snapshot file names must be valid on Windows, so no `:`,
+        // spaces, braces or module paths.
+        snapshot_name(&[
+            current_function_name.as_str(),
+            &migration_type.to_string(),
+            &mode.to_string(),
+            field_change,
+            &format!("{implementor_fn_name}_{assertion_counter}"),
+        ])
     }
 
     pub fn assert_migration_queries_snapshot(&mut self) -> SnapShot {

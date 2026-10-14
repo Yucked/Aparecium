@@ -1,71 +1,16 @@
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
-use umbriel::{Node, SurrealSimpleId};
+use umbriel::{RecordId, model, types::SurrealValue, validators};
 
-// NOTE: Make PartialBuilder trait separate from Node, so it can be optional
-// Planet
-#[derive(Node, Serialize, Deserialize, Debug, Clone, Default)]
-#[serde(rename_all = "camelCase")]
-#[orm(table = planet)]
-pub struct Planet<T: Clone + Serialize + umbriel::validators::Int + Default> {
-    pub id: SurrealSimpleId<Self>,
+/// A generic node: `data`'s type is the caller's, stored as an integer.
+#[model(node, table = "planet")]
+#[surreal(rename_all = "camelCase")]
+#[derive(Debug, Clone, Default)]
+pub struct Planet<T: SurrealValue + validators::Int + 'static> {
+    pub id: RecordId<Self>,
     pub name: String,
-    // area: Polygon,
-    // #[orm(ty = "any")]
-    // #[orm(ty = "array")]
-    // #[orm(ty = "array", item_type = "int")]
-    // #[orm(ty = "array", item_type = "int")]
-    // #[orm(ty = "int")]
-    // pub population: Population,
-    // pub population: PopArray,
-    // pub population: Vec<Population>,
     pub population: u64,
     pub created: DateTime<Utc>,
     pub tags: Vec<u64>,
     #[orm(ty = "int")]
-    pub data: T,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, Default)]
-pub struct PopArray(Vec<Population>);
-// impl Intoiter for PopArray
-impl IntoIterator for PopArray {
-    type Item = Population;
-    type IntoIter = std::vec::IntoIter<Self::Item>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
-    }
-}
-
-// impl std::ops::Deref for PopArray {
-//     type Target = Vec<Population>;
-//
-//     fn deref(&self) -> &Self::Target {
-//         &self.0
-//     }
-// }
-// impl From<PopArray> for sql::Value {
-//     fn from(v: PopArray) -> Self {
-//         sql::Array(
-//             v.iter()
-//                 .map(|v| sql::Value::from(v.clone() as i64))
-//                 .collect(),
-//         )
-//         .into()
-//     }
-// }
-type Population = u64;
-
-#[derive(Node, Serialize, Deserialize, Debug, Clone, Default)]
-#[serde(rename_all = "camelCase")]
-#[orm(table = planet_x)]
-pub struct PlanetX<T: Clone + Serialize + umbriel::validators::Int + Default> {
-    pub id: SurrealSimpleId<Self>,
-    pub name: String,
-    pub population: u64,
-    pub created: DateTime<Utc>,
-    pub tags: Vec<u64>,
-    #[orm(ty = int)]
     pub data: T,
 }

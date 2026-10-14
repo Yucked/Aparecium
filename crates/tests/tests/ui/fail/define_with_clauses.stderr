@@ -1,0 +1,45 @@
+error: `define` gives the whole definition, so it cannot be combined with `assert`, `value`, `permissions` or `item_assert`
+  --> tests/ui/fail/define_with_clauses.rs:12:9
+   |
+12 |     pub age: u8,
+   |         ^^^
+
+error[E0277]: `User` is not an Umbriel model
+  --> tests/ui/fail/define_with_clauses.rs:10:13
+   |
+10 |     pub id: RecordId<Self>,
+   |             ^^^^^^^^^^^^^^ not a model
+   |
+help: the trait `Model` is not implemented for `User`
+  --> tests/ui/fail/define_with_clauses.rs:9:1
+   |
+ 9 | pub struct User {
+   | ^^^^^^^^^^^^^^^
+   = note: declare `User` with `#[umbriel::model(node)]` or `#[umbriel::model(edge)]`
+help: the trait `umbriel::surrealdb_types::SurrealValue` is conditionally implemented for `umbriel::RecordId<T>`
+  --> $WORKSPACE/crates/orm/src/query/record_id.rs
+   |
+   | impl<T: Model> SurrealValue for RecordId<T> {
+   | ^^^^^^^^-----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |         |
+   |         unsatisfied requirement introduced here: `User: Model`
+   = note: required for `umbriel::RecordId<User>` to implement `umbriel::surrealdb_types::SurrealValue`
+
+error[E0507]: cannot move out of dereference of `umbriel::RecordId<User>`
+  --> tests/ui/fail/define_with_clauses.rs:10:9
+   |
+ 8 | #[model(node, table = "user")]
+   | ------------------------------ value moved due to this method call
+ 9 | pub struct User {
+10 |     pub id: RecordId<Self>,
+   |         ^^ move occurs because value has type `umbriel::surrealdb_types::RecordId`, which does not implement the `Copy` trait
+   |
+note: `umbriel::surrealdb_types::SurrealValue::into_value` takes ownership of the receiver `self`, which moves value
+  --> $CARGO/surrealdb-types-$VERSION/src/traits/surreal_value.rs
+   |
+   |     fn into_value(self) -> Value;
+   |                   ^^^^
+help: you can `clone` the value and consume it, but this might not be your desired behavior
+   |
+10 |     pub <umbriel::surrealdb_types::RecordId as Clone>::clone(&id): RecordId<Self>,
+   |         ++++++++++++++++++++++++++++++++++++++++++++++++++++++  +

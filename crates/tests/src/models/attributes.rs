@@ -1,112 +1,58 @@
-// use super::studentwithgranularattributes;
-use CrudType::*;
-use serde::{Deserialize, Serialize};
+//! Models exercising every `#[orm(…)]` definition setting, with values given inline, as paths to
+//! functions and as function calls.
+
 use std::time::Duration;
-use typed_builder::TypedBuilder;
+
 use umbriel::{
-    sql,
+    CrudType::{self, *},
+    Field, Filter, LinkMany, LinkOne, LinkSelf, Model, NONE, Node, Operatable, RecordId, Relate,
+    SchemaGetter, Table, cond, model,
     statements::{
         DefineFieldStatement, DefineTableStatement, Permissions, SelectStatement, define_field,
-        define_table, for_permission, select,
+        define_table, for_permission, order, select,
     },
-    *,
+    types::Kind,
+    value,
 };
 
-fn age_permissions() -> Permissions {
-    let student_with_granular_attributes::Schema {
-        ageInlineExpr,
-        firstName,
-        ..
-    } = StudentWithGranularAttributes::schema();
-
+pub fn age_permissions() -> Permissions {
+    let schema = StudentWithGranularAttributes::schema();
     [
-        for_permission([Create, Delete]).where_(firstName.is("Charlie")),
-        for_permission(Update).where_(ageInlineExpr.less_than_or_equal(130)),
+        for_permission([Create, Delete]).where_(schema.firstName.is("Alice")),
+        for_permission(Update).where_(schema.ageInlineExpr.less_than_or_equal(130)),
     ]
     .into()
 }
 
-fn student_permissions() -> Permissions {
-    let student_with_granular_attributes::Schema {
-        ageInlineExpr,
-        firstName,
-        ..
-    } = StudentWithGranularAttributes::schema();
-
-    Permissions::from(vec![
-        for_permission([Select, Update]).where_(firstName.is("Bennett")),
-        for_permission([Create, Delete]).where_(ageInlineExpr.lte(57)),
-    ])
+pub fn student_permissions() -> Permissions {
+    let schema = StudentWithGranularAttributes::schema();
+    vec![
+        for_permission([Select, Update]).where_(schema.firstName.is("Bob")),
+        for_permission([Create, Delete]).where_(schema.ageInlineExpr.lte(57)),
+    ]
+    .into()
 }
 
-// use Duration;
-fn default_duration_value() -> sql::Duration {
-    Duration::from_secs(60 * 60 * 24 * 7).into()
+pub fn default_duration_value() -> Duration {
+    Duration::from_secs(60 * 60 * 24 * 7)
 }
 
-fn age_define_external_fn_path() -> DefineFieldStatement {
-    let student_with_define_fn_attr::Schema {
-        ref ageDefineInline,
-        ref firstName,
-        ..
-    } = StudentWithDefineFnAttr::schema();
-
-    use FieldType::*;
-
-    define_field(ageDefineInline)
-        .on_table(Student::table())
-        .type_(Int)
-        .value("charlie@example.com")
-        .assert(cond(value().is_not(NONE)).and(value().like("is_email")))
-        .permissions(for_permission(Select).where_(ageDefineInline.greater_than_or_equal(18))) // Single works
-        .permissions(for_permission([Create, Update]).where_(firstName.is("Bennett"))) //Multiple
-        .permissions([
-            for_permission([Create, Delete]).where_(firstName.is("Charlie")),
-            for_permission(Update).where_(ageDefineInline.less_than_or_equal(130)),
-        ])
-}
-
-fn define_age_define_external_fn_path() -> DefineFieldStatement {
-    use CrudType::*;
-    let student_with_define_attr::Schema {
-        ref ageDefineInline,
-        ref firstName,
-        ..
-    } = StudentWithDefineAttr::schema();
-
-    use FieldType::*;
-
-    // let statement = define_field(Student::schema().age)
-
-    define_field(ageDefineInline)
-        .on_table(Student::table())
-        .type_(Int)
-        .value("charlie@example.com")
-        .assert(cond(value().is_not(NONE)).and(value().like("is_email")))
-        .permissions(for_permission(Select).where_(ageDefineInline.greater_than_or_equal(18))) // Single works
-        .permissions(for_permission([Create, Update]).where_(firstName.is("Bennett"))) //Multiple
-        .permissions([
-            for_permission([Create, Delete]).where_(firstName.is("Charlie")),
-            for_permission(Update).where_(ageDefineInline.less_than_or_equal(130)),
-        ])
-}
-
-fn get_age_default_value() -> u8 {
+pub fn get_age_default_value() -> u8 {
     18
 }
 
-fn get_age_assertion() -> Filter {
+pub fn get_age_assertion() -> Filter {
     cond(value().is_not(NONE)).and(value().gte(18))
 }
 
-enum AgeGroup {
+pub enum AgeGroup {
     Child,
     Teen,
     Adult,
     Senior,
 }
 
-fn get_age_by_group_default_value(group: AgeGroup) -> u8 {
+pub fn get_age_by_group_default_value(group: AgeGroup) -> u8 {
     match group {
         AgeGroup::Child => 10,
         AgeGroup::Teen => 18,
@@ -115,82 +61,75 @@ fn get_age_by_group_default_value(group: AgeGroup) -> u8 {
     }
 }
 
-fn as_fn() -> SelectStatement {
-    // would copy from student table to destination table.
-    select(All).from(Student::table())
+pub fn as_fn() -> SelectStatement {
+    select(umbriel::All).from(Student::table())
 }
 
-#[derive(Node, TypedBuilder, Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-#[orm(
-    table = student_fn_attrs,
-    drop,
-    flexible,
-    schemafull,
-    as_ = as_fn(),
-    permissions = student_permissions
-)]
-struct StudentFnAttrs {
-    id: SurrealId<StudentFnAttrs, String>,
+/// Table settings given as paths to functions.
+#[model(node, table = "student_fn_attrs")]
+#[orm(drop, schemafull, as_ = as_fn, permissions = student_permissions)]
+#[derive(Debug, Clone)]
+pub struct StudentFnAttrs {
+    pub id: RecordId<Self>,
 }
 
-#[derive(Node, Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
+/// Table and field settings given inline, as paths and as calls.
+#[model(node, table = "student_with_granular_attributes")]
 #[orm(
-    table = student_with_granular_attributes,
     drop,
-    flexible,
     schemafull,
-    as_ = select(All).from(Student::table()),
+    as_ = select(umbriel::All).from(Student::table()),
     permissions = student_permissions()
 )]
+#[surreal(rename_all = "camelCase")]
+#[derive(Debug, Clone)]
 pub struct StudentWithGranularAttributes {
-    id: SurrealId<Self, String>,
-    first_name: String,
-    last_name: String,
+    pub id: RecordId<Self>,
+    pub first_name: String,
+    pub last_name: String,
     #[orm(
-        ty = int,
+        ty = "int",
         value = 18,
         assert = cond(value().is_not(NONE)).and(value().gte(18)),
-        permissions = for_permission([CrudType::Create, CrudType::Delete]).where_(StudentWithGranularAttributes::schema().firstName.is("Charlie"))
+        permissions = for_permission([CrudType::Create, CrudType::Delete]).where_(StudentWithGranularAttributes::schema().firstName.is("Alice"))
     )]
-    age_inline_expr: u8,
+    pub age_inline_expr: u8,
 
     #[orm(
-        ty = int,
+        ty = "int",
         value = get_age_default_value(),
         assert = get_age_assertion,
         permissions = age_permissions
     )]
-    age_default_external_function_invoked_expr: u8,
+    pub age_default_external_function_invoked_expr: u8,
 
     #[orm(
-        ty = int,
+        ty = "int",
         value = get_age_by_group_default_value(AgeGroup::Teen),
         assert = get_age_assertion,
         permissions = age_permissions()
     )]
-    age_teen_external_function_invoked_expr: u8,
+    pub age_teen_external_function_invoked_expr: u8,
 
     #[orm(
-        ty = int,
+        ty = "int",
         value = get_age_by_group_default_value(AgeGroup::Senior),
         assert = get_age_assertion
     )]
-    age_senior_external_function_invoked_expr: u8,
+    pub age_senior_external_function_invoked_expr: u8,
 
     #[orm(
         ty = "int",
         value = get_age_by_group_default_value(AgeGroup::Child),
         permissions = age_permissions
     )]
-    age_child_external_function_invoked_expr: u8,
+    pub age_child_external_function_invoked_expr: u8,
 
     #[orm(
         ty = "int",
         value = get_age_by_group_default_value(AgeGroup::Adult)
     )]
-    age_adult_external_function_invoked_expr: u8,
+    pub age_adult_external_function_invoked_expr: u8,
 
     #[orm(
         ty = "int",
@@ -198,393 +137,195 @@ pub struct StudentWithGranularAttributes {
         assert = get_age_assertion,
         permissions = age_permissions
     )]
-    age_external_fn_attrs: u8,
-    #[orm(
-        ty = "int",
-        value = get_age_default_value,
-        assert = get_age_assertion,
-        permissions = age_permissions
-    )]
-    age_mix_and_match_external_fn_inline_attrs: u8,
-
-    #[orm(
-        ty = duration,
-        value = default_duration_value,
-        assert = value().is_not(NONE)
-    )]
-    time_to_kelowna: Duration,
+    pub age_external_fn_attrs: u8,
 
     #[orm(
         ty = "duration",
-        value = sql::Duration(Duration::from_secs(60 * 60 * 24 * 7)),
+        value = default_duration_value,
         assert = value().is_not(NONE)
     )]
-    time_to_kelowna_inline: Duration,
-    // Even if ypu dont list the type for all links, the types are autogenerated at compile time
-    // becuase I have enough info from the annotation to derive it
+    pub time_to_kelowna: Duration,
+
     #[orm(
-        link_self = StudentWithGranularAttributes,
+        ty = "duration",
+        value = Duration::from_secs(60 * 60 * 24 * 7),
+        assert = value().is_not(NONE)
+    )]
+    pub time_to_kelowna_inline: Duration,
+
+    #[orm(
+        link_self = "StudentWithGranularAttributes",
         ty = "record<student_with_granular_attributes>"
     )]
-    best_friend: LinkSelf<StudentWithGranularAttributes>,
+    pub best_friend: LinkSelf<StudentWithGranularAttributes>,
 
-    #[orm(link_one = Book)]
-    #[serde(rename = "unoBook")]
-    fav_book: LinkOne<Book>,
+    #[orm(link_one = "Book")]
+    #[surreal(rename = "unoBook")]
+    pub fav_book: LinkOne<Book>,
 
-    #[orm(link_one = Book)]
-    course: LinkOne<Book>,
+    #[orm(link_one = "Book")]
+    pub course: LinkOne<Book>,
 
-    #[orm(link_many = Book, ty = "array<record<book>>")]
-    #[serde(rename = "semesterCourses")]
-    all_semester_courses: LinkMany<Book>,
+    #[orm(link_many = "Book", ty = "array<record<book>>", item_assert = value().is_not(NONE))]
+    #[surreal(rename = "semesterCourses")]
+    pub all_semester_courses: LinkMany<Book>,
 
     #[orm(relate(
-        model = StudentWithGranularAttributesWritesBook,
+        model = "StudentWithGranularAttributesWritesBook",
         connection = "->writes->book"
     ))]
-    #[serde(skip_serializing)]
-    _written_books: Relate<Book>,
-
-    #[orm(relate(
-        model = StudentWithGranularAttributesWritesBlog,
-        connection = "->writes->blog"
-    ))]
-    #[serde(skip_serializing, default)]
-    _blogs: Relate<Blog>,
+    pub written_books: Relate<Book>,
 }
 
 pub type StudentWithGranularAttributesWritesBook = Writes<StudentWithGranularAttributes, Book>;
-pub type StudentWithGranularAttributesWritesBlog = Writes<StudentWithGranularAttributes, Blog>;
 
-fn define_first_name(field: impl Into<Field>, table: Table) -> DefineFieldStatement {
-    use CrudType::*;
-    let student_with_define_attr::Schema {
-        ref ageDefineInline,
-        ref firstName,
-        ..
-    } = StudentWithDefineAttr::schema();
-
+pub fn define_first_name(field: impl Into<Field>, table: Table) -> DefineFieldStatement {
+    let schema = StudentWithDefineAttr::schema();
     define_field(field)
         .on_table(table)
-        .type_(FieldType::String)
-        .value("Charlie")
-        .assert(cond(value().is_not(NONE)).and(value().like("is_email")))
+        .type_(Kind::String)
+        .default("Alice")
+        .assert(cond(value().is_not(NONE)).and(value().contains("A")))
         .permissions([
-            for_permission(Select).where_(ageDefineInline.gte(18)),
-            for_permission([Create, Update]).where_(firstName.is("Bennett")),
+            for_permission(Select).where_(schema.ageDefineInline.gte(18)),
+            for_permission([Create, Update]).where_(schema.firstName.is("Bob")),
         ])
 }
 
-fn define_last_name() -> DefineFieldStatement {
-    use CrudType::*;
-    let student_with_define_attr::Schema {
-        ref ageDefineInline,
-        ref lastName,
-        ..
-    } = StudentWithDefineAttr::schema();
-
-    define_field(lastName)
+pub fn define_last_name() -> DefineFieldStatement {
+    let schema = StudentWithDefineAttr::schema();
+    define_field(&schema.lastName)
         .on_table(StudentWithDefineAttr::table())
-        .type_(FieldType::String)
-        .value("Bennett")
-        .assert(cond(value().is_not(NONE)).and(value().like("is_email")))
+        .type_(Kind::String)
+        .default("Bob")
+        .assert(cond(value().is_not(NONE)).and(value().contains("B")))
         .permissions([
-            for_permission(Select).where_(ageDefineInline.gte(18)),
-            for_permission([Create, Update]).where_(lastName.is("Bennett")),
+            for_permission(Select).where_(schema.ageDefineInline.gte(18)),
+            for_permission([Create, Update]).where_(schema.lastName.is("Bob")),
         ])
 }
 
-fn define_last_name_external_fn_attr() -> DefineFieldStatement {
-    use CrudType::*;
-    let student_with_define_attr::Schema {
-        ref ageDefineInline,
-        ref lastName,
-        ..
-    } = StudentWithDefineAttr::schema();
-
-    define_field(lastName)
-        .on_table(StudentWithDefineAttr::table())
-        .type_(FieldType::String)
-        .value("Bennett")
-        .assert(cond(value().is_not(NONE)).and(value().like("is_email")))
+pub fn define_age(field: impl Into<Field>) -> DefineFieldStatement {
+    let schema = Student::schema();
+    define_field(field)
+        .on_table(Student::table())
+        .type_(Kind::Int)
+        .default(18)
+        .assert(cond(value().is_not(NONE)).and(value().gte(18)))
+        .permissions(for_permission(Select).where_(schema.age.greater_than_or_equal(18)))
+        .permissions(for_permission([Create, Update]).where_(schema.firstName.is("Bob")))
         .permissions([
-            for_permission(Select).where_(ageDefineInline.gte(18)),
-            for_permission([Create, Update]).where_(lastName.is("Bennett")),
+            for_permission([Create, Delete]).where_(schema.firstName.is("Alice")),
+            for_permission(Update).where_(schema.age.less_than_or_equal(130)),
         ])
 }
-fn define_student_with_define_attr() -> DefineTableStatement {
-    let student::Schema {
-        ref age,
-        ref firstName,
-        ref lastName,
-        ..
-    } = Student::schema();
-    use CrudType::*;
 
+pub fn define_student_with_define_attr() -> DefineTableStatement {
+    let schema = Student::schema();
     define_table(StudentWithDefineAttr::table())
         .drop()
         .as_(
-            select(All)
+            select(umbriel::All)
                 .from(Student::table())
-                .where_(firstName.is("Rust"))
-                .order_by(age.numeric().desc())
+                .where_(schema.firstName.is("Alice"))
+                .order_by(order(&schema.age).numeric().desc())
                 .limit(20)
                 .start(5),
         )
         .schemafull()
-        .permissions(for_permission(Select).where_(age.greater_than_or_equal(18))) // Single works
-        .permissions(for_permission([Create, Delete]).where_(lastName.is("Cha"))) //Multiple
+        .permissions(for_permission(Select).where_(schema.age.greater_than_or_equal(18)))
+        .permissions(for_permission([Create, Delete]).where_(schema.lastName.is("Bob")))
         .permissions([
-            for_permission([Create, Delete]).where_(lastName.is("Bennett")),
-            for_permission(Update).where_(age.less_than_or_equal(130)),
+            for_permission([Create, Delete]).where_(schema.lastName.is("Bob")),
+            for_permission(Update).where_(schema.age.less_than_or_equal(130)),
         ])
 }
 
-fn define_age(field: impl Into<Field>) -> DefineFieldStatement {
-    use CrudType::*;
-    let student::Schema { age, firstName, .. } = Student::schema();
-
-    use FieldType::*;
-
-    define_field(field)
-        .on_table(Student::table())
-        .type_(Int)
-        .value("charlie@example.com")
-        .assert(cond(value().is_not(NONE)).and(value().like("is_email")))
-        .permissions(for_permission(Select).where_(age.greater_than_or_equal(18))) // Single works
-        .permissions(for_permission([Create, Update]).where_(firstName.is("Bennett"))) //Multiple
-        .permissions([
-            for_permission([Create, Delete]).where_(firstName.is("Charlie")),
-            for_permission(Update).where_(age.less_than_or_equal(130)),
-        ])
-}
-#[derive(Node, TypedBuilder, Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-#[orm(
-    table = student_with_define_attr,
-    define = define_student_with_define_attr()
-)]
+/// Whole definitions given by `define`, as calls and as paths.
+#[model(node, table = "student_with_define_attr")]
+#[orm(define = define_student_with_define_attr())]
+#[surreal(rename_all = "camelCase")]
+#[derive(Debug, Clone)]
 pub struct StudentWithDefineAttr {
-    // When using Typedbuilder, you cannot use Self like other
-    // places as TypedBuilder does not support that, in that
-    // case, just use the struct name explicitly.
-    // So, 'SurrealId<StudentWithDefineAttr, String>,' instead of
-    // SurrealId<Self, String>,
-    id: SurrealId<StudentWithDefineAttr, String>,
+    pub id: RecordId<Self>,
     #[orm(
-        ty = string,
+        ty = "string",
         define = define_first_name(StudentWithDefineAttr::schema().firstName, StudentWithDefineAttr::table())
     )]
-    first_name: String,
+    pub first_name: String,
 
-    #[orm(ty = string, define = define_last_name)]
-    last_name: String,
-
-    #[orm(ty = string, define = define_last_name_external_fn_attr)]
-    last_name_external_fn_attr: String,
+    #[orm(ty = "string", define = define_last_name)]
+    pub last_name: String,
 
     #[orm(
-        ty = int,
-        define = define_field(StudentWithDefineAttr::schema().ageDefineInline).on_table(Student::table()).type_(FieldType::Int).value("charlie@example.com")
+        ty = "int",
+        define = define_field(StudentWithDefineAttr::schema().ageDefineInline).on_table(Student::table()).type_(Kind::Int).default(18)
     )]
-    age_define_inline: u8,
+    pub age_define_inline: u8,
 
     #[orm(
-        ty = int,
+        ty = "int",
         define = define_age(StudentWithDefineAttr::schema().ageDefineExternalInvoke)
     )]
-    age_define_external_invoke: u8,
-
-    #[orm(ty = "int", define = define_age_define_external_fn_path)]
-    age_define_external_fn_path: u8,
-
-    // Even if ypu dont list the type for all links, the types are autogenerated at compile time
-    // becuase I have enough info from the annotation to derive it
-    #[orm(
-        link_self = StudentWithDefineAttr,
-        ty = "record<student_with_define_attr>"
-    )]
-    best_friend: LinkSelf<StudentWithDefineAttr>,
-
-    #[orm(link_one = Book)]
-    #[serde(rename = "unoBook")]
-    fav_book: LinkOne<Book>,
-
-    #[orm(link_one = Book)]
-    course: LinkOne<Book>,
-
-    #[orm(link_many = Book, ty = "array<record<book>>")]
-    #[serde(rename = "semesterCourses")]
-    all_semester_courses: LinkMany<Book>,
-
-    #[orm(relate(
-        model = StudentWithDefineAttrWritesBook,
-        connection = "->writes->book"
-    ))]
-    #[serde(skip_serializing)]
-    _written_books: Relate<Book>,
-
-    #[orm(relate(
-        model = StudentWithDefineAttrWritesBlog,
-        connection = "->writes->blog"
-    ))]
-    #[serde(skip_serializing, default)]
-    _blogs: Relate<Blog>,
+    pub age_define_external_invoke: u8,
 }
 
-pub type StudentWithDefineAttrWritesBook = Writes<StudentWithDefineAttr, Book>;
-pub type StudentWithDefineAttrWritesBlog = Writes<StudentWithDefineAttr, Blog>;
-
-#[derive(Node, Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-#[orm(
-    table = student_with_define_fn_attr,
-    define = define_student_with_define_attr
-)]
+/// The table definition given as a path.
+#[model(node, table = "student_with_define_fn_attr")]
+#[orm(define = define_student_with_define_attr)]
+#[derive(Debug, Clone)]
 pub struct StudentWithDefineFnAttr {
-    id: SurrealId<Self, String>,
-    // id: SurrealId<StudentWithDefineFnAttr, String>,
-    // can be as simple as this
-    #[orm(ty = string, define = define_last_name)]
-    last_name: String,
-
-    #[orm(ty = string, define = define_last_name)]
-    last_name_external_fn_attr: String,
-
-    // or go even crazier
-    #[orm(
-        ty = string,
-        define = define_first_name(StudentWithDefineFnAttr::schema().firstName, StudentWithDefineFnAttr::table())
-    )]
-    first_name: String,
-
-    #[orm(
-        ty = int,
-        define = define_field(StudentWithDefineFnAttr::schema().ageDefineInline).on_table(Student::table()).type_(FieldType::Int).value("charlie@example.com")
-    )]
-    age_define_inline: u8,
-
-    #[orm(
-        ty = int,
-        define = define_age(StudentWithDefineFnAttr::schema().ageDefineExternalInvoke)
-    )]
-    age_define_external_invoke: u8,
-
-    #[orm(ty = int, define = age_define_external_fn_path)]
-    age_define_external_fn_path: u8,
-
-    // Even if ypu dont list the type for all links, the types are autogenerated at compile time
-    // becuase I have enough info from the annotation to derive it
-    #[orm(
-        link_self = StudentWithDefineFnAttr,
-        ty = "record<student_with_define_fn_attr>"
-    )]
-    best_friend: LinkSelf<StudentWithDefineFnAttr>,
-
-    #[orm(link_one = Book)]
-    #[serde(rename = "unoBook")]
-    fav_book: LinkOne<Book>,
-
-    #[orm(link_one = "Book")]
-    course: LinkOne<Book>,
-
-    #[orm(link_many = Book, ty = "array<record<book>>")]
-    #[serde(rename = "semesterCourses")]
-    all_semester_courses: LinkMany<Book>,
-
-    #[orm(relate(
-        model = StudentWithDefineFnAttrWritesBook,
-        connection = "->writes->book"
-    ))]
-    #[serde(skip_serializing)]
-    _written_books: Relate<Book>,
-
-    #[orm(relate(
-        model = StudentWithDefineFnAttrWritesBlog,
-        connection = "->writes->blog"
-    ))]
-    #[serde(skip_serializing, default)]
-    _blogs: Relate<Blog>,
+    pub id: RecordId<Self>,
 }
 
-pub type StudentWithDefineFnAttrWritesBook = Writes<StudentWithDefineFnAttr, Book>;
-pub type StudentWithDefineFnAttrWritesBlog = Writes<StudentWithDefineFnAttr, Blog>;
-
-#[derive(Node, Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-#[orm(table = student)]
+#[model(node, table = "student")]
+#[surreal(rename_all = "camelCase")]
+#[derive(Debug, Clone, Default)]
 pub struct Student {
-    id: SurrealId<Self, String>,
-    // id: SurrealId<Student, String>,
-    first_name: String,
-    last_name: String,
+    pub id: RecordId<Self>,
+    pub first_name: String,
+    pub last_name: String,
     #[orm(
-        ty = int,
+        ty = "int",
         value = 18,
         assert = cond(value().is_not(NONE)).and(value().gte(18)),
         permissions = age_permissions
     )]
-    age: u8,
+    pub age: u8,
 
     #[orm(ty = "int")]
-    score: u8,
+    pub score: u8,
 
-    // Even if ypu dont list the type for all links, the types are autogenerated at compile time
-    // becuase I have enough info from the annotation to derive it
-    #[orm(link_self = Student, ty = "record<student>")]
-    best_friend: LinkSelf<Student>,
+    #[orm(link_self = "Student", ty = "record<student>")]
+    pub best_friend: LinkSelf<Student>,
 
-    #[orm(link_one = Book)]
-    #[serde(rename = "unoBook")]
-    fav_book: LinkOne<Book>,
+    #[orm(link_one = "Book")]
+    #[surreal(rename = "unoBook")]
+    pub fav_book: LinkOne<Book>,
 
-    #[orm(link_one = Book)]
-    course: LinkOne<Book>,
+    #[orm(link_one = "Book")]
+    pub course: LinkOne<Book>,
 
-    #[orm(link_many = Book, ty = "array<record<book>>")]
-    // #[orm(link_many = "Book", ty = "array", item_type = "record(book)")]
-    #[serde(rename = "semesterCourses")]
-    all_semester_courses: LinkMany<Book>,
+    #[orm(link_many = "Book", ty = "array<record<book>>")]
+    #[surreal(rename = "semesterCourses")]
+    pub all_semester_courses: LinkMany<Book>,
 
-    #[orm(relate(model = StudentWritesBook, connection = "->writes->book"))]
-    #[serde(skip_serializing)]
-    _written_books: Relate<Book>,
+    #[orm(relate(model = "StudentWritesBook", connection = "->writes->book"))]
+    pub written_books: Relate<Book>,
 
-    #[orm(relate(model = StudentWritesBlog, connection = "->writes->blog"))]
-    #[serde(skip_serializing, default)]
-    _blogs: Relate<Blog>,
+    #[orm(relate(model = "StudentWritesBlog", connection = "->writes->blog"))]
+    pub blogs: Relate<Blog>,
 }
 
-impl Default for Student {
-    fn default() -> Self {
-        let id = Self::create_id(sql::Id::rand().to_raw());
-        Self {
-            id,
-            first_name: Default::default(),
-            last_name: Default::default(),
-            age: Default::default(),
-            score: Default::default(),
-            best_friend: Default::default(),
-            fav_book: Default::default(),
-            course: Default::default(),
-            all_semester_courses: Default::default(),
-            _written_books: Default::default(),
-            _blogs: Default::default(),
-        }
-    }
-}
-
-#[derive(umbriel::Edge, Serialize, Deserialize, Debug, Clone, Default)]
-#[serde(rename_all = "camelCase")]
-#[orm(table = writes)]
+#[model(edge, table = "writes")]
+#[surreal(rename_all = "camelCase")]
+#[derive(Debug, Clone, Default)]
 pub struct Writes<In: Node, Out: Node> {
-    pub id: SurrealSimpleId<Self>,
-    // pub id: SurrealSimpleId<Writes<In, Out>>,
-    #[orm(link_many = In)]
+    pub id: RecordId<Self>,
+    #[orm(link_one = "In")]
     pub r#in: LinkOne<In>,
 
-    #[orm(link_many = Out)]
+    #[orm(link_one = "Out")]
     pub out: LinkOne<Out>,
 
     pub time_written: Duration,
@@ -594,48 +335,35 @@ pub struct Writes<In: Node, Out: Node> {
 pub type StudentWritesBook = Writes<Student, Book>;
 pub type StudentWritesBlog = Writes<Student, Blog>;
 
-#[derive(Edge, Serialize, Deserialize, Debug, Clone, Default)]
-#[serde(rename_all = "camelCase")]
-#[orm(table = likes)]
+#[model(edge, table = "likes")]
+#[surreal(rename_all = "camelCase")]
+#[derive(Debug, Clone, Default)]
 pub struct Likes<In: Node, Out: Node> {
-    pub id: SurrealSimpleId<Self>,
-    // pub id: SurrealSimpleId<Likes<In, Out>>,
-    #[serde(rename = "in")]
-    #[orm(link_one = In)]
+    pub id: RecordId<Self>,
+    #[surreal(rename = "in")]
+    #[orm(link_one = "In")]
     pub in_: LinkOne<In>,
 
-    #[orm(link_one = Out)]
+    #[orm(link_one = "Out")]
     pub out: LinkOne<Out>,
 
     pub likes_count: u64,
 }
-pub type StudentLiksBook = Likes<Student, Book>;
 
-#[derive(Node, TypedBuilder, Serialize, Deserialize, Debug, Clone, Default)]
-#[serde(rename_all = "camelCase")]
-#[orm(table = book)]
+pub type StudentLikesBook = Likes<Student, Book>;
+
+#[model(node, table = "book")]
+#[derive(Debug, Clone, Default)]
 pub struct Book {
-    id: SurrealSimpleId<Book>,
-    title: String,
-    content: String,
+    pub id: RecordId<Self>,
+    pub title: String,
+    pub content: String,
 }
 
-#[derive(Node, TypedBuilder, Serialize, Deserialize, Debug, Clone, Default)]
-#[serde(rename_all = "camelCase")]
-#[orm(table = blog)]
+#[model(node, table = "blog")]
+#[derive(Debug, Clone, Default)]
 pub struct Blog {
-    id: SurrealSimpleId<Blog>,
-    title: String,
-    content: String,
+    pub id: RecordId<Self>,
+    pub title: String,
+    pub content: String,
 }
-
-// #[derive(Object, TypedBuilder, Serialize, Deserialize, Debug, Clone, Default)]
-// #[serde(rename_all = "camelCase")]
-// // #[orm(table = rocket)]
-// pub struct Rocket {
-//     // id: SurrealSimpleId<Rocket>,
-//     name: String,
-//     sama: &'static str,
-// }
-//
-//
