@@ -52,18 +52,17 @@ impl Codegen<'_> {
         let binding = field_type.get_generics_from_current_struct(table_attributes)?;
         let (field_impl_generics, _field_ty_generics, field_where_clause) =
             binding.split_for_impl();
-        let field_name_pascalized = field_receiver.field_name_pascalized(table_attributes)?;
+        let field_wrapper = field_receiver.field_wrapper_ident(table_attributes)?;
 
         let field_type =
             field_type.replace_self_with_current_struct_concrete_type(table_attributes)?;
         let setter_assignable_impl = quote!( impl #field_impl_generics
             #crate_name::SetterAssignable<#field_type> for
-            #field_name_pascalized  #field_where_clause {}
+            #field_wrapper  #field_where_clause {}
         );
 
-        let field_type_setter_patcher_impls: FieldTypeSetterPatcherImpls = if field_receiver
-            .db_field_name(casing)?
-            .is_id()
+        let is_id = field_receiver.db_field_name(casing)?.is_id();
+        let field_type_setter_patcher_impls: FieldTypeSetterPatcherImpls = if is_id
             && table_attributes.to_data_type().is_node_or_edge()
         {
             quote!(#setter_assignable_impl).into()
@@ -71,58 +70,62 @@ impl Codegen<'_> {
             quote!(
                 #setter_assignable_impl
 
-                impl #field_impl_generics #crate_name::Patchable<#field_type> for #field_name_pascalized  #field_where_clause {}
+                impl #field_impl_generics #crate_name::Patchable<#field_type> for #field_wrapper  #field_where_clause {}
             ).into()
         };
 
-        let numeric_trait = if field_receiver.is_numeric() {
+        // An `id`'s explicit `ty` is its key type; the field itself is a record id, never a
+        // number or a list.
+        let numeric_trait = if !is_id && field_receiver.is_numeric() {
             Self::numeric_setter_impl(field_receiver, table_attributes)?
         } else {
             quote!().into()
         };
 
-        let array_trait = if field_receiver.is_array() || field_receiver.is_set() {
+        let array_trait = if !is_id && (field_receiver.is_array() || field_receiver.is_set()) {
             Self::array_trait_impl(field_receiver, table_attributes)?
         } else {
             quote!().into()
         };
 
         let field_setter_impls = quote!(
+            // Keeps the schema field's own case, e.g. `__4User7foo_barField`.
             #[doc(hidden)]
+            #[allow(non_camel_case_types)]
             #[derive(Debug, Clone)]
-            pub struct #field_name_pascalized(pub #crate_name::Field);
+            pub struct #field_wrapper(pub #crate_name::Field);
 
-            impl ::std::convert::From<#crate_name::Field> for #field_name_pascalized {
+            impl ::std::convert::From<#crate_name::Field> for #field_wrapper {
                 fn from(field: #crate_name::Field) -> Self {
                     Self(field)
                 }
             }
 
-            impl ::std::convert::From<&#field_name_pascalized> for #crate_name::ValueLike {
-                fn from(value: &#field_name_pascalized) -> Self {
+            impl ::std::convert::From<&#field_wrapper> for #crate_name::ValueLike {
+                fn from(value: &#field_wrapper) -> Self {
                     #crate_name::ValueLike::from(&value.0)
                 }
             }
 
-            impl ::std::convert::From<#field_name_pascalized> for #crate_name::ValueLike {
-                fn from(value: #field_name_pascalized) -> Self {
+            impl ::std::convert::From<#field_wrapper> for #crate_name::ValueLike {
+                fn from(value: #field_wrapper) -> Self {
                     #crate_name::ValueLike::from(value.0)
                 }
             }
 
-            impl ::std::convert::From<&#field_name_pascalized> for #crate_name::Field {
-                fn from(field: &#field_name_pascalized) -> Self {
+            impl ::std::convert::From<&#field_wrapper> for #crate_name::Field {
+                fn from(field: &#field_wrapper) -> Self {
                     field.0.clone()
                 }
             }
 
-            impl ::std::convert::From<#field_name_pascalized> for #crate_name::Field {
-                fn from(field: #field_name_pascalized) -> Self {
+            impl ::std::convert::From<#field_wrapper> for #crate_name::Field {
+                fn from(field: #field_wrapper) -> Self {
                     field.0
                 }
             }
 
-            impl ::std::ops::Deref for #field_name_pascalized {
+            impl ::std::ops::Deref for #field_wrapper {
                 type Target = #crate_name::Field;
 
                 fn deref(&self) -> &Self::Target {
@@ -130,20 +133,20 @@ impl Codegen<'_> {
                 }
             }
 
-            impl ::std::ops::DerefMut for #field_name_pascalized {
+            impl ::std::ops::DerefMut for #field_wrapper {
                 fn deref_mut(&mut self) -> &mut Self::Target {
                     &mut self.0
                 }
             }
 
-            impl<T> ::std::convert::From<#field_name_pascalized> for #crate_name::SetterArg<T> {
-                fn from(value: #field_name_pascalized) -> Self {
+            impl<T> ::std::convert::From<#field_wrapper> for #crate_name::SetterArg<T> {
+                fn from(value: #field_wrapper) -> Self {
                     Self::from(value.0)
                 }
             }
 
-            impl<T> ::std::convert::From<&#field_name_pascalized> for #crate_name::SetterArg<T> {
-                fn from(value: &#field_name_pascalized) -> Self {
+            impl<T> ::std::convert::From<&#field_wrapper> for #crate_name::SetterArg<T> {
+                fn from(value: &#field_wrapper) -> Self {
                     Self::from(&value.0)
                 }
             }
@@ -164,7 +167,7 @@ impl Codegen<'_> {
         model_attributes: &ModelAttributes,
     ) -> ExtractorResult<ArrayElementFieldSetterToken> {
         let crate_name = get_crate_name(false);
-        let field_name_as_pascalized = field_receiver.field_name_pascalized(model_attributes)?;
+        let field_wrapper = field_receiver.field_wrapper_ident(model_attributes)?;
 
         let (generics, array_item_type) = match field_receiver.to_relation_type(model_attributes) {
             RelationType::LinkMany(foreign_node) => {
@@ -213,7 +216,7 @@ impl Codegen<'_> {
         let array_setter_impl = array_item_type.map_or(quote!(), |item_type| {
             generics.map_or(
                 quote!(
-                    impl #crate_name::SetterArray<#item_type> for #field_name_as_pascalized {}
+                    impl #crate_name::SetterArray<#item_type> for #field_wrapper {}
                 ),
                 |this| {
                     let (field_impl_generics, _field_ty_generics, field_where_clause) =
@@ -221,7 +224,7 @@ impl Codegen<'_> {
 
                     quote!(
                         impl #field_impl_generics #crate_name::SetterArray<#item_type> for
-                        #field_name_as_pascalized #field_where_clause {}
+                        #field_wrapper #field_where_clause {}
                     )
                 },
             )
@@ -235,7 +238,7 @@ impl Codegen<'_> {
         model_attributes: &ModelAttributes,
     ) -> ExtractorResult<FieldSetterNumericImpl> {
         let crate_name = get_crate_name(false);
-        let field_name_pascalized = field_receiver.field_name_pascalized(model_attributes)?;
+        let field_wrapper = field_receiver.field_wrapper_ident(model_attributes)?;
         let field_type = field_receiver.ty();
         let binding = field_type.get_generics_from_current_struct(model_attributes)?;
         let (field_impl_generics, _field_ty_generics, field_where_clause) =
@@ -251,7 +254,7 @@ impl Codegen<'_> {
         .into_iter()
         .map(|(op, method)| {
             quote!(
-                impl<T: ::std::convert::Into<#crate_name::NumberLike>> ::std::ops::#op<T> for #field_name_pascalized {
+                impl<T: ::std::convert::Into<#crate_name::NumberLike>> ::std::ops::#op<T> for #field_wrapper {
                     type Output = #crate_name::Operation;
 
                     fn #method(self, rhs: T) -> Self::Output {
@@ -259,7 +262,7 @@ impl Codegen<'_> {
                     }
                 }
 
-                impl<T: ::std::convert::Into<#crate_name::NumberLike>> ::std::ops::#op<T> for &#field_name_pascalized {
+                impl<T: ::std::convert::Into<#crate_name::NumberLike>> ::std::ops::#op<T> for &#field_wrapper {
                     type Output = #crate_name::Operation;
 
                     fn #method(self, rhs: T) -> Self::Output {
@@ -270,17 +273,17 @@ impl Codegen<'_> {
         });
 
         let numeric_trait = quote!(
-            impl #field_impl_generics #crate_name::SetterNumeric<#field_type> for #field_name_pascalized
+            impl #field_impl_generics #crate_name::SetterNumeric<#field_type> for #field_wrapper
             #field_where_clause {}
 
-            impl ::std::convert::From<#field_name_pascalized> for #crate_name::NumberLike {
-                fn from(val: #field_name_pascalized) -> Self {
+            impl ::std::convert::From<#field_wrapper> for #crate_name::NumberLike {
+                fn from(val: #field_wrapper) -> Self {
                     val.0.into()
                 }
             }
 
-            impl ::std::convert::From<&#field_name_pascalized> for #crate_name::NumberLike {
-                fn from(val: &#field_name_pascalized) -> Self {
+            impl ::std::convert::From<&#field_wrapper> for #crate_name::NumberLike {
+                fn from(val: &#field_wrapper) -> Self {
                     (&val.0).into()
                 }
             }
