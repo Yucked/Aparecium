@@ -6,7 +6,7 @@ use quote::{ToTokens, quote};
 use crate::models::DataType;
 
 /// A field's name as stored in the database.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DbFieldName(String);
 
 impl Display for DbFieldName {

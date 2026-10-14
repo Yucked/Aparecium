@@ -16,9 +16,8 @@ impl TableNameIdent {
             return Err(syn::Error::new(
                 table.span(),
                 format!(
-                    "table name must be in snake case of the current struct name. 
-        Try: `{expected_table}`.
-        If you don't want to follow this convention, use attribute `relax_table`. "
+                    "the table must be the struct name in snake case, `{expected_table}`; \
+                     set `#[orm(relax_table)]` to name it freely"
                 ),
             )
             .into());

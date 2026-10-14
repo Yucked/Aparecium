@@ -15,6 +15,9 @@ pub struct ModelAttributes<'a> {
 
 impl<'a> ModelAttributes<'a> {
     pub fn new(receiver: &'a ModelReceiver) -> ExtractorResult<Self> {
+        // Validated before any field: type inference reads the table and only reports that it
+        // could not infer a type, hiding the table's own error.
+        receiver.table()?;
         Ok(Self {
             data_type: receiver.data_type()?,
             receiver,

@@ -32,8 +32,6 @@ create_tokenstream_wrapper!(=> FieldMetadataToken);
 create_tokenstream_wrapper!(=> SchemaStructFieldsTypesKv);
 create_tokenstream_wrapper!(=> SchemaStructFieldsNamesKv);
 
-create_tokenstream_wrapper!(=> DbFieldNamesToken);
-
 create_tokenstream_wrapper!(=> TableDefinitions);
 
 create_tokenstream_wrapper!(=> DefineFieldStatementToken);

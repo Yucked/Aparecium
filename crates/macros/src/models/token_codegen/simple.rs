@@ -16,12 +16,26 @@ impl Codegen<'_> {
     }
 
     pub fn create_db_field_names_token(&mut self) -> ExtractorResult<()> {
-        let db_field_name = self
-            .field_receiver()
-            .db_field_name(&self.table_derive_attributes().casing()?)?;
+        let field_receiver = self.field_receiver();
+        let db_field_name =
+            field_receiver.db_field_name(&self.table_derive_attributes().casing()?)?;
 
-        self.serialized_field_names_normalised
-            .push(db_field_name.to_token_stream().into());
+        // Caught here so the error names the field; `StoredFields::assert_valid` still checks
+        // the names flattened objects add, which are only known once the code compiles.
+        if self
+            .serialized_field_names_normalised
+            .contains(&db_field_name)
+        {
+            return Err(syn::Error::new_spanned(
+                field_receiver.ident()?.into_inner(),
+                format!(
+                    "another field is already stored as `{db_field_name}`; check `#[surreal(rename)]` and `rename_all`"
+                ),
+            )
+            .into());
+        }
+
+        self.serialized_field_names_normalised.push(db_field_name);
 
         Ok(())
     }
