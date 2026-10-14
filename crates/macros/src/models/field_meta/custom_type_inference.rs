@@ -178,9 +178,11 @@ impl<'a> FieldTypeInference<'a> {
             let item_static_assertion = item.static_assertion_token;
             let set_assertion = assert(quote!(assert_type_is_set));
 
+            // The SDK writes and reads `HashSet`/`BTreeSet` as arrays (`kind_of` is `array<T>`);
+            // a `set<T>` field would store a set value they cannot decode.
             DbFieldTypeAstMeta {
-                field_type_db_original: Kind::Set(Box::new(item.field_type_db_original), None),
-                field_type_db_token: quote!(#crate_name::types::Kind::Set(
+                field_type_db_original: Kind::Array(Box::new(item.field_type_db_original), None),
+                field_type_db_token: quote!(#crate_name::types::Kind::Array(
                     ::std::boxed::Box::new(#item_token),
                     ::std::option::Option::None
                 ))
@@ -314,6 +316,11 @@ impl<'a> FieldTypeInference<'a> {
                 <#model as #crate_name::Model>::table()
             ]))
         };
+        // An unset single link is written as NONE, so its stored type must allow it.
+        let optional_record_of = |model: proc_macro2::TokenStream| {
+            let record = record_of(model);
+            quote!(#crate_name::types::Kind::option(#record))
+        };
 
         let meta = match relation_type {
             RelationType::Relate(_ref_node) => {
@@ -327,8 +334,8 @@ impl<'a> FieldTypeInference<'a> {
                 let ref_node = ref_node.turbo_fishize()?;
 
                 DbFieldTypeAstMeta {
-                    field_type_db_original: Kind::Record(vec![]),
-                    field_type_db_token: record_of(quote!(#ref_node)).into(),
+                    field_type_db_original: Kind::option(Kind::Record(vec![])),
+                    field_type_db_token: optional_record_of(quote!(#ref_node)).into(),
                     static_assertion_token: quote!(#crate_name::validators::assert_type_eq_all!(#field_ty, #crate_name::LinkOne<#ref_node>);).into(),
                 }
             }
@@ -337,8 +344,8 @@ impl<'a> FieldTypeInference<'a> {
                 let self_node = self_node.turbo_fishize()?;
 
                 DbFieldTypeAstMeta {
-                    field_type_db_original: Kind::Record(vec![]),
-                    field_type_db_token: record_of(quote!(Self)).into(),
+                    field_type_db_original: Kind::option(Kind::Record(vec![])),
+                    field_type_db_token: optional_record_of(quote!(Self)).into(),
                     static_assertion_token: quote!(
                         #crate_name::validators::assert_type_eq_all!(#crate_name::LinkSelf<#current_struct_type>, #crate_name::LinkSelf<#self_node>);
                         #crate_name::validators::assert_type_eq_all!(#field_ty, #crate_name::LinkSelf<#self_node>);
