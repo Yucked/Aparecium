@@ -12,8 +12,23 @@ workspace = true
 [lib]
 doctest = false
 
+[features]
+# The migration tests and their helpers; they need the `migrations` feature to build (#9).
+migrations = ["umbriel/migrations"]
+
+[[test]]
+name = "migrations"
+path = "tests/migrations.rs"
+required-features = ["migrations"]
+
 [dependencies]
-umbriel = { workspace = true, default-features = false, features = ["kv-mem", "migrations"] }
+# The remote transports serve the server-backed tests in `tests/server.rs`.
+umbriel = { workspace = true, default-features = false, features = [
+    "kv-mem",
+    "protocol-http",
+    "protocol-ws",
+    "test-support",
+] }
 surrealdb = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -22,11 +37,13 @@ chrono = { workspace = true }
 typed-builder = { workspace = true }
 insta = { workspace = true }
 tempfile = { workspace = true }
+# Checks rendered SurrealQL against SurrealDB 3's own parser (`assert_sql`).
+surrealdb-syn = { workspace = true }
+pretty_assertions = { workspace = true }
 
 [dev-dependencies]
-tokio = { workspace = true, features = ["macros", "rt"] }
+tokio = { workspace = true, features = ["macros", "rt", "sync"] }
 trybuild = { workspace = true }
-pretty_assertions = { workspace = true }
 uuid = { workspace = true }
 rand = { workspace = true }
 test-case = { workspace = true }
@@ -42,4 +59,3 @@ strum_macros = { workspace = true }
 thiserror = { workspace = true }
 paste = { workspace = true }
 nom = { workspace = true }
-surrealdb-syn = { workspace = true }
