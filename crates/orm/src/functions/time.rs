@@ -29,19 +29,19 @@
 
 use crate::{DatetimeLike, DurationLike, Function, StrandLike};
 
-/// The time::now function returns the current datetime as an ISO8601 timestamp.The time::now function returns the current datetime as an ISO8601 timestamp.
+/// The time::now function returns the current datetime.
 pub fn now_fn() -> Function {
-    Function::new("now")
+    Function::new("time::now")
 }
 
-/// The time::now function returns the current datetime as an ISO8601 timestamp.The time::now function returns the current datetime as an ISO8601 timestamp.
+/// The time::now function returns the current datetime.
 ///
 /// # Example
 /// ```rust
 /// use umbriel::{*, functions::time};
 ///
 /// let result = time::now!();
-/// assert_eq!(result.to_debug_sql(), "now()");
+/// assert_eq!(result.to_debug_sql(), "time::now()");
 /// ```
 #[macro_export]
 macro_rules! now {

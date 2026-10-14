@@ -133,29 +133,33 @@ create_fn_with_single_vector_arg!(
     "normalize"
 );
 
-create_fn_with_single_vector_arg!(
+create_fn_with_two_vectors_args!(
     /// The vector::project function computes the projection of one vector onto another.
     ///
     /// # Arguments
     ///
-    /// * `vector` - The vector to compute the projection of. Could be a field or a parameter that represents the
-    /// value.
+    /// * `vector1` - The vector to project. Could be a field or a parameter that represents the
+    ///   value.
+    /// * `vector2` - The vector to project onto. Could be a field or a parameter that represents the
+    ///   value.
     ///
     /// # Example
     /// ```rust
-    /// use umbriel::{*, functions::vector, statements::let_};
+    /// use umbriel::{*, functions::vector};
     ///
-    /// let name = Field::new("name");
-    /// let result = vector::project!(name);
-    /// assert_eq!(result.to_debug_sql(), "vector::project(name)");
+    /// let arr1 = Field::new("arr1");
+    /// let arr2 = Field::new("arr2");
+    /// let result = vector::project!(arr1, arr2);
+    /// assert_eq!(result.to_debug_sql(), "vector::project(arr1, arr2)");
     ///
-    /// let result = vector::project!([1, 2, 3]);
-    /// assert_eq!(result.to_debug_sql(), "vector::project([1, 2, 3])");
+    /// let result = vector::project!([1, 2, 3], [4, 5, 6]);
+    /// assert_eq!(result.to_debug_sql(), "vector::project([1, 2, 3], [4, 5, 6])");
     /// ```
     =>
     "project",
     "project"
 );
+pub use vector_project as project;
 
 create_fn_with_two_vectors_args!(
     /// The vector::cross function computes the cross product of two vectors, which results in a vector that is orthogonal (perpendicular) to the plane containing the original vectors.
