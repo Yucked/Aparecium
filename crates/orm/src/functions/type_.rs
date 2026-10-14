@@ -38,10 +38,8 @@
 // type::is_string()	Checks if given value is of type string
 // type::is_uuid()	Checks if given value is of type uuid
 
-use crate::{
-    ArrayLike, DatetimeLike, DurationLike, Function, NumberLike, ObjectLike, RecordIdLike,
-    StrandLike, TableLike, ValueLike,
-};
+// Conversions and type checks take any value: converting or checking it is their purpose.
+use crate::{ArrayLike, Function, ValueLike};
 
 macro_rules! create_type {
     ($(#[$attr:meta])* => $function_name:expr, $value_type: ty) => {
@@ -114,9 +112,12 @@ create_type!(
     /// let datetime_param = Param::new("datetime_param");
     /// let result = type_::datetime!(datetime_param);
     /// assert_eq!(result.to_debug_sql(), "type::datetime($datetime_param)");
+    ///
+    /// let result = type_::datetime!("2021-11-01T08:30:17Z");
+    /// assert_eq!(result.to_debug_sql(), "type::datetime('2021-11-01T08:30:17Z')");
     /// ```
     =>
-    "datetime", DatetimeLike
+    "datetime", ValueLike
 );
 
 // The type::duration function converts a value into a duration.
@@ -143,9 +144,12 @@ create_type!(
     /// let duration_param = Param::new("duration_param");
     /// let result = type_::duration!(duration_param);
     /// assert_eq!(result.to_debug_sql(), "type::duration($duration_param)");
+    ///
+    /// let result = type_::duration!("1h");
+    /// assert_eq!(result.to_debug_sql(), "type::duration('1h')");
     /// ```
     =>
-    "duration", DurationLike
+    "duration", ValueLike
 );
 
 create_type!(
@@ -225,9 +229,12 @@ create_type!(
     /// let float_param = Param::new("float_param");
     /// let result = type_::float!(float_param);
     /// assert_eq!(result.to_debug_sql(), "type::float($float_param)");
+    ///
+    /// let result = type_::float!("1.5");
+    /// assert_eq!(result.to_debug_sql(), "type::float('1.5')");
     /// ```
     =>
-    "float", NumberLike
+    "float", ValueLike
 );
 
 create_type!(
@@ -251,35 +258,37 @@ create_type!(
     /// let int_param = Param::new("int_param");
     /// let result = type_::int!(int_param);
     /// assert_eq!(result.to_debug_sql(), "type::int($int_param)");
+    ///
+    /// let result = type_::int!("5");
+    /// assert_eq!(result.to_debug_sql(), "type::int('5')");
     /// ```
     =>
-    "int", NumberLike
+    "int", ValueLike
 );
 
 create_type!(
-    /// The type::string function converts a value into a string.
-    /// Also aliased as `type_string!`
+    /// The type::number function converts a value into a number.
+    /// Also aliased as `type_number!`
     ///
     /// # Arguments
-    /// * `value` - The value to be converted to a string. Could also be a field or a parameter
+    /// * `value` - The value to be converted to a number. Could also be a field or a parameter
     /// representing the value.
     ///
     /// # Example
     /// ```rust
     /// use umbriel::{*, functions::type_};
-    /// let result = type_::string!(1234);
-    /// assert_eq!(result.to_debug_sql(), "type::string(1234)");
+    /// let result = type_::number!(1234);
+    /// assert_eq!(result.to_debug_sql(), "type::number(1234)");
     ///
-    /// let string_field = Field::new("string_field");
-    /// let result = type_::string!(string_field);
-    /// assert_eq!(result.to_debug_sql(), "type::string(string_field)");
+    /// let number_field = Field::new("number_field");
+    /// let result = type_::number!(number_field);
+    /// assert_eq!(result.to_debug_sql(), "type::number(number_field)");
     ///
-    /// let string_param = Param::new("string_param");
-    /// let result = type_::string!(string_param);
-    /// assert_eq!(result.to_debug_sql(), "type::string($string_param)");
+    /// let result = type_::number!("5");
+    /// assert_eq!(result.to_debug_sql(), "type::number('5')");
     /// ```
     =>
-    "number", NumberLike
+    "number", ValueLike
 );
 
 create_type!(
@@ -329,54 +338,43 @@ create_type!(
     /// let table_param = let_("table_param").equal_to("user").get_param();
     /// let result = type_::table!(table_param);
     /// assert_eq!(result.to_debug_sql(), "type::table($table_param)");
+    ///
+    /// let result = type_::table!("user");
+    /// assert_eq!(result.to_debug_sql(), "type::table('user')");
     /// ```
     =>
-    "table", TableLike
+    "table", ValueLike
 );
 
-/// The type::point function converts a value into a geometry point.
-pub fn point_fn(point1: impl Into<NumberLike>, point2: impl Into<NumberLike>) -> Function {
-    Function::new("type::point")
-        .arg(point1.into())
-        .arg(point2.into())
-}
-
-/// The type::point function converts a value into a geometry point.
-/// Also aliased as `type_point!`
-///
-/// # Arguments
-/// * `point1` - The first point of the geometry point. Could also be a field or a parameter
-///   representing the value.
-/// * `point2` - The second point of the geometry point. Could also be a field or a parameter
-///   representing the value.
-///
-/// # Example
-/// ```rust
-/// use umbriel::{*, functions::type_, statements::let_};
-/// let result = type_::point!(1234, 1234);
-/// assert_eq!(result.to_debug_sql(), "type::point(1234, 1234)");
-///
-/// let point1_field = Field::new("point1_field");
-/// let point2_field = Field::new("point2_field");
-/// let result = type_::point!(point1_field, point2_field);
-/// assert_eq!(result.to_debug_sql(), "type::point(point1_field, point2_field)");
-///
-/// let point1_param = let_("point1_param").equal_to(1234).get_param();
-/// let point2_param = let_("point2_param").equal_to(1234).get_param();
-/// let result = type_::point!(point1_param, point2_param);
-/// assert_eq!(result.to_debug_sql(), "type::point($point1_param, $point2_param)");
-/// ```
-#[macro_export]
-macro_rules! type_point {
-    ( $point1:expr, $point2:expr ) => {
-        $crate::functions::type_::point_fn($point1, $point2)
-    };
-}
-
-pub use type_point as point;
+create_type!(
+    /// The type::point function converts a value, such as a `[longitude, latitude]` array, into a
+    /// geometry point.
+    /// Also aliased as `type_point!`
+    ///
+    /// # Arguments
+    /// * `value` - The value to be converted to a point. Could also be a field or a parameter
+    /// representing the value.
+    ///
+    /// # Example
+    /// ```rust
+    /// use umbriel::{*, functions::type_, statements::let_};
+    /// let result = type_::point!(vec![51.509865, -0.118092]);
+    /// assert_eq!(result.to_debug_sql(), "type::point([51.509865f, -0.118092f])");
+    ///
+    /// let point_field = Field::new("point_field");
+    /// let result = type_::point!(point_field);
+    /// assert_eq!(result.to_debug_sql(), "type::point(point_field)");
+    ///
+    /// let point_param = let_("point_param").equal_to(vec![1, 2]).get_param();
+    /// let result = type_::point!(point_param);
+    /// assert_eq!(result.to_debug_sql(), "type::point($point_param)");
+    /// ```
+    =>
+    "point", ValueLike
+);
 
 /// The type::record function converts a table and a key into a record ID.
-pub fn record_fn(table: impl Into<TableLike>, value: impl Into<ValueLike>) -> Function {
+pub fn record_fn(table: impl Into<ValueLike>, value: impl Into<ValueLike>) -> Function {
     Function::new("type::record")
         .arg(table.into())
         .arg(value.into())
@@ -394,8 +392,8 @@ pub fn record_fn(table: impl Into<TableLike>, value: impl Into<ValueLike>) -> Fu
 /// # Example
 /// ```rust
 /// use umbriel::{*, functions::type_, statements::let_};
-/// let result = type_::record!(Table::new("user"), 1234);
-/// assert_eq!(result.to_debug_sql(), "type::record(user, 1234)");
+/// let result = type_::record!("user", 1234);
+/// assert_eq!(result.to_debug_sql(), "type::record('user', 1234)");
 ///
 /// let table_field = Field::new("table_field");
 /// let value_field = Field::new("value_field");
@@ -543,7 +541,7 @@ create_is_function!(
     /// assert_eq!(result.to_debug_sql(), "type::is_datetime($datetime_param)");
     /// ```
     =>
-    "datetime", DatetimeLike
+    "datetime", ValueLike
 );
 
 create_is_function!(
@@ -624,7 +622,7 @@ create_is_function!(
     /// assert_eq!(result.to_debug_sql(), "type::is_duration($duration_param)");
     /// ```
     =>
-    "duration", DurationLike
+    "duration", ValueLike
 );
 
 create_is_function!(
@@ -650,7 +648,7 @@ create_is_function!(
     /// assert_eq!(result.to_debug_sql(), "type::is_float($float_param)");
     /// ```
     =>
-    "float", NumberLike
+    "float", ValueLike
 );
 
 create_is_function!(
@@ -676,7 +674,7 @@ create_is_function!(
     /// assert_eq!(result.to_debug_sql(), "type::is_int($int_param)");
     /// ```
     =>
-    "int", NumberLike
+    "int", ValueLike
 );
 
 create_is_function!(
@@ -729,7 +727,7 @@ create_is_function!(
     /// assert_eq!(result.to_debug_sql(), "type::is_number($number_param)");
     /// ```
     =>
-    "number", NumberLike
+    "number", ValueLike
 );
 
 create_is_function!(
@@ -756,7 +754,7 @@ create_is_function!(
     /// assert_eq!(result.to_debug_sql(), "type::is_string($string_param)");
     /// ```
     =>
-    "string", StrandLike
+    "string", ValueLike
 );
 
 create_is_function!(
@@ -783,7 +781,7 @@ create_is_function!(
     /// assert_eq!(result.to_debug_sql(), "type::is_geometry($geometry_param)");
     /// ```
     =>
-    "geometry", crate::GeometryLike
+    "geometry", ValueLike
 );
 
 create_is_function!(
@@ -820,7 +818,7 @@ create_is_function!(
     /// assert_eq!(result.to_debug_sql(), "type::is_line($line_param)");
     /// ```
     =>
-    "line", crate::GeometryLike
+    "line", ValueLike
 );
 
 create_is_function!(
@@ -848,7 +846,7 @@ create_is_function!(
     /// assert_eq!(result.to_debug_sql(), "type::is_multiline($multiline_param)");
     /// ```
     =>
-    "multiline", crate::GeometryLike
+    "multiline", ValueLike
 );
 
 create_is_function!(
@@ -876,7 +874,7 @@ create_is_function!(
     /// assert_eq!(result.to_debug_sql(), "type::is_multipoint($multipoint_param)");
     /// ```
     =>
-    "multipoint", crate::GeometryLike
+    "multipoint", ValueLike
 );
 
 create_is_function!(
@@ -903,7 +901,7 @@ create_is_function!(
     /// assert_eq!(result.to_debug_sql(), "type::is_multipolygon($multipolygon_param)");
     /// ```
     =>
-    "multipolygon", crate::GeometryLike
+    "multipolygon", ValueLike
 );
 
 create_is_function!(
@@ -930,7 +928,7 @@ create_is_function!(
     /// assert_eq!(result.to_debug_sql(), "type::is_point($point_param)");
     /// ```
     =>
-    "point", crate::GeometryLike
+    "point", ValueLike
 );
 
 create_is_function!(
@@ -978,7 +976,7 @@ create_is_function!(
     ///    assert_eq!(result.to_debug_sql(), "type::is_polygon($polygon_param)");
     ///    ```
     =>
-    "polygon", crate::GeometryLike
+    "polygon", ValueLike
 );
 
 create_is_function!(
@@ -1005,7 +1003,7 @@ create_is_function!(
     /// assert_eq!(result.to_debug_sql(), "type::is_object($object_param)");
     /// ```
     =>
-    "object", ObjectLike
+    "object", ValueLike
 );
 
 create_is_function!(
@@ -1032,7 +1030,7 @@ create_is_function!(
     /// assert_eq!(result.to_debug_sql(), "type::is_record($record_param)");
     /// ```
     =>
-    "record", RecordIdLike
+    "record", ValueLike
 );
 
 create_is_function!(
