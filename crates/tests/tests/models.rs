@@ -1,7 +1,10 @@
 //! Models: what `#[model]` generates (definitions, schema, patches, flattened objects) and how
 //! models, record ids and links behave against the in-memory engine.
 
-use std::{collections::HashSet, time::Duration};
+use std::{
+    collections::{BTreeMap, HashSet},
+    time::Duration,
+};
 
 use chrono::{DateTime, Utc};
 use surrealdb::{Surreal, engine::local::Db};
@@ -149,6 +152,81 @@ pub struct Ticket {
     #[orm(assert = value().not_equal(Ticket::id("blocked")), value = "first")]
     pub id: RecordId<Self>,
     pub title: String,
+}
+
+/// An embedded object whose fields may be absent.
+#[model(object)]
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct Offsets {
+    pub x: Option<i64>,
+    pub y: Option<i64>,
+}
+
+/// A node holding an embedded object, for whole-object patches.
+#[model(node, table = "marker")]
+#[derive(Debug, Clone)]
+pub struct Marker {
+    pub id: RecordId<Self>,
+    #[orm(nest_object = "Offsets")]
+    pub offsets: Offsets,
+}
+
+/// A plan's tier, stored as its name.
+#[derive(Debug, Clone, Copy, Default, PartialEq, SurrealValue)]
+// Separate attributes: the derive's enum options stop at the first key they don't know.
+#[surreal(crate = "umbriel::types")]
+#[surreal(untagged)]
+pub enum Tier {
+    // `rename` rather than `value`: the derive writes `value` variants with a hardcoded
+    // `surrealdb_types::` path that ignores `crate`.
+    #[default]
+    #[surreal(rename = "free")]
+    Free,
+    #[surreal(rename = "pro")]
+    Pro,
+}
+
+/// A node with a stored enum.
+#[model(node, table = "plan")]
+#[derive(Debug, Clone, PartialEq)]
+pub struct Plan {
+    pub id: RecordId<Self>,
+    #[orm(ty = "'free' | 'pro'")]
+    pub tier: Tier,
+}
+
+/// A node whose conversion is written by hand (`value = manual`) instead of derived.
+#[model(node, table = "thermostat", value = manual)]
+#[derive(Debug, Clone, PartialEq)]
+pub struct Thermostat {
+    pub id: RecordId<Self>,
+    pub tenths: i64,
+}
+
+impl SurrealValue for Thermostat {
+    fn kind_of() -> Kind {
+        Kind::Object
+    }
+
+    fn into_value(self) -> Value {
+        let mut object = types::Object::new();
+        object.insert("id", self.id);
+        object.insert("tenths", self.tenths);
+        Value::Object(object)
+    }
+
+    fn from_value(value: Value) -> Result<Self, types::Error> {
+        let Value::Object(mut object) = value else {
+            return Err(types::Error::internal(format!(
+                "expected a thermostat object, got {value:?}"
+            )));
+        };
+        let mut field = |name: &str| object.remove(name).unwrap_or(Value::None);
+        Ok(Self {
+            id: RecordId::from_value(field("id"))?,
+            tenths: i64::from_value(field("tenths"))?,
+        })
+    }
 }
 
 /// A node keyed by arrays: `ty` on `id` is the key's type, not the field's.
@@ -802,6 +880,65 @@ mod record_ids {
         assert!(RecordId::<Alien>::from_value(Value::String("alien:alice".to_owned())).is_err());
     }
 
+    #[tokio::test]
+    async fn decoding_a_model_checks_the_table_of_its_id() {
+        let db = db().await;
+        // A record shaped like a space ship, stored in another table.
+        Raw::new("CREATE alien:apollo SET name = 'Apollo', created = d'1970-01-01T00:00:00Z';")
+            .run(db.clone())
+            .await
+            .expect("created");
+        let record: Value = read(&db, "SELECT * FROM ONLY alien:apollo;").await;
+        let error = SpaceShip::from_value(record).expect_err("an alien id is not a space ship's");
+        assert!(error.to_string().contains("alien"), "{error}");
+
+        Raw::new(
+            "CREATE space_ship:apollo SET name = 'Apollo', created = d'1970-01-01T00:00:00Z';",
+        )
+        .run(db.clone())
+        .await
+        .expect("created");
+        let record: Value = read(&db, "SELECT * FROM ONLY space_ship:apollo;").await;
+        assert_eq!(
+            SpaceShip::from_value(record).expect("its own table").id,
+            SpaceShip::id("apollo")
+        );
+    }
+
+    #[tokio::test]
+    async fn every_key_kind_round_trips_through_the_database() {
+        let db = db().await;
+        let mut object = types::Object::new();
+        object.insert("region", "eu");
+        object.insert("seq", 7);
+        let ids = [
+            SpaceShip::id(42),
+            SpaceShip::id("apollo"),
+            SpaceShip::id(uuid::Uuid::from_u128(
+                0x0190_7a2e_4c1d_7b3a_8f00_0000_0000_0001,
+            )),
+            SpaceShip::id(vec![1i64, 2]),
+            SpaceShip::id(object),
+            RecordId::<SpaceShip>::rand(),
+            RecordId::<SpaceShip>::ulid(),
+            RecordId::<SpaceShip>::uuid(),
+        ];
+        for id in ids {
+            let ship = SpaceShip {
+                id: id.clone(),
+                name: "Apollo".to_owned(),
+                created: DateTime::<Utc>::UNIX_EPOCH,
+            };
+            let created = ship.create(&db).await.expect("created");
+            assert_eq!(created.id, id, "create returns the exact id");
+            let stored = SpaceShip::get(&db, &id)
+                .await
+                .expect("read")
+                .expect("stored under that id");
+            assert_eq!(stored.id, id);
+        }
+    }
+
     #[test]
     fn decoding_rejects_ranges() {
         let range = types::RecordId::new(
@@ -1137,6 +1274,81 @@ mod patches {
         assert_eq!(removed.bio, None);
         let is_none: bool = read(&db, "RETURN type::is_none(profile:alice.bio);").await;
         assert!(is_none);
+    }
+
+    #[tokio::test]
+    async fn setting_a_nested_object_replaces_it_whole() {
+        let db = db().await;
+        let id = Marker::id("origin");
+        Marker {
+            id: id.clone(),
+            offsets: Offsets {
+                x: Some(1),
+                y: Some(2),
+            },
+        }
+        .create(&db)
+        .await
+        .expect("created");
+        let stored = || read::<BTreeMap<String, i64>>(&db, "RETURN marker:origin.offsets;");
+
+        let set = |offsets: Offsets| MarkerPatch {
+            offsets: Patch::Set(offsets),
+            ..Default::default()
+        };
+        Marker::patch(
+            &db,
+            &id,
+            set(Offsets {
+                x: None,
+                y: Some(3),
+            }),
+        )
+        .await
+        .expect("patched")
+        .expect("the record exists");
+        assert_eq!(stored().await, BTreeMap::from([("y".to_owned(), 3)]));
+
+        Marker::patch(&db, &id, set(Offsets::default()))
+            .await
+            .expect("patched")
+            .expect("the record exists");
+        assert_eq!(stored().await, BTreeMap::new());
+    }
+
+    #[tokio::test]
+    async fn removing_a_field_brings_back_only_a_default_always() {
+        // Typed `DEFAULT ALWAYS` support belongs to #13; the definitions are written by hand.
+        for (default, expected) in [
+            ("DEFAULT 'Anon'", None),
+            ("DEFAULT ALWAYS 'Anon'", Some("Anon")),
+        ] {
+            let db = db().await;
+            Raw::new(format!(
+                "DEFINE TABLE profile SCHEMALESS; \
+                 DEFINE FIELD nickname ON TABLE profile TYPE option<string> {default};"
+            ))
+            .run(db.clone())
+            .await
+            .expect("defined");
+            profile("alice", Some("Al"), None)
+                .create(&db)
+                .await
+                .expect("created");
+
+            let patched = Profile::patch(
+                &db,
+                &Profile::id("alice"),
+                ProfilePatch {
+                    nickname: Patch::None,
+                    ..Default::default()
+                },
+            )
+            .await
+            .expect("patched")
+            .expect("the record exists");
+            assert_eq!(patched.nickname.as_deref(), expected, "{default}");
+        }
     }
 
     #[tokio::test]
@@ -1577,5 +1789,55 @@ mod declared_in_functions {
         let found = Pet::get(&db, &rex.id).await.expect("read");
         assert_eq!(found.map(|found| found.name), Some("Rex".to_owned()));
         assert_eq!(Pet::schema().name.to_debug_sql(), "name");
+    }
+}
+
+mod conversions {
+    use super::*;
+
+    #[tokio::test]
+    async fn enums_are_stored_and_decoded() {
+        let db = db().await;
+        apply_definitions::<Plan>(&db).await;
+        let acme = Plan {
+            id: Plan::id("acme"),
+            tier: Tier::Pro,
+        };
+        acme.clone().create(&db).await.expect("created");
+
+        let stored: String = read(&db, "RETURN plan:acme.tier;").await;
+        assert_eq!(stored, "pro");
+        assert_eq!(Plan::get(&db, &acme.id).await.expect("read"), Some(acme));
+        assert_eq!(
+            Tier::from_value(Value::String("free".to_owned())).expect("a tier"),
+            Tier::Free
+        );
+
+        let unknown = Raw::new("CREATE plan:globex SET tier = 'gold';")
+            .run(db.clone())
+            .await;
+        assert!(unknown.is_err(), "the literal type rejects other names");
+    }
+
+    #[tokio::test]
+    async fn a_hand_written_conversion_is_used() {
+        let db = db().await;
+        assert_eq!(
+            joined(&Thermostat::define_fields()),
+            "DEFINE FIELD tenths ON TABLE thermostat TYPE int;"
+        );
+        apply_definitions::<Thermostat>(&db).await;
+        let hall = Thermostat {
+            id: Thermostat::id("hall"),
+            tenths: 215,
+        };
+
+        assert_eq!(hall.clone().create(&db).await.expect("created"), hall);
+        let stored: i64 = read(&db, "RETURN thermostat:hall.tenths;").await;
+        assert_eq!(stored, 215);
+        assert_eq!(
+            Thermostat::get(&db, &hall.id).await.expect("read"),
+            Some(hall)
+        );
     }
 }
