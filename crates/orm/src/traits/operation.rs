@@ -148,7 +148,7 @@ enum OperationNode {
         operator: Operator,
         rhs: ValueLike,
     },
-    /// `lower < operand < upper`, or with `<=` when inclusive.
+    /// `(lower < operand AND operand < upper)`, or with `<=` when inclusive.
     Between {
         lower: Ordinal,
         operand: ValueLike,
@@ -159,7 +159,7 @@ enum OperationNode {
     /// literal.
     MatchesWithRef {
         operand: ValueLike,
-        reference: NumberLike,
+        reference: u8,
         terms: StrandLike,
     },
 }
@@ -193,6 +193,7 @@ impl Render for Operation {
                 out.push_str(" ").push(operator).push_str(" ");
                 rhs.render_operand(out);
             }
+            // SurrealQL does not chain relational operators, so the operand is compared twice.
             OperationNode::Between {
                 lower,
                 operand,
@@ -200,11 +201,15 @@ impl Render for Operation {
                 inclusive,
             } => {
                 let operator = if *inclusive { " <= " } else { " < " };
-                out.push(lower)
+                out.push_str("(")
+                    .push(lower)
                     .push_str(operator)
                     .push(operand)
+                    .push_str(" AND ")
+                    .push(operand)
                     .push_str(operator)
-                    .push(upper);
+                    .push(upper)
+                    .push_str(")");
             }
             OperationNode::MatchesWithRef {
                 operand,
@@ -213,7 +218,7 @@ impl Render for Operation {
             } => {
                 out.push(operand)
                     .push_str(" @")
-                    .push_inlined(reference)
+                    .push_display(reference)
                     .push_str("@ ")
                     .push(terms);
             }
@@ -221,7 +226,7 @@ impl Render for Operation {
     }
 }
 
-/// `lower < operand < upper`, or with `<=` when inclusive.
+/// `(lower < operand AND operand < upper)`, or with `<=` when inclusive.
 fn between(operand: ValueLike, lower: Ordinal, upper: Ordinal, inclusive: bool) -> Operation {
     Operation::new(OperationNode::Between {
         lower,
@@ -1268,13 +1273,13 @@ pub trait Operatable: Sized + Render + Clone + Into<ValueLike> {
     /// let query = content.matches_with_ref(1, "hello world");
     /// assert_eq!(query.to_debug_sql(), "content @1@ 'hello world'");
     /// ```
-    fn matches_with_ref<T>(&self, reference: impl Into<NumberLike>, terms: T) -> Operation
+    fn matches_with_ref<T>(&self, reference: u8, terms: T) -> Operation
     where
         T: Into<StrandLike>,
     {
         Operation::new(OperationNode::MatchesWithRef {
             operand: self.clone().into(),
-            reference: reference.into(),
+            reference,
             terms: terms.into(),
         })
     }
@@ -1292,7 +1297,7 @@ pub trait Operatable: Sized + Render + Clone + Into<ValueLike> {
     /// # use umbriel::*;
     ///
     /// let age = Field::new("age");
-    /// age.between(18, 30);
+    /// assert_eq!(age.between(18, 30).to_debug_sql(), "(18 < age AND age < 30)");
     /// ```
     fn between<T>(&self, lower_bound: T, upper_bound: T) -> Operation
     where
@@ -1319,7 +1324,7 @@ pub trait Operatable: Sized + Render + Clone + Into<ValueLike> {
     /// # use umbriel::*;
     ///
     /// let age = Field::new("age");
-    /// age.within(18, 30);
+    /// assert_eq!(age.within(18, 30).to_debug_sql(), "(18 <= age AND age <= 30)");
     /// ```
     fn within<T>(&self, lower_bound: T, upper_bound: T) -> Operation
     where
