@@ -2,63 +2,33 @@ use crate::{Block, Expression, Param, Renderer};
 
 use super::{Statement, impl_statement};
 
-/// The loop variables of a `FOR` statement.
-pub struct ForParam(Vec<Param>);
-
-impl From<Vec<Param>> for ForParam {
-    fn from(value: Vec<Param>) -> Self {
-        Self(value)
-    }
-}
-
-impl From<ForParam> for Vec<Param> {
-    fn from(value: ForParam) -> Self {
-        value.0
-    }
-}
-
-impl From<&[Param]> for ForParam {
-    fn from(value: &[Param]) -> Self {
-        Self(value.to_vec())
-    }
-}
-
-impl From<Param> for ForParam {
-    fn from(value: Param) -> Self {
-        Self(vec![value])
-    }
-}
-
-impl From<&Param> for ForParam {
-    fn from(value: &Param) -> Self {
-        Self(vec![value.clone()])
-    }
-}
-
 /// A helper function to create a for loop
 /// You are encouraged to use for loop within
 /// chain! macro or use for_! macro.
-/// ```rust, ignore
-/// use umbriel::{*, statements::for_};
+/// ```rust
+/// use umbriel::{*, statements::{for_, select}};
 ///
-/// let query = for_(vec![param!(name), param!(age)])
-///    .in_(vec![1, 2, 3, 4, 5]);
-///    .block(
-///         chain!(select(All).from(SpaceShip::table()))
-///     );
+/// let name = Param::new("name");
+/// let query = for_(&name)
+///     .in_(vec!["Alice", "Bob"])
+///     .block(chain(select(All).from(Table::from("user")).where_(Field::new("name").equal(&name))));
+/// assert_eq!(
+///     query.to_debug_sql(),
+///     "FOR $name IN ['Alice', 'Bob'] {\nSELECT * FROM user WHERE name = $name;\n};"
+/// );
 /// ```
-pub fn for_(params: impl Into<ForParam>) -> ForIterable {
-    ForIterable(params.into().0)
+pub fn for_(param: impl Into<Param>) -> ForIterable {
+    ForIterable(param.into())
 }
 
 /// A `FOR` statement awaiting what to iterate over.
-pub struct ForIterable(Vec<Param>);
+pub struct ForIterable(Param);
 
 impl ForIterable {
     /// Iterates over the given array.
     pub fn in_(self, iterable: impl Into<Expression>) -> ForStatementBlock {
         ForStatementBlock {
-            params: self.0,
+            param: self.0,
             iterable: iterable.into(),
         }
     }
@@ -66,7 +36,7 @@ impl ForIterable {
 
 /// A `FOR` statement awaiting its block.
 pub struct ForStatementBlock {
-    params: Vec<Param>,
+    param: Param,
     iterable: Expression,
 }
 
@@ -74,17 +44,17 @@ impl ForStatementBlock {
     /// Sets the loop body.
     pub fn block(self, block: impl Into<Block>) -> ForLoopStatement {
         ForLoopStatement {
-            params: self.params,
+            param: self.param,
             iterable: self.iterable,
             block: block.into(),
         }
     }
 }
 
-/// A `FOR` statement.
+/// A `FOR` statement. SurrealQL loops over one parameter.
 #[derive(Debug, Clone)]
 pub struct ForLoopStatement {
-    params: Vec<Param>,
+    param: Param,
     iterable: Expression,
     block: Block,
 }
@@ -92,7 +62,7 @@ pub struct ForLoopStatement {
 impl Statement for ForLoopStatement {
     fn render_body(&self, out: &mut Renderer) {
         out.push_str("FOR ")
-            .push(&self.params)
+            .push(&self.param)
             .push_str(" IN ")
             .push(&self.iterable)
             .push_str(" ")
