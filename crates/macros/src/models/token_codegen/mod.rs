@@ -11,7 +11,6 @@ mod relate;
 mod serialized_field_fmts;
 mod simple;
 
-use heck::ToShoutySnakeCase;
 use quote::format_ident;
 
 use crate::models::*;
@@ -104,7 +103,7 @@ pub struct Codegen<'a> {
     /// Field names after taking into consideration
     /// serde serialized renaming or casings
     /// i.e time_written => timeWritten if serde camelizes
-    pub serialized_field_names_normalised: Vec<DbFieldNamesToken>,
+    pub serialized_field_names_normalised: Vec<DbFieldName>,
 
     /// Generated example:
     /// ```rust,ignore
@@ -183,17 +182,11 @@ impl<'a> Codegen<'a> {
 
         CommonIdents {
             schema: model.schema_ident(),
-            stored_fields: format_ident!(
-                "__{}_STORED_FIELDS",
-                struct_name_ident.to_shouty_snake_case()
-            ),
+            stored_fields: model.hidden_ident("StoredFields"),
             table_name_checker: model.hidden_ident("TableNameChecker"),
             test_function_name: model.hidden_ident("StaticAssertions").into(),
             aliases_struct_name: format_ident!("{struct_name_ident}Aliases").into(),
-            struct_with_renamed_serialized_fields: format_ident!(
-                "{struct_name_ident}RenamedCreator"
-            )
-            .into(),
+            struct_with_renamed_serialized_fields: model.hidden_ident("RenamedCreator").into(),
         }
     }
 

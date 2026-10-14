@@ -2,7 +2,7 @@ use crate::helpers::get_crate_name;
 use darling::{FromDeriveInput, ast::Data, util};
 use proc_macro2::TokenStream;
 use quote::{ToTokens, format_ident, quote};
-use syn::Ident;
+use syn::{Ident, ext::IdentExt};
 
 use super::table::TableNameIdent;
 use crate::models::*;
@@ -20,11 +20,13 @@ impl StructIdent {
         format_ident!("{}Schema", self.to_string())
     }
 
-    /// An item the expansion names but users do not: `__<Model><suffix>`. Generated items are
-    /// siblings of the model, never inside a module, so models declared in functions work; the
-    /// prefix keeps the items of models in one scope apart.
+    /// An item the expansion names but users do not: `__<len><Model><suffix>`. Generated items
+    /// are siblings of the model, never inside a module, so models declared in functions work.
+    /// The length of the model's name ends the prefix unambiguously: without it, `User`'s
+    /// `ProfileNameField` and `UserProfile`'s `NameField` would share one name.
     pub fn hidden_ident(&self, suffix: impl std::fmt::Display) -> Ident {
-        format_ident!("__{}{}", self.to_string(), suffix.to_string())
+        let model = self.0.unraw().to_string();
+        format_ident!("__{}{model}{suffix}", model.len())
     }
 }
 
@@ -131,17 +133,12 @@ impl ModelReceiver {
         if (define.is_some())
             && (drop.is_some() || as_.is_some() || schemafull.is_some() || permissions.is_some())
         {
-            return Err(
-                syn::Error::new_spanned(
-                    self.ident.clone(),
-                    "Invalid combination. When `define`, the following attributes cannot be use in combination to prevent confusion:
-                            drop,
-                            as,
-                            schemafull,
-                            permissions",
-                )
-                .into(),
-            );
+            return Err(syn::Error::new_spanned(
+                &self.ident,
+                "`define` gives the whole definition, so it cannot be combined with `drop`, `as`, \
+                 `schemafull` or `permissions`",
+            )
+            .into());
         }
 
         let definition = match define {
