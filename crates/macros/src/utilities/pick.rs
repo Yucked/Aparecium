@@ -8,14 +8,13 @@ use syn::{
 
 use crate::models::create_tokenstream_wrapper;
 
-// `pub(crate)` fields are read by `crates/tests`, which compiles this module via `#[path]`.
 pub struct PickedMeta {
     attributes: Vec<syn::Attribute>,
-    pub(crate) new_struct: Ident,
-    pub(crate) old_struct: Ident,
+    new_struct: Ident,
+    old_struct: Ident,
     old_struct_trait: Path,
-    pub(crate) generics_without_bounds: Generics,
-    pub(crate) field_names: Vec<FieldPicked>,
+    generics_without_bounds: Generics,
+    field_names: Vec<FieldPicked>,
 }
 
 create_tokenstream_wrapper!( => GenericsWithOmiitedAsPhantomData);
@@ -79,8 +78,8 @@ impl PickedMeta {
     }
 }
 
-pub(crate) struct FieldPicked {
-    pub(crate) name: Ident,
+struct FieldPicked {
+    name: Ident,
     attrs: Vec<syn::Attribute>,
 }
 
