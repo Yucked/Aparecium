@@ -392,18 +392,21 @@ pub fn define_function(input: TokenStream) -> TokenStream {
 /// chain! or block! or transaction! macro. This is almost never necessary. Just use
 /// chain! or block! or transaction! macro and define your for loop within it,
 ///
+/// The loop parameter is declared by the macro; refer to it by reference inside the body.
+///
 /// ```rust, ignore
 /// use umbriel::{*, statements::select};
 ///
-/// let ref __name = Param::new("name");
-/// let ref person_table = Table::from("person");
-/// let ref user_name = Field::from("user_name");
+/// let person_table = &Table::from("person");
+/// let user_name = &Field::new("user_name");
 ///
-/// for_!(__name in vec!["Charlie", "Bennett"] {
-///    let nick_name = select(user_name).from_only(person_table).where_(user_name.eq(__name));
-///    select(All).from(person_table).where_(user_name.eq(nick_name));
-/// };
-/// println!("{}", for_loop);
+/// let for_loop = for_!((name in vec!["Alice", "Bob"]) {
+///     select(All).from(person_table).where_(user_name.equal(&name));
+/// };);
+/// assert_eq!(
+///     for_loop.to_debug_sql(),
+///     "FOR $name IN ['Alice', 'Bob'] {\nSELECT * FROM person WHERE user_name = $name;\n};"
+/// );
 /// ```
 #[proc_macro]
 pub fn for_(input: TokenStream) -> TokenStream {

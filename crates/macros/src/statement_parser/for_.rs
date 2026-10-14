@@ -125,7 +125,6 @@ impl Parse for ForLoopStatementParser {
 }
 
 pub struct TokenizedForLoop {
-    pub code_to_render: TokenStream,
     pub query_chain: TokenStream,
 }
 
@@ -165,69 +164,14 @@ impl ForLoopMetaParser {
             )
         });
 
-        let to_render = quote! {
-            {
-                #( #to_render )*
-
-                #whole_stmts
-            }
-        }
-        .into();
-        let to_chain = quote!(#whole_stmts);
-
         TokenizedForLoop {
-            code_to_render: to_render,
-            query_chain: to_chain.into(),
+            query_chain: whole_stmts.into(),
         }
     }
 }
 
+/// `for_!`: the loop as one expression, so it can be bound or passed on.
 pub fn for_loop_without_for_keyword(input: TokenStream) -> TokenStream {
     let for_loop_content = syn::parse_macro_input!(input as ForLoopMetaParser);
-
-    let z = &for_loop_content.tokenize();
-    let to_render: proc_macro2::TokenStream = z.code_to_render.clone().into();
-    let to_chain: proc_macro2::TokenStream = z.query_chain.clone().into();
-
-    quote!(
-        #to_render
-
-        #to_chain
-
-    )
-    .into()
+    for_loop_content.tokenize().query_chain
 }
-///
-/// A helper function to create a for loop
-/// ```rust, ignore
-/// use umbriel::{*, statements::{for_, select, select_value}};
-///
-/// let ref person_table = Table::from("person");
-/// let ref user_name = Field::from("user_name");
-///
-/// for_!(name in vec!["Charlie", "Bennett"] {
-///    select(All).from(person_table).where_(user_name.eq(name));
-///    select(All).from(person_table).where_(user_name.eq(name));
-///
-///    for_!((name in select_value(user_name).from_only(person_table)) {
-///         select(All).from(person_table).where_(user_name.eq(name));
-///         select(All).from(person_table).where_(user_name.eq(name));
-///    });
-/// });
-/// ```
-// #[macro_export]
-macro_rules! _for_loop {
-    (($param:ident in $iterable:expr) { $($stmt:expr;)+ }) => {{
-        // let ref $param = $crate::Param::new(stringify!($param));
-        // $crate::statements::for_($param).in_($iterable).block($crate::internal_tools::query_turbo! {
-        //     $($stmt;)+
-        // })
-    }};
-    (($param:ident IN $iterable:expr) { $($stmt:expr;)+ }) => {{
-        // let ref $param = $crate::Param::new(stringify!($param));
-        // $crate::statements::for_($param).in_($iterable).block($crate::internal_tools::query_turbo! {
-        //     $($stmt;)+
-        // })
-    }};
-}
-// pub use _for_loop as for_;
