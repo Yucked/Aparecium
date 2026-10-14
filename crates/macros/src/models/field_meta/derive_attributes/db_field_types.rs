@@ -40,6 +40,13 @@ impl MyFieldReceiver {
             .replace_self_with_current_struct_concrete_type(model_attributes)?;
 
         let db_type = match self.field_type_db {
+            // On `id`, the type is the record key's; the field itself is always a record id.
+            Some(ref db_type) if self.db_field_name(&model_attributes.casing()?)?.is_id() => {
+                Some(DbFieldTypeAstMeta::new(
+                    db_type.inner().clone(),
+                    quote!(#crate_name::validators::assert_type_is_record_id::<#field_ty>();),
+                ))
+            }
             Some(ref db_type) => {
                 let relation = self.to_relation_type(model_attributes);
                 let static_assertion_token = match &relation {
@@ -124,6 +131,14 @@ impl MyFieldReceiver {
         model_attributes.to_data_type().is_edge() && is_in_or_out_edge_node
     }
 
+    /// Whether this is the record id, whose `ty` is its key's type rather than the field's.
+    fn is_record_id_field(&self, model_attributes: &ModelAttributes) -> bool {
+        model_attributes
+            .casing()
+            .and_then(|casing| self.db_field_name(&casing))
+            .is_ok_and(|name| name.is_id())
+    }
+
     pub fn to_relation_type(&self, model_attributes: &ModelAttributes) -> RelationType {
         let field_receiver = self;
 
@@ -163,6 +178,8 @@ impl MyFieldReceiver {
                 nest_array: Some(nest_array),
                 ..
             } => RelationType::NestArray(nest_array.to_owned()),
+            // An array key type does not make the record id a list.
+            _ if self.is_record_id_field(model_attributes) => RelationType::None,
             _ if field_receiver.is_array() || field_receiver.is_set() => {
                 RelationType::List(ListSimple)
             }

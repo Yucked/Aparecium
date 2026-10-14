@@ -74,41 +74,6 @@ impl RelationType {
     }
 }
 
-impl From<&MyFieldReceiver> for RelationType {
-    fn from(field_receiver: &MyFieldReceiver) -> Self {
-        match field_receiver {
-            MyFieldReceiver {
-                relate: Some(relation),
-                ..
-            } => RelationType::Relate(relation.to_owned()),
-            MyFieldReceiver {
-                link_one: Some(link_one),
-                ..
-            } => RelationType::LinkOne(link_one.to_owned()),
-            MyFieldReceiver {
-                link_self: Some(link_self),
-                ..
-            } => RelationType::LinkSelf(link_self.to_owned()),
-            MyFieldReceiver {
-                link_many: Some(link_many),
-                ..
-            } => RelationType::LinkMany(link_many.to_owned()),
-            MyFieldReceiver {
-                nest_object: Some(nest_object),
-                ..
-            } => RelationType::NestObject(nest_object.to_owned()),
-            MyFieldReceiver {
-                nest_array: Some(nest_array),
-                ..
-            } => RelationType::NestArray(nest_array.to_owned()),
-            _ if field_receiver.is_array() || field_receiver.is_set() => {
-                RelationType::List(ListSimple)
-            }
-            _ => RelationType::None,
-        }
-    }
-}
-
 // macro_rules! wrapper_struct_to_ident {
 //     ($simple_wrapper_struct:ty) => {
 //         impl ::std::convert::From<&$simple_wrapper_struct> for ::proc_macro2::TokenStream {
