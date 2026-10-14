@@ -496,7 +496,6 @@ impl From<&Function> for Selectables {
 enum SelectionType {
     Select,
     SelectValue,
-    SelectDiff,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -651,13 +650,6 @@ pub fn select(selectables: impl Into<Selectables>) -> SelectStatementInit {
 pub fn select_value(selectable_value: impl Into<Field>) -> SelectStatementInit {
     let mut select_statement = select(selectable_value);
     select_statement.selection_type = SelectionType::SelectValue;
-    select_statement
-}
-
-/// Selects diff
-pub fn select_diff(selectable_value: impl Into<Field>) -> SelectStatementInit {
-    let mut select_statement = select(selectable_value);
-    select_statement.selection_type = SelectionType::SelectDiff;
     select_statement
 }
 
@@ -1081,7 +1073,6 @@ impl Statement for SelectStatement {
         out.push_str(match statement.selection_type {
             SelectionType::Select => "SELECT ",
             SelectionType::SelectValue => "SELECT VALUE ",
-            SelectionType::SelectDiff => "SELECT DIFF ",
         });
         out.push(&statement.projections).push_str(" ");
 
