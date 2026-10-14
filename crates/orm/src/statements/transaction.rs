@@ -44,52 +44,6 @@ pub fn begin_transaction() -> QueryTransaction {
     QueryTransaction { queries: vec![] }
 }
 
-/// Creates a Transaction statement starting
-#[macro_export]
-macro_rules! transaction_deprecated {
-    (BEGIN TRANSACTION; $($query:expr;)* COMMIT TRANSACTION;) => {
-        {
-            $crate::statements::begin_transaction().
-            $(
-            query(&$query).
-            )*
-
-            .commit_transaction()
-        }
-    };
-    (begin transaction; $($query:expr;)* commit transaction;) => {
-        {
-            $crate::statements::begin_transaction().
-            $(
-            query(&$query).
-            )*
-
-            .commit_transaction()
-        }
-    };
-    (BEGIN TRANSACTION; $($query:expr;)* CANCEL TRANSACTION;) => {
-        {
-            $crate::statements::begin_transaction().
-            $(
-            query(&$query).
-            )*
-
-            .cancel_transaction()
-        }
-    };
-    (begin transaction; $($query:expr;)* cancel transaction;) => {
-        {
-            $crate::statements::begin_transaction().
-            $(
-            query(&$query).
-            )*
-
-            .cancel_transaction()
-        }
-    };
-}
-pub use transaction_deprecated;
-
 /// A transaction collecting its statements.
 pub struct QueryTransaction {
     queries: Vec<Fragment>,
