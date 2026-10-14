@@ -20,7 +20,7 @@ use super::{Statement, impl_statement};
 /// let statement = use_()
 ///     .database(Database::from("test"))
 ///     .namespace(Namespace::from("test"));
-/// assert_eq!(statement.to_debug_sql(), "USE DB test NS test;");
+/// assert_eq!(statement.to_debug_sql(), "USE NS test DB test;");
 /// ```
 pub fn use_() -> UseStatement {
     UseStatement::default()
@@ -49,12 +49,16 @@ impl UseStatement {
 
 impl Statement for UseStatement {
     fn render_body(&self, out: &mut Renderer) {
+        // SurrealQL takes the namespace first: `USE NS … DB …`.
         out.push_str("USE");
+        if let Some(namespace) = &self.namespace {
+            out.push_str(" NS ").push(namespace);
+        }
         if let Some(database) = &self.database {
             out.push_str(" DB ").push(database);
         }
-        if let Some(namespace) = &self.namespace {
-            out.push_str(" NS ").push(namespace);
+        if self.namespace.is_none() && self.database.is_none() {
+            out.push_error("USE needs a namespace, a database or both");
         }
     }
 }
