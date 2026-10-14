@@ -18,6 +18,13 @@ impl Render for Cast {
     }
 }
 
+/// A cast is an expression, usable wherever a value is.
+impl From<Cast> for ValueLike {
+    fn from(cast: Cast) -> Self {
+        cast.0
+    }
+}
+
 /// `<kind> value`
 struct CastExpression {
     prefix: &'static str,
