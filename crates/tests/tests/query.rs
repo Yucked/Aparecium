@@ -10,7 +10,7 @@ use umbriel::{
     Node, NumberLike, Operatable, Param, ParamNameError, Raw, Render, ReturnType, Runnable,
     SchemaGetter, Table, TableIndex, ValueLike, any_other_edges, arr, bracket, cast, chain, cond,
     index,
-    statements::{let_, select},
+    statements::{let_, return_, select, select_value},
     this, updater, value, where_,
 };
 use umbriel_tests::*;
@@ -38,21 +38,29 @@ mod rendering {
 
     #[test]
     fn reused_fragments_are_numbered_per_query() {
+        // One fragment used twice binds its value once per use, under its own name.
         let shared = Fragment::new(Field::new("age").gt(18));
-        let statement = chain(
-            select(All)
-                .from(Table::from("user"))
-                .where_(Field::new("age").gt(18)),
-        )
-        .chain(
-            select(All)
-                .from(Table::from("user"))
-                .where_(Field::new("age").gt(18)),
-        );
+        let statement = chain(return_(ValueLike::new(shared.clone())))
+            .chain(return_(ValueLike::new(shared.clone())));
+        let query = statement.to_query().expect("valid");
+        assert_eq!(query.sql(), "RETURN age > $_p0;\n\nRETURN age > $_p1;");
+        assert_eq!(query.vars().len(), 2);
+        assert_eq!(query.vars().get("_p0"), Some(&18i64.into_value()));
+        assert_eq!(query.vars().get("_p1"), Some(&18i64.into_value()));
+        assert_eq!(statement.to_query().expect("valid"), query, "stable");
+
+        // So does one condition shared by two statements.
+        let adult = Field::new("age").gt(18);
+        let statement = chain(select(All).from(Table::from("user")).where_(adult.clone()))
+            .chain(select(All).from(Table::from("user")).where_(adult));
+        let query = statement.to_query().expect("valid");
         assert_eq!(
-            statement.to_query().expect("valid").sql(),
+            query.sql(),
             "SELECT * FROM user WHERE age > $_p0;\n\nSELECT * FROM user WHERE age > $_p1;"
         );
+        assert_eq!(query.vars().get("_p0"), Some(&18i64.into_value()));
+        assert_eq!(query.vars().get("_p1"), Some(&18i64.into_value()));
+
         assert_eq!(shared.clone(), shared);
         assert_eq!(shared, Fragment::new(Field::new("age").gt(18)));
         assert_eq!(format!("{shared:?}"), "Fragment(\"age > 18\")");
@@ -72,6 +80,86 @@ mod rendering {
         assert_eq!(Raw::new("RETURN 1;").as_str(), "RETURN 1;");
         assert!(Raw::new("").is_empty());
         assert_eq!(Raw::new("RETURN 1;").to_string(), "RETURN 1;");
+    }
+
+    #[tokio::test]
+    async fn literal_text_resembling_a_parameter_stays_a_value() {
+        // A value spelled like a generated parameter is bound and quoted, never substituted.
+        let condition = cond(Field::new("note").equal("$_p1")).and(Field::new("rank").equal(2));
+        let query = condition.to_query().expect("valid");
+        assert_eq!(query.sql(), "(note = $_p0) AND (rank = $_p1)");
+        assert_eq!(
+            query.vars().get("_p0"),
+            Some(&Value::String("$_p1".to_owned()))
+        );
+        assert_eq!(query.vars().get("_p1"), Some(&2i64.into_value()));
+        assert_eq!(condition.to_debug_sql(), "(note = '$_p1') AND (rank = 2)");
+
+        let db = db().await;
+        let bound: Value = return_("$_p0")
+            .run(db.clone())
+            .await
+            .expect("ran")
+            .take(0)
+            .expect("value");
+        assert_eq!(bound, Value::String("$_p0".to_owned()));
+        let literal = ValueLike::value("$_p0".to_owned()).to_debug_sql();
+        assert_eq!(literal, "'$_p0'");
+        let inline: String = read(&db, &format!("RETURN {literal};")).await;
+        assert_eq!(inline, "$_p0");
+    }
+
+    #[tokio::test]
+    async fn nested_queries_number_their_values_in_order() {
+        // A subquery inside a condition inside a statement, with values at every level.
+        let statement = select_value(Field::new("name"))
+            .from(Table::from("user"))
+            .where_(
+                cond(Field::new("age").gt(18)).and(
+                    Field::new("team").inside(
+                        select_value(Field::new("id"))
+                            .from(Table::from("team"))
+                            .where_(Field::new("name").equal("Acme Corp")),
+                    ),
+                ),
+            )
+            .limit(5);
+        let query = statement.to_query().expect("valid");
+        let sql = query.sql();
+        let positions: Vec<usize> = ["$_p0", "$_p1", "$_p2"]
+            .iter()
+            .map(|name| sql.find(name).unwrap_or_else(|| panic!("{name} in {sql}")))
+            .collect();
+        assert!(positions.is_sorted(), "parameters in written order: {sql}");
+        assert!(!sql.contains("$_p3"), "{sql}");
+        assert_eq!(query.vars().len(), 3);
+        assert_eq!(query.vars().get("_p0"), Some(&18i64.into_value()));
+        assert_eq!(
+            query.vars().get("_p1"),
+            Some(&Value::String("Acme Corp".to_owned()))
+        );
+        assert_eq!(query.vars().get("_p2"), Some(&5i64.into_value()));
+        // The same instance renders identically again.
+        assert_eq!(statement.to_query().expect("valid"), query, "stable");
+        assert_parses(sql);
+
+        let db = db().await;
+        Raw::new(
+            "CREATE team:acme SET name = 'Acme Corp'; CREATE team:globex SET name = 'Globex'; \
+             CREATE user:alice SET name = 'Alice', age = 30, team = team:acme; \
+             CREATE user:bob SET name = 'Bob', age = 40, team = team:globex; \
+             CREATE user:carol SET name = 'Carol', age = 12, team = team:acme;",
+        )
+        .run(db.clone())
+        .await
+        .expect("data");
+        let names: Vec<String> = statement
+            .run(db.clone())
+            .await
+            .expect("ran")
+            .take(0)
+            .expect("names");
+        assert_eq!(names, ["Alice"]);
     }
 
     #[test]
