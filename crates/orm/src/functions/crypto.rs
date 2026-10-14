@@ -44,12 +44,12 @@ macro_rules! create_fn_with_single_arg_value {
 
             $(#[$attr])*
             #[macro_export]
-            macro_rules! [<cryto_ $function_name>] {
+            macro_rules! [<crypto_ $function_name>] {
                 ( $value:expr ) => {
                     $crate::functions::crypto::[<$function_name _fn>]($value)
                 };
             }
-            pub use [<cryto_ $function_name>] as [<$function_name>];
+            pub use [<crypto_ $function_name>] as [<$function_name>];
 
         }
     };
