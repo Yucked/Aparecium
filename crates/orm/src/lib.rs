@@ -67,8 +67,9 @@ pub mod internal_tools {
 pub mod __private {
     pub use umbriel_macros::ModelCodegen;
 
-    /// Glob-imported by `#[model]`: the `SurrealValue` derive names the trait unqualified.
+    /// Glob-imported by `#[model]`: the `SurrealValue` derive names the trait unqualified, and
+    /// `Value` too in the code it generates for `#[surreal(flatten)]` fields.
     pub mod surreal_value {
-        pub use surrealdb::types::SurrealValue;
+        pub use surrealdb::types::{SurrealValue, Value};
     }
 }
