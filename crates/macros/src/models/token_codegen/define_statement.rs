@@ -22,6 +22,16 @@ impl Codegen<'_> {
             .is_relate_graph()
     }
 
+    /// The record id without `ty = "…"`: its key may have any type, so it has no stored type.
+    fn is_untyped_id(&self) -> ExtractorResult<bool> {
+        let field_receiver = self.field_receiver();
+        let casing = self.table_derive_attributes().casing()?;
+        Ok(
+            field_receiver.db_field_name(&casing)?.is_id()
+                && field_receiver.field_type_db.is_none(),
+        )
+    }
+
     pub fn field_defintion_db(&self) -> ExtractorResult<Vec<DefineFieldStatementToken>> {
         let field_receiver = self.field_receiver();
         let model_attributes = self.table_derive_attributes();
@@ -33,15 +43,28 @@ impl Codegen<'_> {
         let VariablesModelMacro { _____table, .. } = VariablesModelMacro::new();
         let casing = model_attributes.casing()?;
         let db_field_name = field_receiver.db_field_name(&casing)?;
-        // Every stored field has a type: inference fails rather than leave it out.
-        let field_type_in_db_token = field_receiver
-            .field_type_db_token(model_attributes)?
-            .ok_or_else(|| {
-                syn::Error::new_spanned(
-                    &field_receiver.ty,
-                    "the field's database type is unknown; specify `#[orm(ty = \"…\")]`",
-                )
-            })?;
+        // Definitions write their values inline; `inline` keeps the builder's errors.
+        let raw = |definition: TokenStream| -> DefineFieldStatementToken {
+            quote!(#crate_name::Raw::inline(&#definition)).into()
+        };
+
+        // `DEFINE FIELD id … TYPE` constrains the record key, which `RecordId<T>` leaves open, so
+        // `id` has a type only when given a key type (`ty = "int"`). Every other stored field has
+        // one: inference fails rather than leave it out.
+        let untyped_id = self.is_untyped_id()?;
+        let type_clause = if untyped_id {
+            None
+        } else {
+            let field_type_in_db_token = field_receiver
+                .field_type_db_token(model_attributes)?
+                .ok_or_else(|| {
+                    syn::Error::new_spanned(
+                        &field_receiver.ty,
+                        "the field's database type is unknown; specify `#[orm(ty = \"…\")]`",
+                    )
+                })?;
+            Some(quote!(.type_(#field_type_in_db_token)))
+        };
 
         let mut define_field_methods = vec![];
         let mut define_array_field_item_methods = vec![];
@@ -64,17 +87,16 @@ impl Codegen<'_> {
             define_field_methods.push(permissions.into_token_stream());
         }
 
-        // Definitions write their values inline; `inline` keeps the builder's errors.
-        let raw = |definition: TokenStream| -> DefineFieldStatementToken {
-            quote!(#crate_name::Raw::inline(&#definition)).into()
-        };
-
-        all_field_defintions.push(raw(quote!(
-            #crate_name::statements::define_field(#crate_name::Field::ident(#db_field_name))
-            .on_table(#_____table.clone())
-            .type_(#field_type_in_db_token)
-            #( # define_field_methods) *
-        )));
+        // An untyped `id` with no clauses needs no definition; its `ASSERT` and `DEFAULT` are
+        // kept, as SurrealDB applies both to the record key.
+        if !untyped_id || !define_field_methods.is_empty() {
+            all_field_defintions.push(raw(quote!(
+                #crate_name::statements::define_field(#crate_name::Field::ident(#db_field_name))
+                .on_table(#_____table.clone())
+                #type_clause
+                #( # define_field_methods) *
+            )));
+        }
 
         if !define_array_field_item_methods.is_empty() {
             // `field.*` defines every element of an array field.
@@ -97,6 +119,10 @@ impl Codegen<'_> {
         model_attrs: &ModelAttributes,
     ) -> ExtractorResult<StaticAssertionToken> {
         let field_receiver = self.field_receiver();
+        // An untyped `id`'s default is a key of any type, not the record id it is inferred as.
+        if self.is_untyped_id()? {
+            return Ok(StaticAssertionToken::default());
+        }
         let field_type = field_receiver.field_type_db_original(model_attrs)?;
 
         match field_type {
@@ -125,8 +151,6 @@ impl Codegen<'_> {
             ..
         } = field_receiver;
         let ident = field_receiver.ident()?;
-        let db_field_name =
-            field_receiver.db_field_name(&self.table_derive_attributes().casing()?)?;
 
         if define.is_some()
             && (assert_.is_some()
@@ -134,14 +158,12 @@ impl Codegen<'_> {
                 || permissions.is_some()
                 || item_assert.is_some())
         {
-            return Err(
-                syn::Error::new_spanned(
-                    db_field_name,
-                    r#"Invalid combination. When `define`, the following attributes cannot be use in combination to prevent confusion:
-    assert,
-    value,
-    permissions,
-    item_assert"#).into());
+            return Err(syn::Error::new_spanned(
+                &ident,
+                "`define` gives the whole definition, so it cannot be combined with `assert`, \
+                 `value`, `permissions` or `item_assert`",
+            )
+            .into());
         }
 
         if relate.is_some()
