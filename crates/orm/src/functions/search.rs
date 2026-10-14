@@ -5,21 +5,31 @@
 // search::highlight()	Highlights the matching keywords
 // search::offsets()	Returns the position of the matching keywords
 
-use crate::{Function, NumberLike, StrandLike};
+use crate::{Function, Render, Renderer, StrandLike, ValueLike};
 
+/// The reference number of a `@n@` matches predicate. SurrealDB only accepts it as a literal.
+struct PredicateRef(u8);
+
+impl Render for PredicateRef {
+    fn render(&self, out: &mut Renderer) {
+        out.push_display(&self.0);
+    }
+}
+
+/// A search function taking the reference number of a `@n@` matches predicate.
 fn create_single_search_arg_helper(
-    search_arg: impl Into<StrandLike>,
+    predicate_ref_number: u8,
     function_name: &'static str,
 ) -> Function {
-    Function::new(function_name).arg(search_arg.into())
+    Function::new(function_name).arg(ValueLike::new(PredicateRef(predicate_ref_number)))
 }
 
 macro_rules! create_fn_with_single_search_arg {
     ($(#[$attr:meta])* => $function_name:expr, $function_path:expr) => {
         paste::paste! {
             $(#[$attr])*
-            pub fn [<$function_name _fn>](search_arg: impl ::std::convert::Into<$crate::StrandLike>) -> $crate::Function {
-                create_single_search_arg_helper(search_arg, concat!("search::", $function_path))
+            pub fn [<$function_name _fn>](predicate_ref_number: u8) -> $crate::Function {
+                create_single_search_arg_helper(predicate_ref_number, concat!("search::", $function_path))
             }
 
             $(#[$attr])*
@@ -36,18 +46,18 @@ macro_rules! create_fn_with_single_search_arg {
 }
 
 create_fn_with_single_search_arg!(
-    /// The search::score function returns the relevance score corresponding to the given 'matches' predicate reference numbers.
+    /// The search::score function returns the relevance score corresponding to the given 'matches' predicate reference number.
     ///
     /// # Arguments
-    /// * `search_arg` - The search argument to compute the score of. Could be a field or a parameter that represents the value.
+    /// * `predicate_ref_number` - The reference number of a `@n@` matches predicate, e.g.
+    ///   `content.matches_with_ref(1, "…")`.
     ///
     /// # Example
     /// ```rust
     /// use umbriel::{*, functions::search};
     ///
-    /// let title = Field::new("title");
-    /// let result = search::score!(title);
-    /// assert_eq!(result.to_debug_sql(), "search::score(title)");
+    /// let result = search::score!(1);
+    /// assert_eq!(result.to_debug_sql(), "search::score(1)");
     /// ```
     =>
     "score",
@@ -58,15 +68,14 @@ create_fn_with_single_search_arg!(
     /// The search::offsets function returns the position of the matching keywords for the predicate reference number.
     ///
     /// # Arguments
-    /// * `search_arg` - The search argument to find offsets for. Could be a field or a parameter that represents the value.
+    /// * `predicate_ref_number` - The reference number of a `@n@` matches predicate.
     ///
     /// # Example
     /// ```rust
     /// use umbriel::{*, functions::search};
     ///
-    /// let title = Field::new("title");
-    /// let result = search::offsets!(title);
-    /// assert_eq!(result.to_debug_sql(), "search::offsets(title)");
+    /// let result = search::offsets!(1);
+    /// assert_eq!(result.to_debug_sql(), "search::offsets(1)");
     /// ```
     =>
     "offsets",
@@ -77,12 +86,12 @@ create_fn_with_single_search_arg!(
 pub fn highlight_fn(
     str1: impl Into<StrandLike>,
     str2: impl Into<StrandLike>,
-    predicate_ref_number: impl Into<NumberLike>,
+    predicate_ref_number: u8,
 ) -> Function {
     Function::new("search::highlight")
         .arg(str1.into())
         .arg(str2.into())
-        .arg(predicate_ref_number.into())
+        .arg(ValueLike::new(PredicateRef(predicate_ref_number)))
 }
 
 /// The search::highlight function highlights the matching keywords for the predicate reference number.
@@ -92,7 +101,7 @@ pub fn highlight_fn(
 /// * `str1` - The string to use as the start of the highlight.
 /// * `str2` - The string to use as the end of the highlight.
 /// * `predicate_ref_number` - The predicate reference number to highlight.
-///   All arguments could be a field or a parameter that represents the value.
+///   The strings could be a field or a parameter that represents the value.
 ///
 /// # Example
 /// ```rust
