@@ -170,6 +170,7 @@ impl ModelReceiver {
         // for every model, used or not.
         let stored_fields_definition = quote!(
             #[doc(hidden)]
+            #[allow(non_upper_case_globals)]
             const #stored_fields: #crate_name::StoredFields = #crate_name::StoredFields::new(
                 &[#( #own_stored_fields ),*],
                 &[#( &<#flattened_objects as #crate_name::Object>::STORED_FIELDS ),*],
@@ -180,7 +181,9 @@ impl ModelReceiver {
         // Lets `assert_fields!` check that relations name a real node or edge table.
         let table_name_checker_definition = model_attributes.table()?.map(|table| {
             quote!(
+                // The field is the table's name as written, e.g. `assignedTo`.
                 #[doc(hidden)]
+                #[allow(non_snake_case)]
                 pub struct #table_name_checker {
                     pub #table: ::std::string::String,
                 }
@@ -197,6 +200,7 @@ impl ModelReceiver {
             let aliases_struct_name = &code_gen.common_idents().aliases_struct_name;
             quote!(
                 #[derive(Debug, Clone)]
+                #[allow(non_snake_case)]
                 pub struct #aliases_struct_name {
                    #( #aliases_struct_fields_types_kv) *
                 }
@@ -295,6 +299,8 @@ impl ModelReceiver {
                 }
             }
 
+            // Link methods are named after the stored field, like the schema's fields.
+            #[allow(non_snake_case)]
             impl #impl_generics #schema #ty_generics #where_clause {
                 pub fn new() -> Self {
                     Self::___________with_path(#crate_name::Field::default())
@@ -547,8 +553,7 @@ impl ModelReceiver {
         let has_in_and_out_fields = code_gen
             .serialized_field_names_normalised
             .iter()
-            .map(|name| name.to_string().replace('"', ""))
-            .filter(|name| name == "in" || name == "out")
+            .filter(|name| name.is_in_or_out_edge_node(&DataType::Edge))
             .count()
             == 2;
         if !has_in_and_out_fields {
