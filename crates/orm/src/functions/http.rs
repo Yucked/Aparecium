@@ -58,7 +58,7 @@ macro_rules! create_fn_with_url_and_head {
            #[macro_export]
            macro_rules! [<http_ $function_name>] {
                ( $url:expr ) => {
-                   $crate::functions::http::[<$function_name _fn>]($url, None as Option<ObjectLike>)
+                   $crate::functions::http::[<$function_name _fn>]($url, None as Option<$crate::ObjectLike>)
                };
                ( $url:expr, $custom_headers:expr ) => {
                    $crate::functions::http::[<$function_name _fn>]($url, Some($custom_headers))
@@ -184,7 +184,7 @@ macro_rules! create_fn_with_3args_url_body_and_head {
             #[macro_export]
             macro_rules! [<http_ $function_name>] {
                ( $url:expr, $request_body:expr ) => {
-                   $crate::functions::http::[<$function_name _fn>]($url, Some($request_body), None as Option<ObjectLike>)
+                   $crate::functions::http::[<$function_name _fn>]($url, Some($request_body), None as Option<$crate::ObjectLike>)
                };
                ( $url:expr, $request_body:expr, $custom_headers:expr ) => {
                    $crate::functions::http::[<$function_name _fn>]($url, Some($request_body) ,Some($custom_headers))
