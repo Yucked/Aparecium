@@ -132,18 +132,6 @@ impl Codegen<'_> {
         edge.into()
     }
 
-    pub fn add_direction_indication_to_ident_capitalize(
-        edge_table: &EdgeTableName,
-        edge_direction: &EdgeDirection,
-    ) -> EdgeWithDunderDirectionIndicator {
-        let edge_table = edge_table.to_string().to_upper_camel_case();
-        let edge = match edge_direction {
-            EdgeDirection::Out => format_ident!("{edge_table}__"),
-            EdgeDirection::In => format_ident!("__{edge_table}"),
-        };
-        edge.into()
-    }
-
     fn create_static_assertions(&self, relate: &Relate) -> ExtractorResult<StaticAssertionToken> {
         let crate_name = get_crate_name(false);
         let model_attributes = &self.table_derive_attributes();
@@ -393,14 +381,17 @@ impl ToTokens for NodeEdgeMetadata<'_> {
         let (edge_type_impl_generics, edge_type_ty_generics, edge_type_where_clause) =
             binding.split_for_impl();
 
-        // Hidden items next to the model, named after it and the edge with its direction (e.g.
-        // `__StudentWrites__Edge` for `->writes`), so several models' edges never collide.
-        let direction_name =
-            Codegen::add_direction_indication_to_ident_capitalize(edge_table, direction)
-                .to_string();
-        let edge_wrapper = current_struct_ident.hidden_ident(format_args!("{direction_name}Edge"));
-        let edge_schema =
-            current_struct_ident.hidden_ident(format_args!("{direction_name}EdgeSchema"));
+        // Hidden items next to the model, named after it and the edge table verbatim with its
+        // length and direction (e.g. `__7Student6writesOutEdge` for `->writes`), so no two
+        // models or edges share one; case conversion would merge `foo_bar` and `fooBar`.
+        let edge_table_name = edge_table.to_string();
+        let direction_name = match direction {
+            EdgeDirection::Out => "Out",
+            EdgeDirection::In => "In",
+        };
+        let edge_name = format!("{}{edge_table_name}{direction_name}", edge_table_name.len());
+        let edge_wrapper = current_struct_ident.hidden_ident(format_args!("{edge_name}Edge"));
+        let edge_schema = current_struct_ident.hidden_ident(format_args!("{edge_name}EdgeSchema"));
 
         tokens.extend(quote!(
             // Node to Edge

@@ -24,10 +24,10 @@ impl Codegen<'_> {
         let casing = table_derive_attrs.casing()?;
         let field_ident_normalized = field_receiver.field_ident_normalized(&casing)?;
         let field_name_serialized = field_receiver.db_field_name(&casing)?;
-        let field_name_pascalized = field_receiver.field_name_pascalized(table_derive_attrs)?;
+        let field_wrapper = field_receiver.field_wrapper_ident(table_derive_attrs)?;
 
         self.schema_struct_fields_types_kv
-            .push(quote!(pub #field_ident_normalized: #field_name_pascalized, ).into());
+            .push(quote!(pub #field_ident_normalized: #field_wrapper, ).into());
 
         // The field's path is the model's path followed by its stored name.
         self.schema_struct_fields_names_kv.push(

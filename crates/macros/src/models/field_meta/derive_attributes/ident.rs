@@ -1,7 +1,6 @@
 use crate::models::*;
-use heck::ToUpperCamelCase;
 
-use super::{FieldIdentNormalized, FieldNamePascalized, MyFieldReceiver};
+use super::{FieldIdentNormalized, FieldWrapperIdent, MyFieldReceiver};
 
 impl MyFieldReceiver {
     pub fn ident(&self) -> ExtractorResult<FieldIdentOriginal> {
@@ -24,21 +23,21 @@ impl MyFieldReceiver {
         Ok(self.ident_meta(struct_casing)?.1)
     }
 
-    /// The type of this field in the model's schema, `__<Model><Field>Field`. It is generated
-    /// next to the model, so the model's name keeps it apart from other models' fields.
-    pub fn field_name_pascalized(
+    /// The type of this field in the model's schema, `__<len><Model><len><field>Field`, named
+    /// after the schema's field verbatim. Both names are length-prefixed, so it is distinct from
+    /// every other model's and field's: case conversion would merge `foo_bar` and `fooBar`.
+    pub fn field_wrapper_ident(
         &self,
         model_attributes: &ModelAttributes,
-    ) -> ExtractorResult<FieldNamePascalized> {
-        let field_name_normalized = self.field_ident_normalized(&model_attributes.casing()?)?;
-        let field_name = field_name_normalized
-            .to_string()
-            .trim_start_matches("r#")
-            .to_upper_camel_case();
+    ) -> ExtractorResult<FieldWrapperIdent> {
+        let field_name = self
+            .field_ident_normalized(&model_attributes.casing()?)?
+            .to_string();
+        let field_name = field_name.trim_start_matches("r#");
 
         Ok(model_attributes
             .ident()
-            .hidden_ident(format_args!("{field_name}Field"))
+            .hidden_ident(format_args!("{}{field_name}Field", field_name.len()))
             .into())
     }
 

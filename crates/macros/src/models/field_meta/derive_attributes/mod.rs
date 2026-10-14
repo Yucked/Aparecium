@@ -11,7 +11,7 @@ use crate::models::*;
 use super::{AttributeAssert, AttributeDefine, AttributeItemAssert, AttributeValue, Permissions};
 
 create_ident_wrapper!(FieldIdentNormalized);
-create_ident_wrapper!(FieldNamePascalized);
+create_ident_wrapper!(FieldWrapperIdent);
 create_ident_wrapper!(FieldIdentOriginal);
 create_ident_wrapper!(OldFieldName);
 
