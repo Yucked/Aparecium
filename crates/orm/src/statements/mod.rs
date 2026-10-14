@@ -164,15 +164,13 @@ pub use remove_user::{RemoveUserStatement, UserPermissionScope, remove_user};
 pub use return_::{ReturnStatement, return_};
 pub use select::{
     Order, Orderables, SelectStatement, SelectStatementMini, Selectables, Splittables, order,
-    select, select_diff, select_value,
+    select, select_value,
 };
-pub use show::{ShowChangesStatement, show_changes_for_table};
+pub use show::{ChangesSince, ShowChangesStatement, show_changes_for_table};
 pub use sleep::{SleepStatement, sleep};
 pub use subquery::Subquery;
 pub use throw::{ThrowStatement, throw};
-pub use transaction::{
-    QueryTransaction, TransactionCompletion, begin_transaction, transaction_deprecated,
-};
+pub use transaction::{QueryTransaction, TransactionCompletion, begin_transaction};
 pub use update::{UpdateStatement, update, update_only};
 pub use use_::{UseStatement, use_};
 
