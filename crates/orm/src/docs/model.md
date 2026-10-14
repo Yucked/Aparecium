@@ -86,8 +86,7 @@ let alice = User {
 };
 
 // Schema fields are paths named after the stored fields.
-let UserSchema { display_name, .. } = User::schema();
-assert_eq!(display_name.to_debug_sql(), "displayName");
+assert_eq!(User::schema().displayName.to_debug_sql(), "displayName");
 
 // Only `age` changes; `nickname` is removed (`NONE`); every other field is kept.
 let patch = UserPatch {
@@ -108,13 +107,13 @@ Database-only settings stay in `#[orm(…)]`:
 | --- | --- |
 | `relax_table` | Allows a table name other than the struct name in snake case. |
 | `schemafull`, `drop` | Flags of the generated `DEFINE TABLE`. |
-| `as = …` | A select statement making the table a view. |
+| `as_ = …` | A select statement making the table a view. |
 | `permissions = …` | `full`, `none`, or an expression giving the permissions. |
 | `define = …` | An expression giving the whole `DEFINE TABLE`; excludes the settings above. |
 
 | On a field | Meaning |
 | --- | --- |
-| `ty = "…"` | The stored type, written as in SurrealQL (`option<array<record<user>>>`); inferred from the Rust type when omitted. |
+| `ty = "…"` | The stored type, written as in SurrealQL (`option<array<record<user>>>`); inferred from the Rust type when omitted. On `id` it is the record key's type (`int`, `string`, `uuid`, …); without it, `id` is not defined and takes any key. |
 | `link_one`, `link_self`, `link_many` | The node a record link points to. |
 | `nest_object`, `nest_array` | The embedded object type of the field or of its elements. |
 | `relate(model = …, connection = "->edge->node")` | A read-only relation reached through an edge; never stored. |
