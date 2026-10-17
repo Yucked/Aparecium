@@ -147,7 +147,27 @@ pub struct DbMigrationSchemaState {
     pub migration_meta: Vec<StreamLinedMigration>,
 }
 
+/// What a snapshot records of a [`DbMigrationSchemaState`]: each definition's `DEFINE` statement
+/// in creation order, and the history. The server renders the statement from the same definition
+/// as its structure, so the structure's much longer dump is left out.
+#[derive(Debug)]
+pub struct StateSnapshot<'a> {
+    pub definitions: Vec<&'a str>,
+    pub migration_meta: &'a [StreamLinedMigration],
+}
+
 impl DbMigrationSchemaState {
+    pub fn snapshot(&self) -> StateSnapshot<'_> {
+        StateSnapshot {
+            definitions: self
+                .resources
+                .iter()
+                .map(|(_, definition)| definition.sql())
+                .collect(),
+            migration_meta: &self.migration_meta,
+        }
+    }
+
     pub fn new(db_info: Schema, migrations: Vec<Migration>) -> Self {
         let migration_meta = Self::stream_lined_migrations(migrations);
         Self {
@@ -211,7 +231,7 @@ impl TestConfig {
         self.db_resources_state_assertion_counter += 1;
         let name_differentiator = self
             .snapshots_name_differentiator("db_state", self.db_resources_state_assertion_counter);
-        insta::assert_debug_snapshot!(name_differentiator, db_miration_schema_state);
+        insta::assert_debug_snapshot!(name_differentiator, db_miration_schema_state.snapshot());
         db_miration_schema_state
     }
 
