@@ -5,13 +5,12 @@ use crate::migrations::{
     ResourcesV8, ResourcesV9, ResourcesV10,
 };
 use umbriel::{
-    DbResources, Runnable,
+    DbResources,
     migrations::{
-        Basename, Checksum, DatabaseConnection, DbInfo, Down, Extension, FastForwardDelta,
-        Generate, Init, List, Migration, MigrationFilename, MigrationFlag, Migrator, MockPrompter,
-        Mode, Prune, RenameOrDelete, Reset, RollbackStrategyStruct, Status, SubCommand, Up,
+        Basename, Checksum, DatabaseConnection, Down, Extension, FastForwardDelta, Generate, Init,
+        List, Migration, MigrationFilename, MigrationFlag, Migrator, MockPrompter, Mode, Prune,
+        RenameOrDelete, Reset, RollbackStrategyStruct, Schema, Status, SubCommand, Up,
     },
-    statements::info_for,
 };
 
 use typed_builder::TypedBuilder;
@@ -132,7 +131,7 @@ impl Display for CurrentFunctionName {
     }
 }
 
-#[allow(dead_code)]
+/// A history record without its timestamp, which changes on every run.
 #[derive(Clone, Debug)]
 pub struct StreamLinedMigration {
     pub basename: Basename,
@@ -141,15 +140,15 @@ pub struct StreamLinedMigration {
     pub checksum_down: Option<Checksum>,
 }
 
-#[allow(dead_code)]
+/// The database's schema and history, snapshotted after each step of a test.
 #[derive(Clone, Debug)]
 pub struct DbMigrationSchemaState {
-    pub resources: DbInfo,
+    pub resources: Schema,
     pub migration_meta: Vec<StreamLinedMigration>,
 }
 
 impl DbMigrationSchemaState {
-    pub fn new(db_info: DbInfo, migrations: Vec<Migration>) -> Self {
+    pub fn new(db_info: Schema, migrations: Vec<Migration>) -> Self {
         let migration_meta = Self::stream_lined_migrations(migrations);
         Self {
             resources: db_info,
@@ -202,14 +201,13 @@ impl TestConfig {
     }
 
     pub async fn assert_db_resources_state(&mut self) -> DbMigrationSchemaState {
-        let db_info = info_for()
-            .database()
-            .get_data::<DbInfo>(self.migrator.db().clone())
+        let db_info = Schema::inspect(&self.migrator.db())
             .await
-            .unwrap()
-            .expect("Failed to get db info");
-        let migrations = Migration::get_all_desc(self.migrator.db().clone()).await;
-        let db_miration_schema_state = DbMigrationSchemaState::new(db_info.clone(), migrations);
+            .expect("the schema is inspected");
+        let migrations = Migration::get_all_desc(self.migrator.db())
+            .await
+            .expect("the history is read");
+        let db_miration_schema_state = DbMigrationSchemaState::new(db_info, migrations);
         self.db_resources_state_assertion_counter += 1;
         let name_differentiator = self
             .snapshots_name_differentiator("db_state", self.db_resources_state_assertion_counter);
@@ -584,12 +582,17 @@ impl TestConfig {
         let current_file_name = &self.current_function_name.clone();
 
         let db = self.migrator.db().clone();
-        let db_migrations = Migration::get_all_desc(db.clone()).await;
-        let latest_migration_basename = Migration::get_latest(db.clone()).await.map(|m| {
-            MigrationFilename::try_from(m.name.clone())
-                .expect("Failed to parse file name")
-                .basename()
-        });
+        let db_migrations = Migration::get_all_desc(db.clone())
+            .await
+            .expect("the history is read");
+        let latest_migration_basename = Migration::get_latest(db.clone())
+            .await
+            .expect("the history is read")
+            .map(|m| {
+                MigrationFilename::try_from(m.name.clone())
+                    .expect("Failed to parse file name")
+                    .basename()
+            });
         assert_eq!(
             latest_migration_basename, expected_latest_db_migration_meta_basename_normalized,
             "Base name in file does not match the base name in the db. Line: {code_origin_line} in {current_file_name}",
@@ -600,7 +603,7 @@ impl TestConfig {
         let latest_file_name = migration_files.iter().max();
 
         assert_eq!(
-            latest_file_name.map(|lfn| lfn.basename()),
+            latest_file_name.map(MigrationFilename::basename),
             expected_latest_migration_file_basename_normalized,
             "Base name in file does not match the base name in the db. Line: {code_origin_line} in {current_file_name}",
         );
@@ -658,7 +661,7 @@ impl TestConfig {
                         Some("up.surql".into())
                     );
                     assert_eq!(
-                        ups.first().map(|u| u.to_string()),
+                        ups.first().map(ToString::to_string),
                         Some(db_mig_record.clone().name)
                     );
                     assert_eq!(

@@ -1,0 +1,2297 @@
+---
+source: crates/tests/src/migrator_support.rs
+assertion_line: 214
+expression: db_miration_schema_state
+---
+DbMigrationSchemaState {
+    resources: Schema {
+        definitions: {
+            ResourceKey {
+                kind: Function,
+                table: None,
+                name: "get_animal_by_id",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "args": Array(
+                                Array(
+                                    [
+                                        Array(
+                                            Array(
+                                                [
+                                                    String(
+                                                        "id",
+                                                    ),
+                                                    String(
+                                                        "int",
+                                                    ),
+                                                ],
+                                            ),
+                                        ),
+                                    ],
+                                ),
+                            ),
+                            "block": String(
+                                "{ RETURN $id }",
+                            ),
+                            "name": String(
+                                "get_animal_by_id",
+                            ),
+                            "permissions": Bool(
+                                true,
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FUNCTION fn::get_animal_by_id($id: int) { RETURN $id } PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Function,
+                table: None,
+                name: "get_animal_by_id2",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "args": Array(
+                                Array(
+                                    [
+                                        Array(
+                                            Array(
+                                                [
+                                                    String(
+                                                        "id",
+                                                    ),
+                                                    String(
+                                                        "int",
+                                                    ),
+                                                ],
+                                            ),
+                                        ),
+                                    ],
+                                ),
+                            ),
+                            "block": String(
+                                "{ RETURN $id }",
+                            ),
+                            "name": String(
+                                "get_animal_by_id2",
+                            ),
+                            "permissions": Bool(
+                                true,
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FUNCTION fn::get_animal_by_id2($id: int) { RETURN $id } PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Analyzer,
+                table: None,
+                name: "ascii",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "filters": Array(
+                                Array(
+                                    [
+                                        String(
+                                            "LOWERCASE",
+                                        ),
+                                        String(
+                                            "ASCII",
+                                        ),
+                                        String(
+                                            "EDGENGRAM(2,15)",
+                                        ),
+                                        String(
+                                            "SNOWBALL(ENGLISH)",
+                                        ),
+                                    ],
+                                ),
+                            ),
+                            "name": String(
+                                "ascii",
+                            ),
+                            "tokenizers": Array(
+                                Array(
+                                    [
+                                        String(
+                                            "CLASS",
+                                        ),
+                                    ],
+                                ),
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE ANALYZER ascii TOKENIZERS CLASS FILTERS LOWERCASE, ASCII, EDGENGRAM(2,15), SNOWBALL(ENGLISH)",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Param,
+                table: None,
+                name: "__some_test_param1",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "name": String(
+                                "__some_test_param1",
+                            ),
+                            "permissions": Bool(
+                                true,
+                            ),
+                            "value": String(
+                                "'test param one'",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE PARAM $__some_test_param1 VALUE 'test param one' PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Param,
+                table: None,
+                name: "__some_test_param2",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "name": String(
+                                "__some_test_param2",
+                            ),
+                            "permissions": Bool(
+                                true,
+                            ),
+                            "value": String(
+                                "'test param two'",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE PARAM $__some_test_param2 VALUE 'test param two' PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Param,
+                table: None,
+                name: "__some_test_param3",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "name": String(
+                                "__some_test_param3",
+                            ),
+                            "permissions": Bool(
+                                true,
+                            ),
+                            "value": String(
+                                "'test param three'",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE PARAM $__some_test_param3 VALUE 'test param three' PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Access,
+                table: None,
+                name: "partner_api",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "duration": Object(
+                                Object(
+                                    {
+                                        "session": None,
+                                    },
+                                ),
+                            ),
+                            "kind": Object(
+                                Object(
+                                    {
+                                        "jwt": Object(
+                                            Object(
+                                                {
+                                                    "verify": Object(
+                                                        Object(
+                                                            {
+                                                                "alg": String(
+                                                                    "RS256",
+                                                                ),
+                                                                "key": String(
+                                                                    "example-public-key",
+                                                                ),
+                                                            },
+                                                        ),
+                                                    ),
+                                                },
+                                            ),
+                                        ),
+                                        "kind": String(
+                                            "JWT",
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "name": String(
+                                "partner_api",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE ACCESS partner_api ON DATABASE TYPE JWT ALGORITHM RS256 KEY 'example-public-key' DURATION FOR SESSION NONE",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Table,
+                table: None,
+                name: "animal",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "drop": Bool(
+                                false,
+                            ),
+                            "kind": Object(
+                                Object(
+                                    {
+                                        "kind": String(
+                                            "NORMAL",
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "name": String(
+                                "animal",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            false,
+                                        ),
+                                        "delete": Bool(
+                                            false,
+                                        ),
+                                        "select": Bool(
+                                            false,
+                                        ),
+                                        "update": Bool(
+                                            false,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "schemafull": Bool(
+                                true,
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE TABLE animal TYPE NORMAL SCHEMAFULL PERMISSIONS NONE",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Table,
+                table: None,
+                name: "animal_snake_case",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "drop": Bool(
+                                false,
+                            ),
+                            "kind": Object(
+                                Object(
+                                    {
+                                        "kind": String(
+                                            "NORMAL",
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "name": String(
+                                "animal_snake_case",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            false,
+                                        ),
+                                        "delete": Bool(
+                                            false,
+                                        ),
+                                        "select": Bool(
+                                            false,
+                                        ),
+                                        "update": Bool(
+                                            false,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "schemafull": Bool(
+                                true,
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE TABLE animal_snake_case TYPE NORMAL SCHEMAFULL PERMISSIONS NONE",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Table,
+                table: None,
+                name: "crop",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "drop": Bool(
+                                false,
+                            ),
+                            "kind": Object(
+                                Object(
+                                    {
+                                        "kind": String(
+                                            "NORMAL",
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "name": String(
+                                "crop",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            false,
+                                        ),
+                                        "delete": Bool(
+                                            false,
+                                        ),
+                                        "select": Bool(
+                                            false,
+                                        ),
+                                        "update": Bool(
+                                            false,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "schemafull": Bool(
+                                true,
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE TABLE crop TYPE NORMAL SCHEMAFULL PERMISSIONS NONE",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Table,
+                table: None,
+                name: "eats",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "drop": Bool(
+                                false,
+                            ),
+                            "kind": Object(
+                                Object(
+                                    {
+                                        "kind": String(
+                                            "NORMAL",
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "name": String(
+                                "eats",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            false,
+                                        ),
+                                        "delete": Bool(
+                                            false,
+                                        ),
+                                        "select": Bool(
+                                            false,
+                                        ),
+                                        "update": Bool(
+                                            false,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "schemafull": Bool(
+                                true,
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE TABLE eats TYPE NORMAL SCHEMAFULL PERMISSIONS NONE",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Table,
+                table: None,
+                name: "eats_snake_case",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "drop": Bool(
+                                false,
+                            ),
+                            "kind": Object(
+                                Object(
+                                    {
+                                        "kind": String(
+                                            "NORMAL",
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "name": String(
+                                "eats_snake_case",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            false,
+                                        ),
+                                        "delete": Bool(
+                                            false,
+                                        ),
+                                        "select": Bool(
+                                            false,
+                                        ),
+                                        "update": Bool(
+                                            false,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "schemafull": Bool(
+                                true,
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE TABLE eats_snake_case TYPE NORMAL SCHEMAFULL PERMISSIONS NONE",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Table,
+                table: None,
+                name: "migration",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "drop": Bool(
+                                false,
+                            ),
+                            "kind": Object(
+                                Object(
+                                    {
+                                        "kind": String(
+                                            "NORMAL",
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "name": String(
+                                "migration",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            false,
+                                        ),
+                                        "delete": Bool(
+                                            false,
+                                        ),
+                                        "select": Bool(
+                                            false,
+                                        ),
+                                        "update": Bool(
+                                            false,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "schemafull": Bool(
+                                true,
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE TABLE migration TYPE NORMAL SCHEMAFULL PERMISSIONS NONE",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Table,
+                table: None,
+                name: "planet",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "drop": Bool(
+                                false,
+                            ),
+                            "kind": Object(
+                                Object(
+                                    {
+                                        "kind": String(
+                                            "NORMAL",
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "name": String(
+                                "planet",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            false,
+                                        ),
+                                        "delete": Bool(
+                                            false,
+                                        ),
+                                        "select": Bool(
+                                            false,
+                                        ),
+                                        "update": Bool(
+                                            false,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "schemafull": Bool(
+                                true,
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE TABLE planet TYPE NORMAL SCHEMAFULL PERMISSIONS NONE",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Table,
+                table: None,
+                name: "student",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "drop": Bool(
+                                false,
+                            ),
+                            "kind": Object(
+                                Object(
+                                    {
+                                        "kind": String(
+                                            "NORMAL",
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "name": String(
+                                "student",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            false,
+                                        ),
+                                        "delete": Bool(
+                                            false,
+                                        ),
+                                        "select": Bool(
+                                            false,
+                                        ),
+                                        "update": Bool(
+                                            false,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "schemafull": Bool(
+                                true,
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE TABLE student TYPE NORMAL SCHEMAFULL PERMISSIONS NONE",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "animal",
+                ),
+                name: "attributes",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "array<string>",
+                            ),
+                            "name": String(
+                                "attributes",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "animal",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD attributes ON animal TYPE array<string> PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "animal",
+                ),
+                name: "attributes.*",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "string",
+                            ),
+                            "name": String(
+                                "attributes.*",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "animal",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD attributes.* ON animal TYPE string PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "animal",
+                ),
+                name: "createdAt",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "datetime",
+                            ),
+                            "name": String(
+                                "createdAt",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "animal",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD createdAt ON animal TYPE datetime PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "animal",
+                ),
+                name: "species",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "string",
+                            ),
+                            "name": String(
+                                "species",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "animal",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD species ON animal TYPE string PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "animal",
+                ),
+                name: "updatedAt",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "datetime",
+                            ),
+                            "name": String(
+                                "updatedAt",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "animal",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD updatedAt ON animal TYPE datetime PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "animal",
+                ),
+                name: "velocity",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "int",
+                            ),
+                            "name": String(
+                                "velocity",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "animal",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD velocity ON animal TYPE int PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "animal_snake_case",
+                ),
+                name: "attributes",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "array<string>",
+                            ),
+                            "name": String(
+                                "attributes",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "animal_snake_case",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD attributes ON animal_snake_case TYPE array<string> PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "animal_snake_case",
+                ),
+                name: "attributes.*",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "string",
+                            ),
+                            "name": String(
+                                "attributes.*",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "animal_snake_case",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD attributes.* ON animal_snake_case TYPE string PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "animal_snake_case",
+                ),
+                name: "created_at",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "datetime",
+                            ),
+                            "name": String(
+                                "created_at",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "animal_snake_case",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD created_at ON animal_snake_case TYPE datetime PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "animal_snake_case",
+                ),
+                name: "species",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "string",
+                            ),
+                            "name": String(
+                                "species",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "animal_snake_case",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD species ON animal_snake_case TYPE string PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "animal_snake_case",
+                ),
+                name: "updated_at",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "datetime",
+                            ),
+                            "name": String(
+                                "updated_at",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "animal_snake_case",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD updated_at ON animal_snake_case TYPE datetime PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "animal_snake_case",
+                ),
+                name: "velocity",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "int",
+                            ),
+                            "name": String(
+                                "velocity",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "animal_snake_case",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD velocity ON animal_snake_case TYPE int PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "crop",
+                ),
+                name: "color",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "string",
+                            ),
+                            "name": String(
+                                "color",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "crop",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD color ON crop TYPE string PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "eats",
+                ),
+                name: "createdAt",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "datetime",
+                            ),
+                            "name": String(
+                                "createdAt",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "eats",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD createdAt ON eats TYPE datetime PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "eats",
+                ),
+                name: "in",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "record",
+                            ),
+                            "name": String(
+                                "in",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "eats",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD in ON eats TYPE record PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "eats",
+                ),
+                name: "out",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "record",
+                            ),
+                            "name": String(
+                                "out",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "eats",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD out ON eats TYPE record PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "eats",
+                ),
+                name: "place",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "string",
+                            ),
+                            "name": String(
+                                "place",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "eats",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD place ON eats TYPE string PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "eats_snake_case",
+                ),
+                name: "created_at",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "datetime",
+                            ),
+                            "name": String(
+                                "created_at",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "eats_snake_case",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD created_at ON eats_snake_case TYPE datetime PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "eats_snake_case",
+                ),
+                name: "in",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "record",
+                            ),
+                            "name": String(
+                                "in",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "eats_snake_case",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD in ON eats_snake_case TYPE record PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "eats_snake_case",
+                ),
+                name: "out",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "record",
+                            ),
+                            "name": String(
+                                "out",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "eats_snake_case",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD out ON eats_snake_case TYPE record PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "eats_snake_case",
+                ),
+                name: "place",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "string",
+                            ),
+                            "name": String(
+                                "place",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "eats_snake_case",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD place ON eats_snake_case TYPE string PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "migration",
+                ),
+                name: "checksum_up",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "string",
+                            ),
+                            "name": String(
+                                "checksum_up",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "migration",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD checksum_up ON migration TYPE string PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "migration",
+                ),
+                name: "id",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "string",
+                            ),
+                            "name": String(
+                                "id",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "migration",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD id ON migration TYPE string PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "migration",
+                ),
+                name: "name",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "string",
+                            ),
+                            "name": String(
+                                "name",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "migration",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD name ON migration TYPE string PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "migration",
+                ),
+                name: "timestamp",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "int",
+                            ),
+                            "name": String(
+                                "timestamp",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "migration",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD timestamp ON migration TYPE int PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "planet",
+                ),
+                name: "createdAt",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "datetime",
+                            ),
+                            "name": String(
+                                "createdAt",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "planet",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD createdAt ON planet TYPE datetime PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "planet",
+                ),
+                name: "firstName",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "string",
+                            ),
+                            "name": String(
+                                "firstName",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "planet",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD firstName ON planet TYPE string PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "planet",
+                ),
+                name: "labels",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "array<string>",
+                            ),
+                            "name": String(
+                                "labels",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "planet",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD labels ON planet TYPE array<string> PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "planet",
+                ),
+                name: "labels.*",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "string",
+                            ),
+                            "name": String(
+                                "labels.*",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "planet",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD labels.* ON planet TYPE string PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "planet",
+                ),
+                name: "population",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "int",
+                            ),
+                            "name": String(
+                                "population",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "planet",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD population ON planet TYPE int PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "planet",
+                ),
+                name: "updatedAt",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "datetime",
+                            ),
+                            "name": String(
+                                "updatedAt",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "planet",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD updatedAt ON planet TYPE datetime PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "student",
+                ),
+                name: "age",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "int",
+                            ),
+                            "name": String(
+                                "age",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "student",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD age ON student TYPE int PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "student",
+                ),
+                name: "createdAt",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "datetime",
+                            ),
+                            "name": String(
+                                "createdAt",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "student",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD createdAt ON student TYPE datetime PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "student",
+                ),
+                name: "university",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "string",
+                            ),
+                            "name": String(
+                                "university",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "student",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD university ON student TYPE string PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "student",
+                ),
+                name: "updatedAt",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "datetime",
+                            ),
+                            "name": String(
+                                "updatedAt",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "student",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD updatedAt ON student TYPE datetime PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Index,
+                table: Some(
+                    "animal",
+                ),
+                name: "species_speed_idx",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "cols": Array(
+                                Array(
+                                    [
+                                        String(
+                                            "species",
+                                        ),
+                                        String(
+                                            "velocity",
+                                        ),
+                                    ],
+                                ),
+                            ),
+                            "index": String(
+                                "UNIQUE",
+                            ),
+                            "name": String(
+                                "species_speed_idx",
+                            ),
+                            "table": String(
+                                "animal",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE INDEX species_speed_idx ON animal FIELDS species, velocity UNIQUE",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Event,
+                table: Some(
+                    "animal",
+                ),
+                name: "event1",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "name": String(
+                                "event1",
+                            ),
+                            "then": Array(
+                                Array(
+                                    [
+                                        String(
+                                            "(SELECT * FROM crop)",
+                                        ),
+                                    ],
+                                ),
+                            ),
+                            "what": Table(
+                                Table(
+                                    "animal",
+                                ),
+                            ),
+                            "when": String(
+                                "species = 'Homo Erectus' AND velocity > 545",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE EVENT event1 ON animal WHEN species = 'Homo Erectus' AND velocity > 545 THEN (SELECT * FROM crop)",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Event,
+                table: Some(
+                    "animal",
+                ),
+                name: "event2",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "name": String(
+                                "event2",
+                            ),
+                            "then": Array(
+                                Array(
+                                    [
+                                        String(
+                                            "(SELECT * FROM eats)",
+                                        ),
+                                    ],
+                                ),
+                            ),
+                            "what": Table(
+                                Table(
+                                    "animal",
+                                ),
+                            ),
+                            "when": String(
+                                "species = 'Homo Sapien' AND velocity < 10",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE EVENT event2 ON animal WHEN species = 'Homo Sapien' AND velocity < 10 THEN (SELECT * FROM eats)",
+                redacted: false,
+            },
+        },
+    },
+    migration_meta: [
+        StreamLinedMigration {
+            basename: Basename(
+                "migration_gen_1",
+            ),
+            extension: Extension(
+                "surql",
+            ),
+            checksum_up: Checksum(
+                "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            ),
+            checksum_down: None,
+        },
+        StreamLinedMigration {
+            basename: Basename(
+                "migration_init",
+            ),
+            extension: Extension(
+                "surql",
+            ),
+            checksum_up: Checksum(
+                "e777595d7a45151dee949d87c0c891c63be47bf48fd49fed8c1901814fa618ab",
+            ),
+            checksum_down: None,
+        },
+    ],
+}

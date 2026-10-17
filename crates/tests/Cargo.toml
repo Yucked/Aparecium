@@ -12,19 +12,11 @@ workspace = true
 [lib]
 doctest = false
 
-[features]
-# The migration tests and their helpers; they need the `migrations` feature to build (#9).
-migrations = ["umbriel/migrations"]
-
-[[test]]
-name = "migrations"
-path = "tests/migrations.rs"
-required-features = ["migrations"]
-
 [dependencies]
 # The remote transports serve the server-backed tests in `tests/server.rs`.
 umbriel = { workspace = true, default-features = false, features = [
     "kv-mem",
+    "migrations",
     "protocol-http",
     "protocol-ws",
     "test-support",
@@ -42,6 +34,8 @@ surrealdb-syn = { workspace = true }
 pretty_assertions = { workspace = true }
 
 [dev-dependencies]
+# Parses the migration CLI's arguments in-process (`Migrator` is a `clap::Parser`).
+clap = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt", "sync"] }
 trybuild = { workspace = true }
 uuid = { workspace = true }

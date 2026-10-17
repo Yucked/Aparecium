@@ -1,0 +1,609 @@
+---
+source: crates/tests/src/migrator_support.rs
+assertion_line: 214
+expression: db_miration_schema_state
+---
+DbMigrationSchemaState {
+    resources: Schema {
+        definitions: {
+            ResourceKey {
+                kind: Table,
+                table: None,
+                name: "crop",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "drop": Bool(
+                                false,
+                            ),
+                            "kind": Object(
+                                Object(
+                                    {
+                                        "kind": String(
+                                            "NORMAL",
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "name": String(
+                                "crop",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            false,
+                                        ),
+                                        "delete": Bool(
+                                            false,
+                                        ),
+                                        "select": Bool(
+                                            false,
+                                        ),
+                                        "update": Bool(
+                                            false,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "schemafull": Bool(
+                                true,
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE TABLE crop TYPE NORMAL SCHEMAFULL PERMISSIONS NONE",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Table,
+                table: None,
+                name: "migration",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "drop": Bool(
+                                false,
+                            ),
+                            "kind": Object(
+                                Object(
+                                    {
+                                        "kind": String(
+                                            "NORMAL",
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "name": String(
+                                "migration",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            false,
+                                        ),
+                                        "delete": Bool(
+                                            false,
+                                        ),
+                                        "select": Bool(
+                                            false,
+                                        ),
+                                        "update": Bool(
+                                            false,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "schemafull": Bool(
+                                true,
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE TABLE migration TYPE NORMAL SCHEMAFULL PERMISSIONS NONE",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Table,
+                table: None,
+                name: "student",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "drop": Bool(
+                                false,
+                            ),
+                            "kind": Object(
+                                Object(
+                                    {
+                                        "kind": String(
+                                            "NORMAL",
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "name": String(
+                                "student",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            false,
+                                        ),
+                                        "delete": Bool(
+                                            false,
+                                        ),
+                                        "select": Bool(
+                                            false,
+                                        ),
+                                        "update": Bool(
+                                            false,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "schemafull": Bool(
+                                true,
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE TABLE student TYPE NORMAL SCHEMAFULL PERMISSIONS NONE",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "crop",
+                ),
+                name: "color",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "string",
+                            ),
+                            "name": String(
+                                "color",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "crop",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD color ON crop TYPE string PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "migration",
+                ),
+                name: "checksum_down",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "string",
+                            ),
+                            "name": String(
+                                "checksum_down",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "migration",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD checksum_down ON migration TYPE string PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "migration",
+                ),
+                name: "checksum_up",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "string",
+                            ),
+                            "name": String(
+                                "checksum_up",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "migration",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD checksum_up ON migration TYPE string PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "migration",
+                ),
+                name: "id",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "string",
+                            ),
+                            "name": String(
+                                "id",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "migration",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD id ON migration TYPE string PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "migration",
+                ),
+                name: "name",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "string",
+                            ),
+                            "name": String(
+                                "name",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "migration",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD name ON migration TYPE string PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "migration",
+                ),
+                name: "timestamp",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "int",
+                            ),
+                            "name": String(
+                                "timestamp",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "migration",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD timestamp ON migration TYPE int PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "student",
+                ),
+                name: "age",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "int",
+                            ),
+                            "name": String(
+                                "age",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "student",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD age ON student TYPE int PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "student",
+                ),
+                name: "createdAt",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "datetime",
+                            ),
+                            "name": String(
+                                "createdAt",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "student",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD createdAt ON student TYPE datetime PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "student",
+                ),
+                name: "university",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "string",
+                            ),
+                            "name": String(
+                                "university",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "student",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD university ON student TYPE string PERMISSIONS FULL",
+                redacted: false,
+            },
+            ResourceKey {
+                kind: Field,
+                table: Some(
+                    "student",
+                ),
+                name: "updatedAt",
+            }: Definition {
+                structure: Object(
+                    Object(
+                        {
+                            "kind": String(
+                                "datetime",
+                            ),
+                            "name": String(
+                                "updatedAt",
+                            ),
+                            "permissions": Object(
+                                Object(
+                                    {
+                                        "create": Bool(
+                                            true,
+                                        ),
+                                        "select": Bool(
+                                            true,
+                                        ),
+                                        "update": Bool(
+                                            true,
+                                        ),
+                                    },
+                                ),
+                            ),
+                            "readonly": Bool(
+                                false,
+                            ),
+                            "table": String(
+                                "student",
+                            ),
+                        },
+                    ),
+                ),
+                sql: "DEFINE FIELD updatedAt ON student TYPE datetime PERMISSIONS FULL",
+                redacted: false,
+            },
+        },
+    },
+    migration_meta: [
+        StreamLinedMigration {
+            basename: Basename(
+                "migration_reset",
+            ),
+            extension: Extension(
+                "up.surql",
+            ),
+            checksum_up: Checksum(
+                "9549853713ef3a622d9fc20f84d4dde85b1af09b77e13fe81e80143390f93723",
+            ),
+            checksum_down: Some(
+                Checksum(
+                    "776af777416c6c67f24c6a1d663e3a2581573998330fc6debb21a3102da3e03f",
+                ),
+            ),
+        },
+    ],
+}

@@ -1,0 +1,6 @@
+---
+source: crates/tests/src/migrator_support.rs
+assertion_line: 271
+expression: migration_queries_snaps
+---
+

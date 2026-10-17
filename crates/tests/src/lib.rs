@@ -1,12 +1,8 @@
 //! Shared test support: the fixture models, an in-memory database and SurrealQL assertions.
-//!
-//! The migration helpers build with the `migrations` feature, with the tests that use them (#9).
 
 mod models;
 
-#[cfg(feature = "migrations")]
 pub mod migrations;
-#[cfg(feature = "migrations")]
 pub mod migrator_support;
 
 pub use models::*;
