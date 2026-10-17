@@ -2,13 +2,17 @@ use crate::migrations::*;
 use chrono::Utc;
 use std::ops::Deref;
 
+/// A two-way migration's up and down files.
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct MigrationFileTwoWayPair {
+    /// The up file.
     pub up: FileMetadata,
+    /// The down file.
     pub down: FileMetadata,
 }
 
 impl MigrationFileTwoWayPair {
+    /// Pairs an up file with its down file.
     pub fn new(up: FileMetadata, down: FileMetadata) -> Self {
         Self { up, down }
     }
@@ -28,34 +32,43 @@ impl TryFrom<MigrationFileTwoWayPair> for Migration {
     }
 }
 
+/// A one-way migration's file.
 #[derive(Clone, Debug)]
 pub struct MigrationFileOneWay(FileMetadata);
 
 impl MigrationFileOneWay {
+    /// Wraps a one-way file.
     pub fn new(file: FileMetadata) -> Self {
         Self(file)
     }
 
+    /// The file.
     pub fn file_meta(&self) -> &FileMetadata {
         &self.0
     }
 
+    /// The file's name.
     pub fn name(&self) -> &MigrationFilename {
         &self.0.name
     }
 
+    /// The file's content.
     pub fn content(&self) -> &FileContent {
         &self.0.content
     }
 }
 
+/// A migration file's name and content.
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct FileMetadata {
+    /// The file's name.
     pub name: MigrationFilename,
-    pub content: FileContent, // status: String,
+    /// The file's content.
+    pub content: FileContent,
 }
 
 impl FileMetadata {
+    /// A file with this name and content.
     pub fn new(name: MigrationFilename, content: FileContent) -> Self {
         Self { name, content }
     }
@@ -82,13 +95,17 @@ impl From<MigrationFileTwoWayPair> for MigrationFileOneWay {
     }
 }
 
+/// A migration of either kind.
 #[derive(Debug, Clone)]
 pub enum MigrationFile {
+    /// A one-way migration.
     OneWay(MigrationFileOneWay),
+    /// A two-way migration.
     TwoWay(MigrationFileTwoWayPair),
 }
 
 impl MigrationFile {
+    /// A new migration timestamped now; `down_queries` is used only for two-way migrations.
     pub fn new(
         migration_basename: &Basename,
         flag: &MigrationFlag,
@@ -122,6 +139,7 @@ impl MigrationFile {
         Ok(migration_file)
     }
 
+    /// Writes the migration's files to the migration directory.
     pub fn create_file(&self, file_manager: &MigrationConfig) -> MigrationResult<()> {
         match self {
             Self::OneWay(m) => m.name().create_file(m.content(), file_manager)?,
@@ -135,6 +153,7 @@ impl MigrationFile {
     }
 }
 
+/// A migration not yet applied.
 #[derive(Debug, Clone)]
 pub struct PendingMigrationFile(MigrationFile);
 
@@ -159,6 +178,7 @@ impl From<MigrationFile> for PendingMigrationFile {
 }
 
 impl MigrationFile {
+    /// The name of the file applied going forward: the up or only file.
     pub fn name_forward(&self) -> &MigrationFilename {
         match self {
             Self::OneWay(m) => m.name(),
@@ -166,6 +186,7 @@ impl MigrationFile {
         }
     }
 
+    /// The up or only file's content.
     pub fn up_content(&self) -> &FileContent {
         match self {
             Self::OneWay(m) => m.content(),
@@ -173,6 +194,7 @@ impl MigrationFile {
         }
     }
 
+    /// The down file's content; `None` for one-way migrations.
     pub fn down_content(&self) -> Option<&FileContent> {
         match self {
             Self::OneWay(_) => None,

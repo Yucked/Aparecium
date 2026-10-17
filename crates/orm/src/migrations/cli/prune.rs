@@ -7,6 +7,11 @@ use clap::Args;
 pub struct Prune;
 
 impl Prune {
+    /// Deletes the migration files not applied to the database.
+    ///
+    /// # Panics
+    ///
+    /// If deleting fails.
     pub async fn run(&self, cli: &mut Migrator) {
         cli.setup_db().await;
         let file_manager = cli.file_manager();

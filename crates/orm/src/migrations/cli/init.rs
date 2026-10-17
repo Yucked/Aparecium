@@ -25,10 +25,16 @@ pub struct Init {
 }
 
 impl Init {
+    /// Whether the migrations are two-way.
     pub fn reversible(&self) -> bool {
         self.reversible
     }
 
+    /// Generates the first migration from the codebase's resources, and applies it if asked.
+    ///
+    /// # Panics
+    ///
+    /// If migrations already exist or generation fails.
     pub async fn run(
         &self,
         cli: &mut Migrator,
@@ -88,6 +94,7 @@ impl Init {
         log::info!("Successfully initialized and generated first migration(s)");
     }
 
+    /// The `up` that applies every pending migration.
     pub fn up(&self) -> Up {
         Up {
             fast_forward: FastForwardDelta {
