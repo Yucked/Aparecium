@@ -1,228 +1,191 @@
-use crate::migrations::*;
-use crate::*;
+//! Field changes of one table, including renames: a field whose model names its previous name
+//! (`#[orm(old_name = …)]`), or a single field replaced by another, where the prompter decides
+//! between renaming and deleting.
 
-#[derive(Debug)]
-pub(crate) struct ComparisonFields<'a, R: DbResources> {
-    pub(crate) table: &'a Table,
-    pub(crate) resources: &'a ComparisonsInit<'a>,
-    pub(crate) codebase_resources: &'a R,
-    pub(crate) prompter: &'a dyn Prompter,
+use std::{collections::BTreeSet, fmt::Display};
+
+use super::diff::Change;
+use crate::{
+    Field, FieldChangeMeta, FieldMetadata, Render, Table,
+    migrations::{MigrationError, MigrationResult, Prompter, ResourceKey, ResourceKind, Schema},
+};
+
+/// The answer to a prompt about a single field replaced by another.
+#[derive(Debug, Clone)]
+pub enum SingleFieldChangeType {
+    /// Remove the old field and define the new one, dropping the old field's values.
+    Delete(FieldChangeMeta),
+    /// Define the new field, copy the old field's values into it, then remove the old field.
+    Rename(FieldChangeMeta),
 }
 
-impl<R: DbResources> TableResourcesMeta<Fields> for ComparisonFields<'_, R> {
-    fn get_left(&self) -> Fields {
-        self.resources
-            .left_resources
-            .get_table_fields(self.get_table())
-            .unwrap_or_default()
-    }
-
-    fn get_right(&self) -> Fields {
-        self.resources
-            .right_resources
-            .get_table_fields(self.get_table())
-            .unwrap_or_default()
-    }
-
-    fn get_table(&self) -> &Table {
-        self.table
-    }
-
-    // This does not use default implementation because it also has to handle
-    // field name change/rename
-    fn queries(&self) -> MigrationResult<Queries> {
-        let table = self.get_table();
-        let left_defs = self.get_left();
-        let right_defs = self.get_right();
-
-        let left_as_set = left_defs.get_names_as_set();
-        let right_as_set = right_defs.get_names_as_set();
-
-        let diff_left = left_as_set.difference(&right_as_set);
-        let diff_right = right_as_set.difference(&left_as_set);
-        let union = right_as_set.union(&left_as_set).collect::<Vec<_>>();
-
-        let mut acc = Queries::default();
-
-        let diff_left = diff_left.into_iter().collect::<Vec<_>>();
-        let diff_right = diff_right.into_iter().collect::<Vec<_>>();
-        let is_single_field_delete_or_renaming = diff_left.len() == 1 && diff_right.len() == 1;
-
-        if is_single_field_delete_or_renaming {
-            let old_field: Field = diff_left[0].to_string().into();
-            let new_field: Field = diff_right[0].to_string().into();
-            let explicit_old_name_used = RightDatabase::find_field_has_old_name(
-                self.codebase_resources,
-                table,
-                By::NewName(new_field.clone()),
-            );
-            if explicit_old_name_used.is_none() {
-                self.handle_prompt_field_renaming_or_deletion(&mut acc, old_field, new_field)?;
-                return Ok(acc);
-            }
+impl Display for SingleFieldChangeType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SingleFieldChangeType::Delete(change) => write!(
+                f,
+                "Delete old field '{}' and create a new one '{}' on table '{}'",
+                change.old_name.to_debug_sql(),
+                change.new_name.to_debug_sql(),
+                change.table
+            ),
+            SingleFieldChangeType::Rename(change) => write!(
+                f,
+                "Rename old field '{}' to new field '{}' on table '{}'",
+                change.old_name.to_debug_sql(),
+                change.new_name.to_debug_sql(),
+                change.table
+            ),
         }
-
-        for field_name in union {
-            let change_meta = FieldChangeDetectionMeta {
-                field_name: field_name.to_string().into(),
-                table: table.to_owned(),
-                left_defs: self.get_left(),
-                right_defs: self.get_right(),
-                codebase_resources: self.codebase_resources,
-            };
-
-            match DeltaTypeField::try_from(change_meta)? {
-                DeltaTypeField::NoChange => {}
-                DeltaTypeField::Create { right } => {
-                    self.handle_create(&mut acc, &right)?;
-                }
-                DeltaTypeField::Update { left, right } => {
-                    self.handle_update(&mut acc, &left, &right);
-                }
-                DeltaTypeField::Remove { left } => {
-                    self.handle_remove(&mut acc, &left)?;
-                }
-                DeltaTypeField::Rename {
-                    new_name, old_name, ..
-                } => {
-                    self.handle_rename(
-                        &mut acc,
-                        FieldChangeMeta {
-                            table: table.to_owned(),
-                            old_name,
-                            new_name,
-                        },
-                    )?;
-                }
-            }
-        }
-
-        Ok(acc)
     }
 }
 
-impl<'a, R: DbResources> ComparisonFields<'a, R> {
-    fn handle_rename(
-        &'a self,
-        acc: &'a mut Queries,
-        field_change_meta: FieldChangeMeta,
-    ) -> MigrationResult<&'a mut Queries> {
-        let FieldChangeMeta {
-            table,
-            old_name,
-            new_name,
-        } = &field_change_meta;
-        let left_defs = self.get_left();
-        let right_defs = self.get_right();
-        let table_sql = table.to_debug_sql();
-        let old_name_sql = old_name.to_debug_sql();
-        let new_name_sql = new_name.to_debug_sql();
+/// Appends the changes to the fields of `table` from `left` to `right`. `models` holds the
+/// codebase's field metadata for the table, which names explicit renames.
+pub(crate) fn field_changes(
+    table: &str,
+    left: &Schema,
+    right: &Schema,
+    models: &[FieldMetadata],
+    prompter: &dyn Prompter,
+    changes: &mut Vec<Change>,
+) -> MigrationResult<()> {
+    let left_names = names(left, table);
+    let right_names = names(right, table);
+    let mut fields = left_names
+        .union(&right_names)
+        .copied()
+        .collect::<BTreeSet<_>>();
 
-        let old_field_def = left_defs.get_definition(&old_name_sql).ok_or_else(|| {
-            MigrationError::InvalidOldFieldName {
-                new_name: Box::new(new_name.to_owned()),
-                table: table.to_owned(),
-                old_name: Box::new(old_name.to_owned()),
-                renamables: left_defs.get_names().join(", "),
-            }
-        })?;
-
-        let new_field_def = right_defs.get_definition(&new_name_sql).ok_or_else(|| {
-            MigrationError::FieldNameDoesNotExist {
-                field_expected: Box::new(new_name.to_owned()),
-                table: table.to_owned(),
-                valid_fields: right_defs.get_names().join(", "),
-            }
-        })?;
-
-        // Field name change defs
-        acc.add_comment_to_up(format!("Rename field {old_name_sql} to {new_name_sql}"));
-        acc.add_up(QueryType::Define(new_field_def.clone()));
-        let copy_old_to_new = UpdateStatementRaw::from(format!(
-            "UPDATE {table_sql} SET {new_name_sql} = {old_name_sql}"
-        ));
-        acc.add_up(QueryType::Update(copy_old_to_new));
-        acc.add_up(QueryType::Remove(old_field_def.as_remove_statement()?));
-        acc.add_comment_to_up("Rename field ending");
-
-        // Field name change reversal defs
-        acc.add_comment_to_down(format!(
-            "Revert field name change. Change field {new_name_sql} back to {old_name_sql}"
-        ));
-        acc.add_down(QueryType::Define(old_field_def.clone()));
-        let copy_new_to_old = UpdateStatementRaw::from(format!(
-            "UPDATE {table_sql} SET {old_name_sql} = {new_name_sql}"
-        ));
-        acc.add_down(QueryType::Update(copy_new_to_old));
-        acc.add_down(QueryType::Remove(new_field_def.as_remove_statement()?));
-        acc.add_comment_to_down("Revert field name change ending");
-        Ok(acc)
-    }
-
-    fn handle_create(
-        &'a self,
-        acc: &'a mut Queries,
-        right: &DefineStatementRaw,
-    ) -> MigrationResult<&'a mut Queries> {
-        acc.add_up(QueryType::Define(right.clone()));
-        acc.add_down(QueryType::Remove(right.as_remove_statement()?));
-        Ok(acc)
-    }
-
-    fn handle_remove(
-        &'a self,
-        acc: &'a mut Queries,
-        left: &DefineStatementRaw,
-    ) -> MigrationResult<&'a mut Queries> {
-        acc.add_up(QueryType::Remove(left.as_remove_statement()?));
-        acc.add_down(QueryType::Define(left.clone()));
-        Ok(acc)
-    }
-
-    fn handle_update(
-        &'a self,
-        acc: &'a mut Queries,
-        left: &DefineStatementRaw,
-        right: &DefineStatementRaw,
-    ) -> &'a mut Queries {
-        acc.add_up(QueryType::Define(right.clone()));
-        acc.add_down(QueryType::Define(left.clone()));
-        acc
-    }
-
-    fn handle_prompt_field_renaming_or_deletion(
-        &'a self,
-        acc: &'a mut Queries,
-        old_name: Field,
-        new_name: Field,
-    ) -> MigrationResult<&'a mut Queries> {
-        let field_change_meta = FieldChangeMeta {
-            table: self.table.to_owned(),
-            old_name,
-            new_name,
+    // A single field replaced by another without `old_name` may be a rename: ask.
+    let mut removed = left_names.difference(&right_names);
+    let mut added = right_names.difference(&left_names);
+    if let (Some(&old), None, Some(&new), None) =
+        (removed.next(), removed.next(), added.next(), added.next())
+        && renamed(models, |meta| meta.name.to_debug_sql() == new).is_none()
+    {
+        let meta = FieldChangeMeta {
+            table: Table::new(table),
+            old_name: Field::new(old.to_owned()),
+            new_name: Field::new(new.to_owned()),
         };
-
-        let prompt = self.prompter.prompt_single_field_rename_or_delete(
-            SingleFieldChangeType::Delete(field_change_meta.clone()),
-            SingleFieldChangeType::Rename(field_change_meta.clone()),
+        let answer = prompter.prompt_single_field_rename_or_delete(
+            SingleFieldChangeType::Delete(meta.clone()),
+            SingleFieldChangeType::Rename(meta),
         )?;
-
-        match prompt {
-            SingleFieldChangeType::Rename(meta) => {
-                self.handle_rename(acc, meta)?;
+        match answer {
+            SingleFieldChangeType::Rename(_) => changes.push(Change::Rename {
+                table: table.to_owned(),
+                old: old.to_owned(),
+                new: new.to_owned(),
+            }),
+            SingleFieldChangeType::Delete(_) => {
+                changes.push(Change::Remove(key(table, old)));
+                changes.push(Change::Create(key(table, new)));
             }
-            SingleFieldChangeType::Delete(meta) => {
-                let new_name = meta.new_name.to_string();
-                let old_name = meta.old_name.to_string();
-                let left_defs = self.get_left();
-                let right_defs = self.get_right();
-                let left_def = left_defs.get_definition(old_name.as_str()).unwrap();
-                let right_def = right_defs.get_definition(new_name.as_str()).unwrap();
-
-                self.handle_create(acc, right_def)?;
-                self.handle_remove(acc, left_def)?;
-            }
-        };
-        Ok(acc)
+        }
+        fields.remove(old);
+        fields.remove(new);
     }
+
+    for field in fields {
+        let renamed_to = renamed(models, |meta| meta.name.to_debug_sql() == field);
+        let renamed_from = renamed(models, |meta| {
+            meta.old_name
+                .as_ref()
+                .is_some_and(|old| old.to_debug_sql() == field)
+        });
+
+        match (renamed_from, renamed_to) {
+            (Some(_), Some(_)) => {
+                return Err(MigrationError::RenamingToSameOldFieldDisallowed {
+                    field: Field::new(field.to_owned()),
+                    table: Table::new(table),
+                });
+            }
+            (None, Some(meta)) => {
+                let old = meta
+                    .old_name
+                    .as_ref()
+                    .map(Render::to_debug_sql)
+                    .unwrap_or_default();
+                if right_names.contains(old.as_str()) {
+                    return Err(MigrationError::CannotRenameFromOldFieldInUSeInTable {
+                        new_field: field.to_owned(),
+                        old_field: old,
+                        table: Table::new(table),
+                        renamables: join(&left_names),
+                    });
+                }
+                if !left_names.contains(old.as_str()) {
+                    // Applied by an earlier migration: both schemas hold the new field, so
+                    // `old_name` is history and the field compares like any other.
+                    if left_names.contains(field) {
+                        compare(table, field, left, right, changes);
+                        continue;
+                    }
+                    return Err(MigrationError::InvalidOldFieldName {
+                        new_name: Box::new(Field::new(field.to_owned())),
+                        table: Table::new(table),
+                        old_name: Box::new(Field::new(old)),
+                        renamables: join(&left_names),
+                    });
+                }
+                changes.push(Change::Rename {
+                    table: table.to_owned(),
+                    old,
+                    new: field.to_owned(),
+                });
+            }
+            // The rename is planned from the new field's side.
+            (Some(_), None) => {}
+            (None, None) => compare(table, field, left, right, changes),
+        }
+    }
+    Ok(())
+}
+
+/// Appends the change of a field that is not being renamed: created, removed or updated.
+fn compare(table: &str, field: &str, left: &Schema, right: &Schema, changes: &mut Vec<Change>) {
+    let key = key(table, field);
+    match (left.get(&key), right.get(&key)) {
+        (None, Some(_)) => changes.push(Change::Create(key)),
+        (Some(_), None) => changes.push(Change::Remove(key)),
+        (Some(left), Some(right)) if left != right => changes.push(Change::Update(key)),
+        _ => {}
+    }
+}
+
+/// The field of the codebase that is renamed (has an `old_name`) and matches `matches`.
+fn renamed(
+    models: &[FieldMetadata],
+    matches: impl Fn(&FieldMetadata) -> bool,
+) -> Option<&FieldMetadata> {
+    models
+        .iter()
+        .filter(|meta| {
+            meta.old_name
+                .as_ref()
+                .is_some_and(|old| !old.to_debug_sql().is_empty())
+        })
+        .find(|&meta| matches(meta))
+}
+
+fn names<'a>(schema: &'a Schema, table: &'a str) -> BTreeSet<&'a str> {
+    schema
+        .fields(table)
+        .map(|(key, _)| key.name.as_str())
+        .collect()
+}
+
+fn key(table: &str, name: &str) -> ResourceKey {
+    ResourceKey {
+        kind: ResourceKind::Field,
+        table: Some(table.to_owned()),
+        name: name.to_owned(),
+    }
+}
+
+fn join(names: &BTreeSet<&str>) -> String {
+    names.iter().copied().collect::<Vec<_>>().join(", ")
 }

@@ -1,37 +1,17 @@
-use std::{collections::BTreeMap, ops::Deref};
-
-use crate::{statements::info_for, *};
 use surrealdb::{
     Surreal,
     engine::local::{Db, Mem},
 };
 
-use crate::migrations::*;
+use crate::{DbResources, Raw, Runnable};
 
-// For the migration directory
-#[derive(Debug, Clone)]
-pub struct LeftFullDbInfo(pub FullDbInfo);
+use crate::migrations::{resources::SchemaDiff, *};
 
-impl Deref for LeftFullDbInfo {
-    type Target = FullDbInfo;
+/// The namespace and database of the generator's private in-memory databases.
+const SCRATCH: &str = "migrations";
 
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-// Represents codebase resources state
-#[derive(Debug, Clone)]
-pub struct RightFullDbInfo(pub FullDbInfo);
-
-impl Deref for RightFullDbInfo {
-    type Target = FullDbInfo;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
+/// The two in-memory databases a migration is generated from: `left` replays the migration
+/// files, `right` holds the codebase's schema.
 #[derive(Debug, Clone)]
 pub struct ComparisonDatabase {
     left: LeftDatabase,
@@ -39,210 +19,147 @@ pub struct ComparisonDatabase {
 }
 
 impl ComparisonDatabase {
-    pub async fn init() -> Self {
-        let left = LeftDatabase(MigratorDatabase::init().await);
-        let right = RightDatabase(MigratorDatabase::init().await);
-        Self { left, right }
+    /// Creates both databases.
+    pub async fn init() -> MigrationResult<Self> {
+        Ok(Self {
+            left: LeftDatabase(MigratorDatabase::init().await?),
+            right: RightDatabase(MigratorDatabase::init().await?),
+        })
     }
 }
 
+/// A private in-memory database of the generator.
 #[derive(Debug, Clone)]
 pub struct MigratorDatabase {
+    /// The connection to the database.
     pub db: Surreal<Db>,
 }
 
 impl MigratorDatabase {
-    pub async fn init() -> Self {
-        let db = Surreal::new::<Mem>(()).await.unwrap();
-        db.use_ns("test").use_db("test").await.unwrap();
-        Self { db }
+    /// Creates an empty in-memory database.
+    pub async fn init() -> MigrationResult<Self> {
+        let db = Surreal::new::<Mem>(()).await?;
+        db.use_ns(SCRATCH).use_db(SCRATCH).await?;
+        Ok(Self { db })
     }
 
+    /// The connection to the database.
     pub fn db(&self) -> Surreal<Db> {
         self.db.clone()
     }
 
-    pub async fn get_db_info(&self) -> MigrationResult<DbInfo> {
-        let info = info_for()
-            .database()
-            .get_data::<DbInfo>(self.db())
-            .await?
-            .expect("Database not found");
-        Ok(info)
+    /// The schema the database holds. Namespace-level definitions, which migrations do not
+    /// manage, are rejected rather than left out.
+    pub async fn schema(&self) -> MigrationResult<Schema> {
+        Schema::reject_namespace_definitions(&self.db).await?;
+        Schema::inspect(&self.db).await
     }
 
-    pub async fn get_table_info(&self, table: String) -> MigrationResult<TableResourcesData> {
-        let info = info_for()
-            .table(table)
-            .get_data::<TableResourcesData>(self.db())
-            .await?
-            .expect("Table not found");
-        Ok(info)
-    }
-
-    pub async fn get_all_resources(&self) -> MigrationResult<FullDbInfo> {
-        let top_level_resources = self.get_db_info().await?;
-        let mut fields_by_table = BTreeMap::new();
-        for table in top_level_resources.tables().get_names() {
-            let table_info = self.get_table_info(table.clone()).await?;
-            fields_by_table.insert(table.into(), table_info);
-        }
-        let all_resources = FullDbInfo {
-            all_resources: top_level_resources,
-            table_resources: fields_by_table,
-        };
-        Ok(all_resources)
-    }
-
+    /// Runs `query` against the database.
     pub async fn execute(&self, query: String) -> MigrationResult<()> {
-        log::info!("Executing query: {}", query);
+        log::info!("Executing query: {query}");
         Raw::new(query).run(self.db()).await?;
         Ok(())
     }
 
+    /// Writes a migration holding the difference between the schema the migration files
+    /// produce and the codebase's schema.
     pub async fn generate_migrations(
         migration_basename: &Basename,
         file_manager: &MigrationConfig,
         codebase_resources: impl DbResources,
         prompter: impl Prompter,
     ) -> MigrationResult<()> {
-        let migration_basename = migration_basename.normalize_ensure();
-
-        // Left = migration directory
-        // Right = codebase
-        // ### TABLES
-        // 1. Get all migrations from migration directory synced with db - Left
-        let ComparisonDatabase { left, right } = ComparisonDatabase::init().await;
-        let migration_flag = file_manager.migration_flag_checked()?;
-
-        match migration_flag {
-            MigrationFlag::TwoWay => {
-                left.run_twoway_up_migrations(file_manager, true).await?;
-            }
-            MigrationFlag::OneWay => {
-                left.run_oneway_migrations(file_manager, true).await?;
-            }
-        };
-
-        // 2. Get all migrations from codebase synced with db - Right
-        right
-            .run_codebase_schema_queries(&codebase_resources, migration_flag)
-            .await?;
-        let init = ComparisonsInit {
-            left_resources: &left.resources().await,
-            right_resources: &right.resources().await,
-            prompter: &prompter,
-        };
-
-        let tables = init.new_tables(&codebase_resources).queries()?;
-        let analyzers = init.new_analyzers().queries()?.intersperse_new_lines();
-        let params = init.new_params().queries()?.intersperse_new_lines();
-        let functions = init.new_functions().queries()?.intersperse_new_lines();
-        let scopes = init.new_scopes().queries()?.intersperse_new_lines();
-        let tokens = init.new_tokens().queries()?.intersperse_new_lines();
-        let users = init.new_users().queries()?.intersperse_new_lines();
-        let migration_reset =
-            Self::get_migration_reset_queries(file_manager)?.intersperse_new_lines();
-
-        let resources = vec![
-            migration_reset,
-            tables,
-            analyzers,
-            params,
-            functions,
-            scopes,
-            tokens,
-            users,
-        ];
-
-        let mut up_queries = vec![];
-        let mut down_queries = vec![];
-        for resource in resources {
-            let up_is_empty = resource.up_is_empty();
-            let down_is_empty = resource.down_is_empty();
-
-            if !up_is_empty {
-                up_queries.extend(resource.up);
-                up_queries.push(QueryType::NewLine);
-                up_queries.push(QueryType::NewLine);
-                up_queries.push(QueryType::NewLine);
-            }
-
-            if !down_is_empty {
-                down_queries.extend(resource.down);
-                down_queries.push(QueryType::NewLine);
-                down_queries.push(QueryType::NewLine);
-                down_queries.push(QueryType::NewLine);
-            }
-        }
-
-        let up_queries_str = up_queries
-            .iter()
-            .map(ToString::to_string)
-            .collect::<Vec<_>>()
-            .join("")
-            .trim()
-            .to_string();
-
-        let down_queries_str = down_queries
-            .iter()
-            .map(ToString::to_string)
-            .collect::<Vec<_>>()
-            .join("")
-            .trim()
-            .to_string();
-
-        let query_str = format!("{up_queries_str}{down_queries_str}");
-
-        let migration_file = MigrationFile::new(
-            &migration_basename,
-            &file_manager.migration_flag_checked()?,
-            &up_queries_str.into(),
-            &down_queries_str.into(),
-        )?;
-
-        if query_str.trim().is_empty() {
-            match prompter.prompt_empty_migrations_trigger() {
-                Ok(true) => {
-                    migration_file.create_file(file_manager)?;
-                    log::info!("New migration generated.");
-                }
-                Ok(false) => {
-                    log::info!("No migration created");
-                }
-                Err(e) => {
-                    return Err(MigrationError::PromptError(e));
-                }
-            };
-        } else {
-            migration_file.create_file(file_manager)?;
+        let (migration, changes) = Self::plan_migration(
+            migration_basename,
+            file_manager,
+            &codebase_resources,
+            &prompter,
+            true,
+        )
+        .await?;
+        if changes || prompter.prompt_empty_migrations_trigger()? {
+            migration.create_file(file_manager)?;
             log::info!("New migration generated.");
-        };
-
+        } else {
+            log::info!("No migration created");
+        }
         Ok(())
     }
 
-    fn get_migration_reset_queries(file_manager: &MigrationConfig) -> MigrationResult<Queries> {
-        if file_manager.is_first_migration()? {
-            // Defining before removing is important because
-            // removing a table that doesn't exist will throw an error
-            // and the transaction will be rolled back
-            // so we define the table first, then remove it
-            // then define the table again, to be sure it exists
-            Ok(Queries {
-                up: vec![
-                    QueryType::Comment(
-                        "Resetting migrations metadata table at initialization".into(),
-                    ),
-                    QueryType::DeleteAll(Migration::delete_all()),
-                    QueryType::Comment(
-                        "Resetting migrations metadata table at initialization ending".into(),
-                    ),
-                ],
-                down: vec![],
-            })
-        } else {
-            Ok(Queries::default())
+    /// The first migration for the codebase's schema, as a reset writes it into an emptied
+    /// migration directory. Nothing is written, so a reset can validate its migration before it
+    /// deletes the existing ones.
+    pub async fn first_migration(
+        migration_basename: &Basename,
+        file_manager: &MigrationConfig,
+        codebase_resources: impl DbResources,
+        prompter: impl Prompter,
+    ) -> MigrationResult<MigrationFile> {
+        let (migration, _) = Self::plan_migration(
+            migration_basename,
+            file_manager,
+            &codebase_resources,
+            &prompter,
+            false,
+        )
+        .await?;
+        Ok(migration)
+    }
+
+    /// The migration from the schema the migration directory produces, or from an empty one
+    /// unless `replay_directory`, to the codebase's, and whether it changes anything. A first
+    /// migration always does: it resets the history. Nothing is written.
+    async fn plan_migration(
+        migration_basename: &Basename,
+        file_manager: &MigrationConfig,
+        codebase_resources: &impl DbResources,
+        prompter: &impl Prompter,
+        replay_directory: bool,
+    ) -> MigrationResult<(MigrationFile, bool)> {
+        let migration_basename = migration_basename.normalize_ensure();
+        let migration_flag = file_manager.migration_flag_checked()?;
+
+        let ComparisonDatabase { left, right } = ComparisonDatabase::init().await?;
+        if replay_directory {
+            match migration_flag {
+                MigrationFlag::TwoWay => left.run_twoway_up_migrations(file_manager, true).await?,
+                MigrationFlag::OneWay => {
+                    left.run_oneway_migrations(file_manager, true).await?;
+                }
+            }
         }
+        right
+            .run_codebase_schema_queries(codebase_resources, migration_flag)
+            .await?;
+        let (left, right) = (left.schema().await?, right.schema().await?);
+
+        let diff = SchemaDiff::new(&left, &right, codebase_resources, prompter)?;
+        let mut up = diff.statements(&Direction::Up)?;
+        let down = if migration_flag.is_twoway() {
+            diff.statements(&Direction::Down)?
+        } else {
+            Vec::new()
+        };
+
+        let first_migration = !replay_directory || file_manager.is_first_migration()?;
+        if first_migration {
+            // A reset regenerates the first migration against a database that may still hold
+            // the old history. Cleared after the definitions, which create the history table.
+            if !up.is_empty() {
+                up.push(QueryType::Blank);
+            }
+            up.push(QueryType::Comment("Reset the migration history".to_owned()));
+            up.push(QueryType::Statement(Migration::delete_all().to_string()));
+        }
+
+        let migration_file = MigrationFile::new(
+            &migration_basename,
+            &migration_flag,
+            &QueryType::join(&up).into(),
+            &QueryType::join(&down).into(),
+        )?;
+
+        Ok((migration_file, first_migration || !diff.is_empty()))
     }
 }

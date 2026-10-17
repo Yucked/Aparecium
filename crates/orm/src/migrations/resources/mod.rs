@@ -1,12 +1,5 @@
-pub mod change_detection;
-pub mod comparison_init;
-pub mod meta;
-pub mod table_events;
-pub mod table_fields;
-pub mod table_indexes;
-pub mod tables;
+mod diff;
+mod table_fields;
 
-pub use change_detection::*;
-pub use comparison_init::*;
-pub use meta::*;
-pub use tables::*;
+pub(crate) use diff::SchemaDiff;
+pub use table_fields::SingleFieldChangeType;

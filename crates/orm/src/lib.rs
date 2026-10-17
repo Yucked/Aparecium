@@ -54,6 +54,10 @@ pub use umbriel_macros::{
 #[doc(hidden)]
 pub mod test_support {
     pub use crate::execution::select_failure;
+    #[cfg(feature = "migrations")]
+    pub use crate::migrations::{
+        database::migration_model::history_or_empty, schema::field_definition,
+    };
 }
 
 #[doc(hidden)]

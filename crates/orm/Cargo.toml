@@ -29,10 +29,12 @@ jwks = ["surrealdb/jwks"]
 # Exposes internals to `crates/tests`; not part of the public API.
 test-support = []
 
-# Schema migrations and their CLI (`umbriel::migrations`).
+# Schema migrations and their CLI (`umbriel::migrations`). The generator compares schemas in
+# in-memory databases, so it needs the memory engine.
 migrations = [
+  "kv-mem",
+  "dep:nom",
   "dep:sha2",
-  "dep:itertools",
   "dep:inquire",
   "dep:clap",
   "dep:log",
@@ -48,11 +50,11 @@ regex = { workspace = true }
 paste = { workspace = true }
 thiserror = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
-nom = { workspace = true }
 typed-builder = { workspace = true }
 
+# Migration file names.
+nom = { workspace = true, optional = true }
 sha2 = { workspace = true, optional = true }
-itertools = { workspace = true, optional = true }
 inquire = { workspace = true, optional = true }
 clap = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
