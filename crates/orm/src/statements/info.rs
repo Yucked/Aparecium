@@ -31,19 +31,19 @@ impl InfoStatementInit {
     /// The top-level ROOT command returns information regarding the namespaces, root users and
     /// root access methods of the SurrealDB system.
     pub fn root(self) -> InfoStatement {
-        InfoStatement(InfoLevel::Root)
+        InfoStatement::new(InfoLevel::Root)
     }
 
     /// Creates statement for INFO for NAMESPACE.
     /// The NS or NAMESPACE command returns information regarding the users, access methods and databases under a specific Namespace.
     pub fn namespace(self) -> InfoStatement {
-        InfoStatement(InfoLevel::Namespace)
+        InfoStatement::new(InfoLevel::Namespace)
     }
 
     /// Creates statement for INFO for DATABASE.
     /// The DB or DATABASE command returns information regarding the users, access methods and tables under a specific Database.
     pub fn database(self) -> InfoStatement {
-        InfoStatement(InfoLevel::Database)
+        InfoStatement::new(InfoLevel::Database)
     }
 
     /// Creates statement for INFO for TABLE.
@@ -54,16 +54,44 @@ impl InfoStatementInit {
     /// assert_eq!(info_for().table("test_table").to_debug_sql(), "INFO FOR TABLE test_table;");
     /// ```
     pub fn table(self, table: impl Into<Table>) -> InfoStatement {
-        InfoStatement(InfoLevel::Table(table.into()))
+        InfoStatement::new(InfoLevel::Table(table.into()))
     }
 }
 
 /// Information statement builder
-pub struct InfoStatement(InfoLevel);
+pub struct InfoStatement {
+    level: InfoLevel,
+    structure: bool,
+}
+
+impl InfoStatement {
+    fn new(level: InfoLevel) -> Self {
+        Self {
+            level,
+            structure: false,
+        }
+    }
+
+    /// Returns each definition as an object of its properties (`STRUCTURE`) instead of its
+    /// `DEFINE` statement.
+    ///
+    /// ```rust
+    /// use umbriel::{*, statements::info_for};
+    /// assert_eq!(info_for().database().structure().to_debug_sql(), "INFO FOR DB STRUCTURE;");
+    /// assert_eq!(
+    ///     info_for().table("person").structure().to_debug_sql(),
+    ///     "INFO FOR TABLE person STRUCTURE;"
+    /// );
+    /// ```
+    pub fn structure(mut self) -> Self {
+        self.structure = true;
+        self
+    }
+}
 
 impl Statement for InfoStatement {
     fn render_body(&self, out: &mut Renderer) {
-        match &self.0 {
+        match &self.level {
             InfoLevel::Root => {
                 out.push_str("INFO FOR ROOT");
             }
@@ -76,6 +104,9 @@ impl Statement for InfoStatement {
             InfoLevel::Table(table) => {
                 out.push_str("INFO FOR TABLE ").push(table);
             }
+        }
+        if self.structure {
+            out.push_str(" STRUCTURE");
         }
     }
 }
