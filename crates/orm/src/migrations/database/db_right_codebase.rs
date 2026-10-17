@@ -1,104 +1,48 @@
 use std::ops::Deref;
 
-use crate::{statements::begin_transaction, *};
+use crate::{DbResources, Raw, Runnable, statements::begin_transaction};
 
 use crate::migrations::*;
 
-pub enum By {
-    NewName(Field),
-    OldName(Field),
-}
-
-// Represents connection/db instance for the codebase
+/// The generator's database holding the codebase's schema.
 #[derive(Debug, Clone)]
-pub struct RightDatabase(pub MigratorDatabase);
+pub struct RightDatabase(
+    /// The scratch database.
+    pub MigratorDatabase,
+);
 
 impl RightDatabase {
-    pub async fn resources(&self) -> RightFullDbInfo {
-        // TODO: log the error also
-        RightFullDbInfo(self.0.get_all_resources().await.expect(
-            "Something went wrong getting resources for the codebase. Please check your connection to the database.",
-        ))
-    }
-
+    /// Applies the migration history table and the codebase's definitions in one transaction.
     pub async fn run_codebase_schema_queries(
         &self,
         code_resources: &impl DbResources,
         migration_type: MigrationFlag,
     ) -> MigrationResult<()> {
-        let migration_meta_table_def = Raw::inline(&Migration::define_table());
-        let migration_meta_table_fields_def = Migration::define_fields(migration_type)
-            .iter()
-            .map(Raw::as_str)
-            .collect::<Vec<_>>()
-            .join("\n");
-        let queries = Self::get_codebase_schema_queries(code_resources);
-        let queries =
-            format!("{migration_meta_table_def}\n{migration_meta_table_fields_def}\n{queries}");
-
-        if !queries.is_empty() {
-            begin_transaction()
-                .query(Raw::new(queries))
-                .commit_transaction()
-                .run(self.db())
-                .await
-                .expect("Something went wrong running the codebase schema queries");
+        let mut transaction = begin_transaction().query(Migration::define_table());
+        for definition in Migration::define_fields(migration_type)
+            .into_iter()
+            .chain(Self::get_codebase_schema_queries(code_resources))
+        {
+            transaction = transaction.query(definition);
         }
-
+        transaction.commit_transaction().run(self.db()).await?;
         Ok(())
     }
 
-    pub fn find_field_with_oldname_attr(
-        table: Table,
-        field_name: Field,
-        resources: impl DbResources,
-    ) -> Option<FieldMetadata> {
-        resources
-            .tables_fields_meta()
-            .get(&table)
-            .unwrap_or(&vec![])
-            .clone()
-            .into_iter()
-            .find(|f| f.name.to_debug_sql() == field_name.to_debug_sql() && f.old_name.is_some())
-    }
-
-    pub fn find_field_has_old_name(
-        resources: &impl DbResources,
-        table: &Table,
-        by: By,
-    ) -> Option<FieldMetadata> {
-        resources
-            .tables_fields_meta()
-            .get(table)
-            .unwrap_or(&vec![])
-            .clone()
-            .into_iter()
-            .filter(|field_meta| field_meta.old_name.clone().is_some_and(|o| !o.is_empty()))
-            .find(|f| match &by {
-                By::NewName(new_name) => f.name.to_debug_sql() == new_name.to_debug_sql(),
-                By::OldName(old_name) => f
-                    .old_name
-                    .as_ref()
-                    .is_some_and(|n| n.to_debug_sql() == old_name.to_debug_sql()),
-            })
-    }
-
-    pub fn get_codebase_schema_queries(db_resources: &impl DbResources) -> String {
-        let queries_joined = [
-            db_resources.tokens(),
-            db_resources.scopes(),
+    /// The codebase's definitions in creation order, so each one's prerequisites exist when it
+    /// runs: an analyzer may use a function, and an index an analyzer.
+    pub fn get_codebase_schema_queries(db_resources: &impl DbResources) -> Vec<Raw> {
+        [
+            db_resources.functions(),
             db_resources.analyzers(),
             db_resources.params(),
-            db_resources.functions(),
+            db_resources.accesses(),
             db_resources.users(),
             db_resources.tables(),
         ]
-        .iter()
-        .flat_map(|res_raw| res_raw.iter().map(Raw::as_str))
-        .collect::<Vec<_>>()
-        .join(";\n");
-
-        queries_joined
+        .into_iter()
+        .flatten()
+        .collect()
     }
 }
 

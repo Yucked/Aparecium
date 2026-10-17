@@ -1,7 +1,5 @@
 use crate::migrations::*;
 
-use crate::Runnable;
-use crate::statements::info_for;
 use clap::Args;
 use typed_builder::TypedBuilder;
 
@@ -17,11 +15,13 @@ pub struct Up {
 }
 
 impl Up {
+    /// How far to apply pending migrations.
     pub fn update_strategy(&self) -> UpdateStrategy {
         UpdateStrategy::from(&self.fast_forward)
     }
 }
 
+/// The arguments for applying pending migrations; at most one is given, and none means all.
 #[derive(Args, Debug, Clone, TypedBuilder)]
 #[group(required = false, multiple = false)]
 pub struct FastForwardDelta {
@@ -56,17 +56,13 @@ impl Default for FastForwardDelta {
     }
 }
 
+/// How far to apply pending migrations.
 pub enum UpdateStrategy {
-    // Default
-    // cargo run -- up
-    // cargo run -- up --latest
-    // cargo run -- up -l
+    /// Every pending migration (`up`, `up --latest`); the default.
     Latest,
-    // cargo run -- up --number 34
-    // cargo run -- up -n 34
+    /// This many pending migrations (`up --number 3`).
     Number(u32),
-    // cargo run -- up --till 234y3498349304
-    // cargo run -- up -t 234y3498349304
+    /// Pending migrations up to and including this one (`up --till <file name>`).
     Till(MigrationFilename),
 }
 
@@ -85,6 +81,12 @@ impl From<&FastForwardDelta> for UpdateStrategy {
 }
 
 impl Up {
+    /// Applies pending migrations, each in its own transaction: when one fails, those before it
+    /// stay applied (see [`MigrationRunner`]).
+    ///
+    /// # Panics
+    ///
+    /// If the migration type cannot be detected or applying fails.
     pub async fn run(&self, cli: &mut Migrator) {
         cli.setup_db().await;
         let file_manager = cli.file_manager();
@@ -123,12 +125,10 @@ impl Up {
             }
         };
 
-        let info = info_for().database().get_data::<DbInfo>(db.clone()).await;
-        if let Err(ref e) = info {
-            log::error!("Failed to get db info: {e}");
-        }
-
         log::info!("Successfully ran migrations");
-        log::info!("Database: {:?}", info);
+        match Schema::inspect(&db).await {
+            Ok(schema) => log::info!("Database: {schema:?}"),
+            Err(e) => log::error!("Failed to inspect the database schema: {e}"),
+        }
     }
 }

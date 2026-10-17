@@ -19,6 +19,12 @@ pub struct Generate {
 }
 
 impl Generate {
+    /// Generates a migration from the difference between the migration directory and the
+    /// codebase's resources, and applies it if asked.
+    ///
+    /// # Panics
+    ///
+    /// If the migration type cannot be detected or generation fails.
     pub async fn run(
         &self,
         cli: &mut Migrator,
@@ -38,7 +44,7 @@ impl Generate {
                     .await;
                 if let Err(e) = generated {
                     log::error!("Failed to generate migrations: {e}");
-                    panic!("Failed to generate migrations");
+                    panic!("Failed to generate migrations: {e}");
                 }
             }
             Ok(MigrationFlag::OneWay) => {
@@ -49,7 +55,7 @@ impl Generate {
 
                 if let Err(e) = generated {
                     log::error!("Failed to generate migrations: {e}");
-                    panic!("Failed to generate migrations");
+                    panic!("Failed to generate migrations: {e}");
                 }
             }
             Err(e) => {

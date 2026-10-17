@@ -1,4 +1,5 @@
 mod arg_parser;
+/// The database connection arguments.
 pub mod config;
 mod down;
 mod generate;
@@ -69,19 +70,27 @@ pub struct Migrator {
 }
 
 impl Migrator {
+    /// How closely migration files are checked against the history.
     pub fn mode(&self) -> Mode {
         self.mode
     }
 
+    /// The connected database.
+    ///
+    /// # Panics
+    ///
+    /// If the connection has not been set up.
     pub fn db(&self) -> Surreal<Any> {
         self.db_connection.db().expect("Failed to get db")
     }
 
+    /// Sets the subcommand to run.
     pub fn set_cmd(&mut self, cmd: SubCommand) -> &mut Self {
         self.subcmd = Some(cmd);
         self
     }
 
+    /// The migration configuration from the directory and mode arguments.
     pub fn file_manager(&self) -> MigrationConfig {
         let fm_init = MigrationConfig::builder()
             .custom_path(self.dir.clone())
@@ -107,6 +116,8 @@ impl Migrator {
         cli.run_fn(codebase_resources, RealPrompter).await;
     }
 
+    /// Runs the command line from the process arguments, answering prompts with a
+    /// [`MockPrompter`] that allows empty migrations and renames replaced fields.
     pub async fn run_test_main(codebase_resources: impl DbResources) {
         let mut cli = Self::parse();
         cli.setup_logging();
@@ -120,6 +131,12 @@ impl Migrator {
         .await;
     }
 
+    /// Runs the configured subcommand, `up` when none is set, answering prompts with `prompter`.
+    ///
+    /// # Panics
+    ///
+    /// If `init`, `generate` or `reset` runs without `codebase_resources`, or the subcommand
+    /// fails.
     pub async fn run_test(
         &mut self,
         codebase_resources: Option<impl DbResources>,
@@ -165,6 +182,12 @@ impl Migrator {
             },
         };
     }
+
+    /// Runs the configured subcommand, `up` when none is set.
+    ///
+    /// # Panics
+    ///
+    /// If the subcommand fails.
     pub async fn run_fn(&mut self, codebase_resources: impl DbResources, prompter: impl Prompter) {
         match self.subcmd.clone() {
             None => {
@@ -194,10 +217,15 @@ impl Migrator {
             _ => "trace",
         };
 
-        std::env::set_var("RUST_LOG", log_level);
-        pretty_env_logger::init();
+        // The level is passed to the logger directly: setting `RUST_LOG` mutates the process
+        // environment, which is `unsafe` since edition 2024. A logger already installed, by the
+        // application or an earlier run, is kept.
+        let _ = pretty_env_logger::formatted_builder()
+            .parse_filters(log_level)
+            .try_init();
     }
 
+    /// Connects to the database unless already connected.
     pub async fn setup_db(&mut self) {
         if self.db_connection.db_connection.is_none() {
             self.db_connection.setup().await;

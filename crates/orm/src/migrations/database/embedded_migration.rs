@@ -34,6 +34,7 @@ impl<D> Clone for EmbeddedMigrations<D> {
 impl<D> Copy for EmbeddedMigrations<D> {}
 
 impl<D> EmbeddedMigrations<D> {
+    /// Wraps embedded files listed in file name order.
     pub const fn new(files: &'static [FileMetadataStatic]) -> Self {
         Self {
             files,
@@ -52,10 +53,14 @@ impl<D> EmbeddedMigrations<D> {
     }
 }
 
+/// Embedded one-way migrations.
 pub type EmbeddedMigrationsOneWay = EmbeddedMigrations<OneWay>;
+/// Embedded two-way migrations.
 pub type EmbeddedMigrationsTwoWay = EmbeddedMigrations<TwoWay>;
 
 impl EmbeddedMigrationsOneWay {
+    /// Applies the pending embedded migrations as far as `update_strategy` says, each in its own
+    /// transaction (see [`MigrationRunner`](crate::migrations::MigrationRunner)).
     pub async fn run(
         self,
         db: Surreal<Any>,
@@ -70,6 +75,7 @@ impl EmbeddedMigrationsOneWay {
         Ok(())
     }
 
+    /// The embedded files as one-way migrations; a two-way file name is an error.
     pub fn to_migrations_one_way(&self) -> MigrationResult<Vec<MigrationFileOneWay>> {
         self.files
             .iter()
@@ -87,6 +93,8 @@ impl EmbeddedMigrationsOneWay {
 }
 
 impl EmbeddedMigrationsTwoWay {
+    /// Applies the pending embedded migrations as far as `update_strategy` says, each in its own
+    /// transaction (see [`MigrationRunner`](crate::migrations::MigrationRunner)).
     pub async fn run(
         self,
         db: Surreal<Any>,
@@ -140,8 +148,11 @@ impl EmbeddedMigrationsTwoWay {
     }
 }
 
+/// An embedded migration file.
 #[derive(Clone, Debug)]
 pub struct FileMetadataStatic {
+    /// The file's name.
     pub name: &'static str,
+    /// The file's content.
     pub content: &'static str,
 }

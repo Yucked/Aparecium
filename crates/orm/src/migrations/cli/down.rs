@@ -19,11 +19,13 @@ pub struct Down {
 }
 
 impl Down {
+    /// How far to roll back.
     pub fn rollback_strategy(&self) -> RollbackStrategy {
         RollbackStrategy::from(&self.strategy)
     }
 }
 
+/// The rollback arguments; at most one is given, and none means the previous migration.
 #[derive(Args, Debug, Clone, TypedBuilder)]
 #[group(required = false, multiple = false)]
 pub struct RollbackStrategyStruct {
@@ -58,16 +60,13 @@ impl Default for RollbackStrategyStruct {
     }
 }
 
+/// How far to roll back.
 pub enum RollbackStrategy {
-    // Default
-    // cargo run -- down
-    // cargo run -- down -n 1
+    /// The latest applied migration (`down`, `down --previous`); the default.
     Previous,
-    // cargo run -- down -number 34
-    // cargo run -- down -n 34
+    /// This many applied migrations (`down --number 3`).
     Number(u32),
-    // cargo run -- down -till 234y3498349304
-    // cargo run -- down -t 234y3498349304
+    /// Every migration applied after this one (`down --till <file name>`).
     Till(MigrationFilename),
 }
 
@@ -86,6 +85,13 @@ impl From<&RollbackStrategyStruct> for RollbackStrategy {
 }
 
 impl Down {
+    /// Rolls back two-way migrations, each in its own transaction, then prunes their files if
+    /// asked. When one fails, those rolled back before it stay rolled back (see
+    /// [`MigrationRunner`]).
+    ///
+    /// # Panics
+    ///
+    /// If the migrations are one-way or the rollback fails.
     pub async fn run(&self, cli: &mut Migrator) {
         cli.setup_db().await;
         let file_manager = cli.file_manager();

@@ -15,63 +15,68 @@ struct FileManager {}
 
 impl FileManager {}
 
+/// Where the migration files are and how they are checked.
 #[derive(Debug, Clone, Default, TypedBuilder)]
 pub struct MigrationConfig {
-    // pub migration_name: String,
+    /// How closely migration files are checked against the history.
     pub mode: Mode,
-    /// Default path is 'migrations' ralative to the nearest project root where
-    /// cargo.toml is defined
+    /// The migration directory relative to `CARGO_MANIFEST_DIR`; `migrations` by default.
     pub custom_path: Option<PathBuf>,
-    // This is optional because, we cannot infer
-    // the migration type from the migration directory
-    // before initializing the migration directory.
-    // Before init => None,
-    // After init => Some(MigrationFlag)
+    /// Whether migrations are one-way or two-way. `None` until known: the directory cannot tell
+    /// before it is initialized.
     #[builder(default)]
     pub migration_flag: Option<MigrationFlag>,
 }
 
 impl MigrationConfig {
+    /// Strict mode, the default directory and no migration type.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Sets the migration type.
     pub fn set_flag(mut self, flag: MigrationFlag) -> Self {
         self.migration_flag = Some(flag);
         self
     }
 
+    /// The migration type, or an error when it is not set.
     pub fn migration_flag_checked(&self) -> MigrationResult<MigrationFlag> {
         self.migration_flag
             .ok_or(MigrationError::MigrationFlagNotSet)
     }
 
+    /// Sets the mode.
     pub fn set_mode(mut self, mode: Mode) -> Self {
         self.mode = mode;
         self
     }
 
+    /// The mode.
     pub fn mode(&self) -> Mode {
         self.mode
     }
 
+    /// Switches to strict mode.
     pub fn make_strict(mut self) -> Self {
         self.mode = Mode::Strict;
         self
     }
 
+    /// Switches to lax mode.
     pub fn relax(mut self) -> Self {
         self.mode = Mode::Lax;
         self
     }
 
-    /// Default path is 'migrations' ralative to the nearest project root where
+    /// Sets the migration directory, relative to `CARGO_MANIFEST_DIR`.
     pub fn set_custom_path(mut self, custom_path: impl Into<PathBuf>) -> Self {
         let custom_path = custom_path.into();
         self.custom_path = Some(custom_path);
         self
     }
 
+    /// Manages one-way migrations with this configuration.
     pub fn one_way(&self) -> FileManagerUni {
         let mut config = self.clone();
         config.migration_flag = Some(MigrationFlag::OneWay);
@@ -79,6 +84,7 @@ impl MigrationConfig {
         FileManagerUni::new(config)
     }
 
+    /// Manages two-way migrations with this configuration.
     pub fn two_way(&self) -> FileManagerBi {
         let mut config = self.clone();
         config.migration_flag = Some(MigrationFlag::TwoWay);
@@ -86,10 +92,12 @@ impl MigrationConfig {
         FileManagerBi::new(config)
     }
 
+    /// The migration directory, created if missing.
     pub fn get_migration_dir_create_if_none(&self) -> MigrationResult<PathBuf> {
         self.resolve_migration_directory(true)
     }
 
+    /// The migration type from the directory's files; an error unless all are of one type.
     pub fn detect_migration_type(&self) -> MigrationResult<MigrationFlag> {
         let filenames = self.get_migrations_filenames(false)?;
         let oneway = filenames.unidirectional();
@@ -105,10 +113,12 @@ impl MigrationConfig {
         }
     }
 
+    /// Whether the migration directory has no migrations yet.
     pub fn is_first_migration(&self) -> MigrationResult<bool> {
         Ok(self.get_migrations_filenames(false)?.all().is_empty())
     }
 
+    /// The migration directory, which must exist.
     pub fn get_migration_dir(&self) -> MigrationResult<PathBuf> {
         self.resolve_migration_directory(false)
     }
@@ -139,6 +149,7 @@ impl MigrationConfig {
         }
     }
 
+    /// The migration directory's file names, sorted.
     pub fn get_migrations_filenames(
         &self,
         create_dir_if_not_exists: bool,
@@ -164,14 +175,10 @@ impl MigrationConfig {
                     "Failed to read migration directory: {migration_dir_path_str}. Error: {e}"
                 ))
             })?;
-            let path = migration.path();
-            let filename: MigrationFilename = path
-                .components()
-                .last()
-                .expect("Problem reading migration name")
-                .as_os_str()
+            let filename: MigrationFilename = migration
+                .file_name()
                 .to_string_lossy()
-                .to_string()
+                .into_owned()
                 .try_into()?;
 
             filenames.push(filename);
@@ -181,7 +188,7 @@ impl MigrationConfig {
         Ok(filenames.into())
     }
 
-    // Validate
+    /// The two-way migrations, oldest first.
     pub fn get_two_way_migrations_sorted_asc(
         &self,
         create_dir_if_not_exists: bool,
@@ -193,6 +200,7 @@ impl MigrationConfig {
             .collect::<Vec<_>>())
     }
 
+    /// The two-way migrations, newest first.
     pub fn get_two_way_migrations_sorted_desc(
         &self,
         create_dir_if_not_exists: bool,
@@ -201,6 +209,7 @@ impl MigrationConfig {
             .bidirectional_pair_meta_sorted_desc_checked(&self.resolve_migration_directory(false)?)
     }
 
+    /// The one-way migrations, oldest first.
     pub fn get_oneway_migrations_sorted_asc(
         &self,
         create_dir_if_not_exists: bool,
@@ -210,6 +219,7 @@ impl MigrationConfig {
     }
 }
 
+/// Generates, applies and lists one-way migrations.
 #[derive(Debug, Clone)]
 pub struct FileManagerUni(MigrationConfig);
 
@@ -226,6 +236,7 @@ impl FileManagerUni {
         Self(file_manager)
     }
 
+    /// The migrations, oldest first.
     pub fn get_migrations(&self) -> MigrationResult<Vec<MigrationFileOneWay>> {
         self.0.get_oneway_migrations_sorted_asc(false)
     }
@@ -247,8 +258,8 @@ impl FileManagerUni {
         Ok(())
     }
 
-    /// Runs migrations at runtime against a database
-    /// Make sure the migration directory exists when running migrations
+    /// Applies the directory's pending migrations to `db`, each in its own transaction (see
+    /// [`MigrationRunner`]). The migration directory must exist.
     pub async fn run_pending_migrations(
         &self,
         db: Surreal<impl Connection>,
@@ -260,6 +271,8 @@ impl FileManagerUni {
         Ok(())
     }
 
+    /// Applies pending embedded migrations, each in its own transaction (see
+    /// [`MigrationRunner`]).
     pub async fn run_embedded_pending_migrations(
         &self,
         db: Surreal<impl Connection>,
@@ -292,6 +305,7 @@ impl FileManagerUni {
     }
 }
 
+/// Generates, applies, rolls back and lists two-way migrations.
 #[derive(Debug, Clone)]
 pub struct FileManagerBi(MigrationConfig);
 
@@ -334,7 +348,8 @@ impl FileManagerBi {
         .await
     }
 
-    /// Make sure the migration directory exists when running migrations
+    /// Applies the directory's pending migrations to `db`, each in its own transaction (see
+    /// [`MigrationRunner`]). The migration directory must exist.
     pub async fn run_up_pending_migrations(
         &self,
         db: Surreal<impl Connection>,
@@ -346,7 +361,8 @@ impl FileManagerBi {
         Ok(())
     }
 
-    /// For running embedded migrations
+    /// Applies pending embedded migrations, each in its own transaction (see
+    /// [`MigrationRunner`]).
     pub async fn run_up_embedded_pending_migrations(
         &self,
         db: Surreal<impl Connection>,
@@ -359,7 +375,8 @@ impl FileManagerBi {
         Ok(())
     }
 
-    /// Rollback migration using various strategies
+    /// Rolls back migrations as `rollback_options` says, each in its own transaction (see
+    /// [`MigrationRunner`]).
     pub async fn run_down_migrations(
         &self,
         db: Surreal<Any>,

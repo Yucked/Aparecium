@@ -4,10 +4,14 @@ use typed_builder::TypedBuilder;
 
 use crate::migrations::*;
 
+/// Which migrations to list.
 #[derive(ValueEnum, Clone, Copy, Debug)]
 pub enum Status {
+    /// Recorded in the history.
     Applied,
+    /// Not yet applied.
     Pending,
+    /// Every migration file.
     All,
 }
 
@@ -35,6 +39,7 @@ pub struct List {
 }
 
 impl List {
+    /// Logs the migrations with the requested status.
     pub async fn run(&self, cli: &mut Migrator) {
         cli.setup_db().await;
         let db = cli.db().clone();
@@ -86,7 +91,7 @@ impl List {
                 }
             }
             Err(e) => {
-                log::error!("Failed to detect migration type: {}", e.to_string());
+                log::error!("Failed to detect migration type: {e}");
             }
         };
     }

@@ -1,8 +1,7 @@
 use clap::Args;
 use std::fmt::Display;
 use std::str::FromStr;
-use surrealdb::dbs::Capabilities;
-use surrealdb::opt::{Config, WaitFor};
+use surrealdb::opt::{Config, WaitFor, capabilities::Capabilities};
 use typed_builder::TypedBuilder;
 
 use surrealdb::engine::any::{Any, connect};
@@ -10,9 +9,12 @@ use surrealdb::engine::any::{Any, connect};
 use surrealdb::Surreal;
 use surrealdb::opt::auth::{Database, Root};
 
+/// Where the database is: the in-memory engine or a URL.
 #[derive(Clone, Debug)]
 pub enum UrlDb {
+    /// The in-memory engine, written `memory`.
     Memory,
+    /// Any other endpoint, such as `ws://localhost:8000`.
     Others(String),
 }
 
@@ -39,6 +41,7 @@ impl FromStr for UrlDb {
     }
 }
 
+/// The database the command line connects to and its credentials.
 #[derive(Args, Debug, Clone, TypedBuilder)]
 pub struct DatabaseConnection {
     /// URL or path to connect to a database instance. Supports various backends.
@@ -104,48 +107,46 @@ pub struct DatabaseConnection {
 }
 
 impl DatabaseConnection {
+    /// Connects, signs in, and selects the namespace and database. The in-memory engine is
+    /// started with the credentials as its root user; a server is signed in to as a database
+    /// user.
+    ///
+    /// # Panics
+    ///
+    /// If connecting, signing in or selecting the namespace and database fails.
     pub async fn setup(&mut self) -> &mut Self {
-        let cli_db_url = &self.url;
-        let database = self.db.clone();
-        let database = database.as_str();
-        let namespace = self.ns.clone();
-        let namespace = namespace.as_str();
-        let username = self.user.clone();
-        let username = username.as_str();
-        let password = self.pass.clone();
-        let password = password.as_str();
-        let config = Config::new().capabilities(Capabilities::all());
+        let root = Root {
+            username: self.user.clone(),
+            password: self.pass.clone(),
+        };
+        let mut config = Config::new().capabilities(Capabilities::all());
+        if let UrlDb::Memory = self.url {
+            config = config.user(root.clone());
+        }
 
-        let config = match cli_db_url {
-            UrlDb::Memory => {
-                let creds = Root { username, password };
-                config.user(creds)
+        let db_instance = connect((self.url.to_string(), config))
+            .await
+            .expect("Failed to connect");
+
+        match self.url {
+            UrlDb::Memory => db_instance.signin(root).await,
+            UrlDb::Others(_) => {
+                db_instance
+                    .signin(Database {
+                        namespace: self.ns.clone(),
+                        database: self.db.clone(),
+                        username: self.user.clone(),
+                        password: self.pass.clone(),
+                    })
+                    .await
             }
-            UrlDb::Others(_s) => config,
-        };
-
-        let db_instance = connect((cli_db_url.to_string(), config)).await.unwrap();
-
-        let db_creds = Database {
-            username,
-            password,
-            database,
-            namespace,
-        };
-
-        // TODO: Support scope signin
+        }
+        .expect("Failed to signin");
         db_instance
-            .signin(db_creds)
+            .use_ns(self.ns.as_str())
+            .use_db(self.db.as_str())
             .await
-            .expect("Failed to signin");
-        db_instance
-            .use_db(self.clone().db)
-            .await
-            .expect("Failed to use db");
-        db_instance
-            .use_ns(self.clone().ns)
-            .await
-            .expect("Failed to use ns");
+            .expect("Failed to use the namespace and database");
 
         db_instance.wait_for(WaitFor::Connection).await;
         self.db_connection = Some(db_instance);
@@ -153,6 +154,7 @@ impl DatabaseConnection {
         self
     }
 
+    /// The connection, once [`setup`](Self::setup) has run.
     pub fn db(&self) -> Option<Surreal<Any>> {
         self.db_connection.clone()
     }

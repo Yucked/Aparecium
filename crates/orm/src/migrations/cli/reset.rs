@@ -30,53 +30,59 @@ pub struct Reset {
 }
 
 impl Reset {
+    /// Whether the reinitialized migrations are two-way.
     pub fn reversible(&self) -> bool {
         self.reversible
     }
 
+    /// Replaces the migration directory's files with a first migration generated like `init`'s,
+    /// and applies it if asked. The migration is generated before anything is deleted, so one
+    /// that cannot be generated, e.g. for a redacted secret, leaves the existing files in place.
+    ///
+    /// # Panics
+    ///
+    /// If generation fails or the directory cannot be recreated.
     pub async fn run(
         &self,
         cli: &mut Migrator,
         codebase_resources: impl DbResources,
         prompter: impl Prompter,
     ) {
-        let file_manager = cli.file_manager();
-        let dir = file_manager.get_migration_dir_create_if_none();
+        let file_manager = cli
+            .file_manager()
+            .set_flag(MigrationFlag::from(self.reversible));
+        let migration = MigratorDatabase::first_migration(
+            &self.name,
+            &file_manager,
+            codebase_resources,
+            prompter,
+        )
+        .await
+        .unwrap_or_else(|e| {
+            log::error!("Failed to generate migrations: {e}");
+            panic!("Failed to generate migrations: {e}");
+        });
 
-        match dir {
-            Ok(dir) => {
-                if dir.exists() {
-                    let removed = fs::remove_dir_all(&dir);
-                    if let Err(e) = removed {
-                        log::error!("Failed to remove dir: {e}");
-                        panic!();
-                    } else {
-                        fs::create_dir(&dir).expect("Problem creating migration directory");
-                        log::info!("Migration directory recreated.");
-                    }
-                } else {
-                    fs::create_dir(dir).expect("Problem creating migration directory");
-                    log::info!("Migration directory recreated.");
-                }
-            }
-            Err(e) => {
-                log::error!("Failed to get migration dir: {e}");
-                panic!();
-            }
-        };
+        let replaced = file_manager
+            .get_migration_dir_create_if_none()
+            .and_then(|dir| {
+                fs::remove_dir_all(&dir)
+                    .and_then(|()| fs::create_dir(&dir))
+                    .map_err(|e| MigrationError::IoError(e.to_string()))
+            })
+            .and_then(|()| migration.create_file(&file_manager));
+        if let Err(e) = replaced {
+            log::error!("Failed to replace the migrations: {e}");
+            panic!("Failed to replace the migrations: {e}");
+        }
+        log::info!("Migration directory recreated.");
 
-        self.init_command()
-            .run(cli, codebase_resources, prompter)
-            .await;
+        if self.run {
+            cli.setup_db().await;
+            log::info!("Running initial migrations");
+            Up::default().run(cli).await;
+        }
 
         log::info!("Reset successful");
-    }
-
-    fn init_command(&self) -> Init {
-        Init {
-            name: self.name.clone(),
-            run: self.run,
-            reversible: self.reversible,
-        }
     }
 }

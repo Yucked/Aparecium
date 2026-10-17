@@ -1,13 +1,16 @@
 use std::ops::Deref;
 
-use crate::{statements::begin_transaction, *};
 use surrealdb::{Connection, Surreal};
 
+use super::db_runner::run_transaction;
 use crate::migrations::*;
 
-// For the migration directory
+/// The scratch database the migration directory is replayed into, the left side of a diff.
 #[derive(Debug, Clone)]
-pub struct LeftDatabase(pub MigratorDatabase);
+pub struct LeftDatabase(
+    /// The scratch database.
+    pub MigratorDatabase,
+);
 
 impl Deref for LeftDatabase {
     type Target = MigratorDatabase;
@@ -18,80 +21,38 @@ impl Deref for LeftDatabase {
 }
 
 impl LeftDatabase {
-    pub async fn resources(&self) -> LeftFullDbInfo {
-        LeftFullDbInfo(
-            self.0.get_all_resources().await.expect(
-                "Something went wrong getting all resources info about local migration files.",
-            ),
-        )
-    }
-
+    /// Applies every two-way migration's up file in order, each in its own transaction.
     pub async fn run_twoway_up_migrations(
         &self,
         file_manager: &MigrationConfig,
         create_migration_table: bool,
     ) -> MigrationResult<()> {
-        let all_migrations =
-            file_manager.get_two_way_migrations_sorted_asc(create_migration_table)?;
-
-        let queries = all_migrations
-            .iter()
-            .map(|m: &MigrationFileTwoWayPair| m.up.content.to_string())
-            .collect::<Vec<_>>()
-            .join("\n");
-
-        // Run them as a transaction against a local in-memory database
-        if !queries.trim().is_empty() {
-            begin_transaction()
-                .query(Raw::new(queries))
-                .commit_transaction()
-                .run(self.db())
-                .await?;
+        for migration in file_manager.get_two_way_migrations_sorted_asc(create_migration_table)? {
+            run_transaction(self.db(), migration.up.content.to_string()).await?;
         }
         Ok(())
     }
 
+    /// Applies `migrations` to `db` in order, each in its own transaction.
     pub async fn run_local_dir_oneway_content_migrations<C: Connection>(
         db: Surreal<C>,
         migrations: Vec<MigrationFileOneWay>,
     ) -> MigrationResult<()> {
-        let queries = migrations
-            .iter()
-            .map(|m| m.content().to_string())
-            .collect::<Vec<_>>()
-            .join("\n");
-
-        log::info!("Running queries: {}", queries);
-
-        // Run them as a transaction against a local in-memory database
-        if !queries.trim().is_empty() {
-            begin_transaction()
-                .query(Raw::new(queries))
-                .commit_transaction()
-                .run(db)
-                .await?;
+        for migration in migrations {
+            log::info!("Running migration: {}", migration.name());
+            run_transaction(db.clone(), migration.content().to_string()).await?;
         }
         Ok(())
     }
+
+    /// Applies every one-way migration in order, each in its own transaction.
     pub async fn run_oneway_migrations(
         &self,
         fm: &MigrationConfig,
         create_migration_table: bool,
     ) -> MigrationResult<&Self> {
-        let all_migrations = fm.get_oneway_migrations_sorted_asc(create_migration_table)?;
-        let queries = all_migrations
-            .into_iter()
-            .map(|m| m.content().to_string())
-            .collect::<Vec<_>>()
-            .join("\n");
-
-        // Run them as a transaction against a local in-memory database
-        if !queries.trim().is_empty() {
-            begin_transaction()
-                .query(Raw::new(queries))
-                .commit_transaction()
-                .run(self.db())
-                .await?;
+        for migration in fm.get_oneway_migrations_sorted_asc(create_migration_table)? {
+            run_transaction(self.db(), migration.content().to_string()).await?;
         }
         Ok(self)
     }
